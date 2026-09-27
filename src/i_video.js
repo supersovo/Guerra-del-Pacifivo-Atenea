@@ -30,7 +30,16 @@ function I_InitGraphics(canvas) {
 // Calcula el tamaño del framebuffer según el detalle y la forma de la ventana.
 function I_ComputeScreenSize() {
   const S = defaults.detailLevel ? 2 : 1;
-  const vw = Math.max(1, window.innerWidth), vh = Math.max(1, window.innerHeight);
+  // Espacio disponible: la caja de contenido del contenedor (respeta su
+  // relleno) o, sin contenedor, la ventana completa.
+  let vw = window.innerWidth, vh = window.innerHeight;
+  const host = I_canvas.parentElement;
+  if (host && host !== document.body) {
+    const cs = window.getComputedStyle(host);
+    vw = host.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
+    vh = host.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom);
+  }
+  vw = Math.max(1, vw); vh = Math.max(1, vh);
   let baseW = 320;
   if (defaults.widescreen) {
     const aspect = vw / vh;
