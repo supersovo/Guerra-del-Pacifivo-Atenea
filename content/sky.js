@@ -1,17 +1,21 @@
 // =============================================================================
-// sky.js — Cielos panorámicos (360 grados, 1024 columnas x 200 filas)
+// sky.js — Cielos panorámicos (360 grados, 2048 columnas x 400 filas)
 // -----------------------------------------------------------------------------
-// La columna c corresponde al rumbo c/1024*360 grados (0 = este, 90 = norte,
+// La columna c corresponde al rumbo c/2048*360 grados (0 = este, 90 = norte,
 // 180 = oeste, 270 = sur), de modo que el Pacífico queda siempre al poniente y
 // la cordillera de los Andes al oriente, como en la costa de Tarapacá y Arica.
-// La fila 150 es el horizonte.
+// Se diseñan en "filas lógicas" de 0 a 200 (horizonte en la 150) y se
+// rasterizan con SKY_R texeles por fila (doble resolución para pantallas
+// grandes); el renderizador lee la densidad en textures[...].density.
 //   CIELO1 — Pisagua, mañana del 2 de noviembre de 1879: humo del bombardeo.
 //   CIELO2 — Dolores, tarde del 19 de noviembre de 1879: polvo y Andes.
 //   CIELO3 — Arica, amanecer del 7 de junio de 1880: alba sobre el Morro.
 // =============================================================================
 'use strict';
 
-const SKY_W = 1024, SKY_H = 200, SKY_HORIZON = 150;
+const SKY_R = 2;
+const SKY_W = 1024 * SKY_R, SKY_H = 200 * SKY_R, SKY_HORIZON = 150 * SKY_R;
+const SKY_LH = 200, SKY_LHORIZON = 150;          // en filas lógicas
 
 function sky_angDist(a, b) {
   let d = Math.abs(a - b) % 360;
@@ -30,25 +34,30 @@ function sky_ridge(seed, deg, cells, oct) {
 }
 
 function sky_gradient(t, stops) {
-  // stops: [[fila, [r,g,b]], ...] ordenados por fila
+  // stops: [[fila lógica, [r,g,b]], ...] ordenados por fila
   for (let y = 0; y < SKY_H; y++) {
+    const ly = (y + 0.5) / SKY_R;
     let c = stops[stops.length - 1][1];
     for (let k = 0; k < stops.length - 1; k++) {
       const a = stops[k], b = stops[k + 1];
-      if (y >= a[0] && y <= b[0]) { c = tx_mix(a[1], b[1], (y - a[0]) / Math.max(1, b[0] - a[0])); break; }
-      if (y < stops[0][0]) { c = stops[0][1]; break; }
+      if (ly >= a[0] && ly <= b[0]) { c = tx_mix(a[1], b[1], (ly - a[0]) / Math.max(1, b[0] - a[0])); break; }
+      if (ly < stops[0][0]) { c = stops[0][1]; break; }
     }
     for (let x = 0; x < SKY_W; x++) tx_put(t, x, y, c);
   }
 }
 
+// Nubes entre dos filas lógicas; la cuarta octava de ruido da el detalle fino
+// que aprovecha la doble resolución.
 function sky_clouds(t, seed, rowTop, rowBot, density, light, shade, sunDeg, sunCol) {
-  for (let y = rowTop; y < rowBot; y++) {
-    const fy = (y - rowTop) / (rowBot - rowTop);
+  for (let y = rowTop * SKY_R; y < rowBot * SKY_R; y++) {
+    const ly = (y + 0.5) / SKY_R;
+    const fy = (ly - rowTop) / (rowBot - rowTop);
     for (let x = 0; x < SKY_W; x++) {
-      const n = tx_vnoise(seed, x / SKY_W * 24, y / 14, 24, 64) * 0.55 +
-                tx_vnoise(seed + 1, x / SKY_W * 64, y / 6, 64, 64) * 0.3 +
-                tx_vnoise(seed + 2, x / SKY_W * 128, y / 3, 128, 128) * 0.15;
+      const n = tx_vnoise(seed, x / SKY_W * 24, ly / 14, 24, 64) * 0.52 +
+                tx_vnoise(seed + 1, x / SKY_W * 64, ly / 6, 64, 64) * 0.28 +
+                tx_vnoise(seed + 2, x / SKY_W * 128, ly / 3, 128, 128) * 0.13 +
+                tx_vnoise(seed + 3, x / SKY_W * 320, ly / 1.3, 320, 256) * 0.07;
       const edge = Math.sin(fy * Math.PI);
       const v = n * edge - (1 - density);
       if (v > 0) {
@@ -78,10 +87,11 @@ function sky_mountains(t, seed, fromDeg, toDeg, baseH, varH, col, snowCol, hazeC
     const r = sky_ridge(seed, deg, 18, 5);
     const peak = Math.pow(sky_ridge(seed + 5, deg, 7, 3), 3);
     const hgt = (baseH + r * varH + peak * varH * 1.2) * inRange;
-    const top = SKY_HORIZON - hgt;
-    for (let y = Math.floor(top); y < SKY_HORIZON + 2; y++) {
-      const depth = (y - top) / Math.max(1, hgt);
-      let c = tx_mix(col, hazeCol, clamp(1 - depth * 0.6, 0, 1) * 0.35 + (y > SKY_HORIZON - 4 ? 0.3 : 0));
+    const top = SKY_LHORIZON - hgt;
+    for (let y = Math.floor(top * SKY_R); y < SKY_HORIZON + 2 * SKY_R; y++) {
+      const ly = (y + 0.5) / SKY_R;
+      const depth = (ly - top) / Math.max(1, hgt);
+      let c = tx_mix(col, hazeCol, clamp(1 - depth * 0.6, 0, 1) * 0.35 + (ly > SKY_LHORIZON - 4 ? 0.3 : 0));
       if (snowCol && depth < 0.18 && hgt > baseH + varH * 0.55) c = tx_mix(snowCol, c, depth / 0.18);
       // sombreado por pendiente
       const slope = sky_ridge(seed, deg + 0.6, 18, 5) - r;
@@ -98,15 +108,18 @@ function sky_belowHorizon(t, fnColorAt) {
   }
 }
 
+// Columna de humo; width y heightRows en unidades lógicas (columnas de 1024 y filas de 200).
 function sky_smoke(t, seed, deg, width, heightRows, drift) {
   const cx = deg / 360 * SKY_W;
-  for (let y = SKY_HORIZON - heightRows; y < SKY_HORIZON + 1; y++) {
-    const up = (SKY_HORIZON - y) / heightRows;          // 0 abajo, 1 arriba
-    const w = width * (0.35 + up * 1.4);
-    const off = drift * up * up * 40;
+  for (let y = (SKY_LHORIZON - heightRows) * SKY_R; y < SKY_HORIZON + SKY_R; y++) {
+    const ly = (y + 0.5) / SKY_R;
+    const up = clamp((SKY_LHORIZON - ly) / heightRows, 0, 1);   // 0 abajo, 1 arriba
+    const w = width * SKY_R * (0.35 + up * 1.4);
+    const off = drift * up * up * 40 * SKY_R;
     for (let dx = -w * 1.6; dx <= w * 1.6; dx++) {
       const x = Math.floor(cx + off + dx);
-      const n = tx_vnoise(seed, (x + SKY_W) / SKY_W * 64, y / 7, 64, 64);
+      const n = tx_vnoise(seed, (x + SKY_W) / SKY_W * 64, ly / 7, 64, 64) * 0.8 +
+                tx_vnoise(seed + 9, (x + SKY_W) / SKY_W * 192, ly / 2.5, 192, 128) * 0.2;
       const d = Math.abs(dx) / w;
       const a = clamp((1 - d) * 1.3 + (n - 0.5) * 1.2, 0, 1) * (1 - up * 0.55);
       if (a > 0.05) {
@@ -115,6 +128,12 @@ function sky_smoke(t, seed, deg, width, heightRows, drift) {
       }
     }
   }
+}
+
+// Registra el cielo como textura con su densidad (texeles por fila lógica).
+function sky_register(name, t) {
+  tx_register(name, t, 9, true);
+  W_CacheLumpName(name).density = SKY_R;
 }
 
 function SKY_BuildSkies() {
@@ -135,16 +154,16 @@ function SKY_BuildSkies() {
       if (sea) return tx_mix([150, 176, 188], [44, 92, 116], clamp(f * 3, 0, 1));
       return tx_mix([188, 176, 160], [140, 118, 94], clamp(f * 2, 0, 1));
     });
-    tx_register('CIELO1', t, 3);
+    sky_register('CIELO1', t);
   }
   // ---------------- CIELO2: Dolores ----------------
   {
     const t = tx_new(SKY_W, SKY_H);
     sky_gradient(t, [[0, [84, 124, 184]], [70, [116, 156, 206]], [128, [196, 206, 214]], [150, [236, 226, 206]]]);
     // resplandor del sol de la tarde al poniente
-    for (let y = 60; y < SKY_HORIZON; y++) for (let x = 0; x < SKY_W; x++) {
+    for (let y = 60 * SKY_R; y < SKY_HORIZON; y++) for (let x = 0; x < SKY_W; x++) {
       const deg = x / SKY_W * 360;
-      const s = Math.max(0, 1 - sky_angDist(deg, 200) / 60) * clamp((y - 60) / 90, 0, 1);
+      const s = Math.max(0, 1 - sky_angDist(deg, 200) / 60) * clamp((y / SKY_R - 60) / 90, 0, 1);
       if (s > 0) tx_blend(t, x, y, [255, 236, 190], s * 0.55);
     }
     sky_clouds(t, 3201, 84, 120, 0.36, [250, 244, 232], [196, 190, 188], 200, [255, 226, 170]);
@@ -158,17 +177,17 @@ function SKY_BuildSkies() {
     sky_belowHorizon(t, function (deg, f) {
       return tx_mix([226, 214, 186], [176, 150, 112], clamp(f * 2, 0, 1));
     });
-    tx_register('CIELO2', t, 3);
+    sky_register('CIELO2', t);
   }
   // ---------------- CIELO3: Arica al alba ----------------
   {
     const t = tx_new(SKY_W, SKY_H);
     sky_gradient(t, [[0, [16, 18, 48]], [60, [34, 36, 82]], [110, [96, 74, 128]], [140, [150, 104, 130]], [150, [176, 128, 128]]]);
     // resplandor del alba al este-noreste
-    for (let y = 40; y < SKY_HORIZON; y++) for (let x = 0; x < SKY_W; x++) {
+    for (let y = 40 * SKY_R; y < SKY_HORIZON; y++) for (let x = 0; x < SKY_W; x++) {
       const deg = x / SKY_W * 360;
       const d = sky_angDist(deg, 40);
-      const s = Math.max(0, 1 - d / 110) * Math.pow(clamp((y - 40) / 110, 0, 1), 1.4);
+      const s = Math.max(0, 1 - d / 110) * Math.pow(clamp((y / SKY_R - 40) / 110, 0, 1), 1.4);
       if (s > 0) tx_blend(t, x, y, tx_mix([255, 150, 90], [255, 220, 150], clamp(1 - d / 40, 0, 1)), s * 0.9);
       // lado del mar más oscuro
       const w = Math.max(0, 1 - sky_angDist(deg, 200) / 100) * 0.35;
@@ -176,10 +195,10 @@ function SKY_BuildSkies() {
     }
     // estrellas que se apagan al poniente
     const rng = M_SeededRNG(3301);
-    for (let i = 0; i < 260; i++) {
-      const x = Math.floor(rng() * SKY_W), y = Math.floor(rng() * 110);
+    for (let i = 0; i < 520; i++) {
+      const x = Math.floor(rng() * SKY_W), y = Math.floor(rng() * 110 * SKY_R);
       const deg = x / SKY_W * 360;
-      const fade = clamp(sky_angDist(deg, 40) / 180, 0, 1) * clamp(1 - y / 120, 0, 1);
+      const fade = clamp(sky_angDist(deg, 40) / 180, 0, 1) * clamp(1 - y / SKY_R / 120, 0, 1);
       if (fade > 0.3) tx_blend(t, x, y, [255, 250, 230], fade * (0.5 + rng() * 0.5));
     }
     // camanchaca iluminada desde abajo
@@ -191,6 +210,6 @@ function SKY_BuildSkies() {
       if (sea) return tx_mix([70, 70, 108], [16, 22, 44], clamp(f * 2.5, 0, 1));
       return tx_mix([96, 70, 80], [40, 30, 36], clamp(f * 2, 0, 1));
     });
-    tx_register('CIELO3', t, 3);
+    sky_register('CIELO3', t);
   }
 }

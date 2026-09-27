@@ -72,18 +72,20 @@ function M_Slider(label, get, set, max) {
 }
 
 const OptionsMenu = {
-  title: 'OPCIONES', big: false, x: 30, y: 44, spacing: 11, prev: MainMenu, items: [
+  title: 'OPCIONES', big: false, x: 30, y: 40, spacing: 10, prev: MainMenu, items: [
     M_Slider('Sensibilidad del ratón', function () { return defaults.mouseSensitivity; }, function (v) { defaults.mouseSensitivity = v; }, 15),
+    M_Toggle('Apuntar con el ratón', function () { return defaults.mouseLook; }, function (v) { defaults.mouseLook = v; }),
+    M_Toggle('Invertir el eje vertical', function () { return defaults.mouseInvertY; }, function (v) { defaults.mouseInvertY = v; }),
+    M_Toggle('Retícula en el centro', function () { return defaults.crosshair; }, function (v) { defaults.crosshair = v; }),
     M_Slider('Volumen de efectos', function () { return defaults.sfxVolume; }, function (v) { defaults.sfxVolume = v; I_SetSfxVolume(v); }, 15),
     M_Slider('Volumen de música', function () { return defaults.musicVolume; }, function (v) { defaults.musicVolume = v; I_SetMusicVolume(v); }, 15),
-    M_Toggle('Detalle gráfico alto (640x400)', function () { return defaults.detailLevel; }, function (v) { defaults.detailLevel = v; I_needResize = true; }),
+    M_Item('Resolución', null, { kind: 'cycle', values: ['automática', '320x200', '640x400', '960x600', '1280x800'],
+      get: function () { return clamp(defaults.resolution | 0, 0, 4); }, set: function (i) { defaults.resolution = i; I_needResize = true; } }),
     M_Toggle('Pantalla panorámica', function () { return defaults.widescreen; }, function (v) { defaults.widescreen = v; I_needResize = true; }),
     M_Toggle('Barra de estado', function () { return defaults.screenblocks === 10 ? 1 : 0; }, function (v) { defaults.screenblocks = v ? 10 : 11; R_SetViewSize(defaults.screenblocks); }),
     M_Toggle('Correr siempre', function () { return defaults.alwaysRun; }, function (v) { defaults.alwaysRun = v; }),
     M_Toggle('Movimiento fluido (interpolado)', function () { return defaults.interpolate; }, function (v) { defaults.interpolate = v; }),
-    M_Toggle('Mira en el centro', function () { return defaults.crosshair; }, function (v) { defaults.crosshair = v; }),
     M_Toggle('Mensajes en pantalla', function () { return defaults.showMessages; }, function (v) { defaults.showMessages = v; }),
-    M_Toggle('Avanzar con el ratón (clásico)', function () { return defaults.mouseMove; }, function (v) { defaults.mouseMove = v; }),
     M_Slider('Brillo', function () { return defaults.usegamma; }, function (v) { defaults.usegamma = v; I_RefreshGamma(); }, 4),
     M_Item('Controles táctiles', null, { kind: 'cycle', values: ['automático', 'sí', 'no'], get: function () { return [2, 1, 0].indexOf(defaults.touchControls); }, set: function (i) { defaults.touchControls = [2, 1, 0][i]; } }),
     M_Item('Pantalla completa', function () { I_ToggleFullscreen(); })
@@ -92,19 +94,28 @@ const OptionsMenu = {
 
 const ControlsMenu = { title: 'CONTROLES', page: true, prev: MainMenu, pages: [[
   'W A S D / flechas ....... avanzar y desplazarse',
-  'Ratón (clic para capturar) ... girar',
+  'Ratón (clic para capturar) ... girar y apuntar',
   'Clic izquierdo / Ctrl / F ... disparar',
+  'Clic derecho / Z ......... apuntar por las miras',
   'E / Espacio / Enter ....... usar (izar bandera)',
   'Mayúsculas ................ correr / caminar',
-  '1 Corvo   2 Revólver   3 Fusil Comblain',
-  '4 Gatling   5 Dinamita   Q / rueda: cambiar',
-  'Tab ....................... carta del terreno',
-  'P ......................... pausa',
-  'Esc ....................... menú',
+  '1 Corvo  2 Revólver  3 Comblain  4 Gatling',
+  '5 Dinamita    Q / rueda: cambiar de arma',
+  'RePág / AvPág / Fin ... mirar arriba, abajo, centrar',
+  'Tab: carta del terreno   P: pausa   Esc: menú'
+], [
+  '#Las miras',
+  'Mantenga el clic derecho para encarar el arma: la',
+  'vista se acerca (Comblain x1,6; Gatling x1,3;',
+  'revólver x1,25), el soldado avanza más despacio y',
+  'la dispersión del disparo es menor. Al recargar el',
+  'Comblain se baja el arma y se vuelve a encarar.',
   '',
+  '#Otros controles',
   'Móvil: palanca izquierda para marchar, arrastrar a',
-  'la derecha para girar; botones FUEGO, USAR, ARMA.',
-  'Mando: sticks, gatillo derecho dispara, A usa.'
+  'la derecha para girar y mirar; FUEGO, MIRA, USAR.',
+  'Mando: sticks, gatillo derecho dispara, gatillo',
+  'izquierdo apunta, A usa, clic del stick derecho centra.'
 ]] };
 
 const HistoryMenu = { title: 'LA CAMPAÑA', page: true, prev: MainMenu, pages: HISTORY_PAGES };

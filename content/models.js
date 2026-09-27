@@ -95,7 +95,9 @@ const M_SMOKE = MAT(R_GRAY, 7, { k: 4 });
 const M_SMOKED = MAT(R_GRAY, 9, { k: 4 });
 
 // --- Armas portátiles (en coordenadas locales: x hacia la boca, z arriba) ----------------------------------
-function WPN_Rifle(bayonet, dark) {
+// sights: alza de hoja con muesca y guion (se ven al apuntar por las miras).
+// La línea de mira queda a z = 2,6 sobre el eje local.
+function WPN_Rifle(bayonet, dark, sights) {
   const wood = dark ? M_WOODD : M_WOOD;
   const s = [];
   s.push(PR_box([-12, 0, -1.2], 3.2, 1.1, 2.3, null, wood));       // culata
@@ -110,16 +112,34 @@ function WPN_Rifle(bayonet, dark) {
     s.push(PR_cyl([30.5, 0, 0.5], 0.8, 1.2, M3_fromDir([1, 0, 0]), M_STEEL));
     s.push(PR_box([39, 0, 0.9], 8.5, 0.18, 0.55, null, M_STEELB));
   }
+  if (sights) {
+    // alza pavonada (oscura) y guion claro, para que se distingan al apuntar
+    const blued = MAT(R_NAVY, 12, { spec: 0.8, k: 3 });
+    s.push(PR_box([6.7, 0, 1.45], 0.6, 0.75, 0.42, null, blued));           // base del alza
+    s.push(PR_box([6.7, 0.45, 2.24], 0.22, 0.3, 0.36, null, blued));        // orejas con la muesca al medio
+    s.push(PR_box([6.7, -0.45, 2.24], 0.22, 0.3, 0.36, null, blued));
+    s.push(PR_box([29.4, 0, 1.3], 0.5, 0.35, 0.28, null, M_STEEL));          // base del guion
+    s.push(PR_box([29.4, 0, 2.1], 0.3, 0.16, 0.5, null, MAT(R_LINEN, 3, { spec: 1 })));   // guion
+  }
   return s;
 }
 
-function WPN_Revolver() {
+// sights: puente superior con la muesca del alza, martillo bajo la línea de
+// mira y guion alto (línea de mira a z = 1,75).
+function WPN_Revolver(sights) {
   const s = [];
   s.push(PR_box([-1.8, 0, -2.4], 1.1, 0.8, 2.2, M3_rotY(0.35), M_WOODD));   // cacha
   s.push(PR_box([0.6, 0, 0.2], 2.0, 0.75, 1.0, null, M_STEEL));             // armazón
   s.push(PR_cyl([1.2, 0, 0.3], 1.2, 1.3, M3_fromDir([1, 0, 0]), M_STEEL));  // tambor
   s.push(PR_cyl([5.2, 0, 0.6], 0.4, 2.8, M3_fromDir([1, 0, 0]), M_STEEL));  // cañón
-  s.push(PR_box([-1.2, 0, 1.3], 0.5, 0.3, 0.6, null, M_STEEL));             // martillo
+  if (sights) {
+    s.push(PR_box([1.0, 0, 1.56], 1.9, 0.4, 0.07, null, M_STEEL));           // puente sobre el tambor
+    s.push(PR_box([-1.5, 0, 1.05], 0.45, 0.28, 0.35, null, M_STEEL));        // martillo
+    const blued = MAT(R_NAVY, 12, { spec: 0.8, k: 3 });
+    s.push(PR_box([-0.9, 0.32, 1.63], 0.22, 0.17, 0.12, null, blued));       // muesca del alza
+    s.push(PR_box([-0.9, -0.32, 1.63], 0.22, 0.17, 0.12, null, blued));
+    s.push(PR_box([7.6, 0, 1.36], 0.28, 0.11, 0.39, null, MAT(R_LINEN, 3, { spec: 1 })));  // guion
+  } else s.push(PR_box([-1.2, 0, 1.3], 0.5, 0.3, 0.6, null, M_STEEL));      // martillo
   return s;
 }
 
@@ -977,16 +997,76 @@ const M_CUFF = MAT(R_RED, 5);
 const M_HANDS = MAT(R_SKIN, 4);
 
 // Brazo visto desde el hombro del soldado: manga azul, puño rojo y mano.
-function FP_Arm(elbow, handC) {
+function FP_Arm(elbow, handC, handScale) {
   const s = [];
+  const hs = handScale || 1;
   const dir = vnorm(vsub(handC, elbow));
-  const wrist = vsub(handC, vscale(dir, 2.0));
+  const wrist = vsub(handC, vscale(dir, 2.0 * hs));
   // manga azul con bocamanga y un vivo rojo en el puño
   s.push(PR_limb(elbow, vlerp(elbow, wrist, 0.9), 2.6, M_SLEEVE, 2.8));
   s.push(PR_rod(vlerp(elbow, wrist, 0.885), vlerp(elbow, wrist, 0.9), 2.85, MAT(R_RED, 7)));
   s.push(PR_limb(vlerp(elbow, wrist, 0.9), vsub(wrist, vscale(dir, 0.4)), 2.55, MAT(R_NAVY, 9)));
-  s.push(PR_limb(vsub(wrist, vscale(dir, 0.8)), wrist, 1.5, M_HANDS));
-  s.push(PR_ell(handC, 1.6, 1.9, 2.1, M3_fromDir(dir), M_HANDS));
+  s.push(PR_limb(vsub(wrist, vscale(dir, 0.8)), wrist, 1.5 * hs, M_HANDS));
+  s.push(PR_ell(handC, 1.6 * hs, 1.9 * hs, 2.1 * hs, M3_fromDir(dir), M_HANDS));
+  return s;
+}
+
+// Ametralladora Gatling de 6 cañones: caja de bronce, tambor de cañones y
+// manivela a la derecha. ads: vista por el guion (sobre el anillo de la boca,
+// en la línea de mira z = 0).
+function FP_Gatling(c0, axis, frame, flashOnly, ads) {
+  const s = [];
+  const rot = frame * Math.PI / 6;
+  const R = M3_fromDir(axis);
+  const M_BRONZE = MAT(R_GOLD, 7, { spec: 0.9, k: 6 });
+  if (flashOnly) {
+    const muz = vadd(c0, vscale(axis, 36));
+    const a = rot + 1.2;
+    const off = M3_mulv(R, [Math.cos(a) * 2.8, Math.sin(a) * 2.8, 0]);
+    const k = ads ? 0.7 : 1;
+    s.push(PR_ell(vadd(vadd(muz, off), vscale(axis, 2.5)), 3.4 * k, 2.6 * k, 2.6 * k, R, M_FLASH));
+    s.push(PR_ell(vadd(vadd(muz, off), vscale(axis, 6)), 2.6 * k, 3.4 * k, 3.4 * k, R, M_FIRE2));
+    return s;
+  }
+  for (let k = 0; k < 6; k++) {
+    const a = rot + k / 6 * Math.PI * 2;
+    const off = M3_mulv(R, [Math.cos(a) * 2.8, Math.sin(a) * 2.8, 0]);
+    s.push(PR_rod(vadd(c0, vadd(off, vscale(axis, 4))), vadd(c0, vadd(off, vscale(axis, 36))), 0.75, M_STEEL));
+  }
+  s.push(PR_cyl(vadd(c0, vscale(axis, 7)), 1.4, 3, R, M_IRON));
+  s.push(PR_cyl(vadd(c0, vscale(axis, 20)), 3.8, 0.6, R, M_BRONZE));
+  s.push(PR_cyl(vadd(c0, vscale(axis, 34)), 3.7, 0.5, R, M_BRONZE));
+  s.push(PR_cyl(vadd(c0, vscale(axis, 0.5)), 5.0, 3.8, R, M_BRONZE));
+  s.push(PR_cyl(vadd(c0, vscale(axis, -3.6)), 4.0, 0.5, R, MAT(R_GOLD, 9, { spec: 0.6 })));
+  // guía de alimentación con cartuchos
+  s.push(PR_box(vadd(c0, [1.0, -2.6, 5.6]), 1.1, 1.0, 1.8, null, M_IRON));
+  for (let k = 0; k < 3; k++) s.push(PR_cyl(vadd(c0, [1.0, -2.6, 7.7 + k * 0.9]), 0.38, 0.9, M3_fromDir([0, 1, 0]), M_BRASS));
+  if (ads) {
+    // miras laterales (la tolva ocupa el lomo del arma): guion alto sobre el
+    // costado izquierdo del anillo de la boca y alza en el costado de la caja,
+    // ambos en la línea de mira (y = 0, z = 0).
+    const ring = vadd(c0, vscale(axis, 34));
+    const low = ring[2] + 1.5;
+    s.push(PR_box([ring[0], 0, low / 2], 0.3, 0.2, -low / 2, null, MAT(R_LINEN, 3, { spec: 1 })));
+    s.push(PR_box([ring[0], 0.05 + ring[1] / 2 + 0.6, low + 0.3], 0.3, -ring[1] / 2 + 0.8, 0.35, null, M_IRON));
+    const rear = vadd(c0, vscale(axis, 2.5));
+    const blued = MAT(R_NAVY, 12, { spec: 0.8, k: 3 });
+    s.push(PR_box([rear[0], 0.42, -0.9], 0.2, 0.22, 0.9, null, blued));
+    s.push(PR_box([rear[0], -0.42, -0.9], 0.2, 0.22, 0.9, null, blued));
+    s.push(PR_box([rear[0], 0, -2.2], 0.2, 0.7, 0.45, null, blued));
+    s.push(PR_box([rear[0], ring[1] / 2 + 0.2, -3.2], 0.25, -ring[1] / 2 + 0.3, 0.6, null, M_IRON));
+  } else {
+    // alza en el lado izquierdo
+    s.push(PR_box(vadd(c0, [2, 5.2, 3.6]), 0.5, 0.3, 1.2, null, M_IRON));
+  }
+  // manivela a la derecha
+  const crankA = frame ? 2.0 : 0.7;
+  const hub = vadd(c0, [-0.5, -6.2, 0]);
+  const handle = vadd(hub, [Math.cos(crankA) * 3.6, -1.1, Math.sin(crankA) * 3.6]);
+  s.push(PR_cyl(hub, 1.2, 0.8, M3_fromDir([0, 1, 0]), M_IRON));
+  s.push(PR_rod(hub, handle, 0.55, M_IRON));
+  s.push(PR_rod(handle, vadd(handle, [0, -2.2, 0]), 0.65, MAT(R_WOOD, 8)));
+  for (const q of FP_Arm(ads ? [8, -14, -22] : [5, -16, -22], vadd(handle, [0, -2.8, 0]))) s.push(q);
   return s;
 }
 
@@ -1080,46 +1160,50 @@ function FP_Build(name, frame, flashOnly) {
       void B;
       return s;
     }
-    case 'GATL': case 'GFLA': {
-      // ametralladora Gatling de 6 cañones: caja de bronce, tambor de cañones y manivela
-      const axis = vnorm([1, 0.04, 0.1]);
-      const c0 = [16, -3.5, -12];
-      const rot = frame * Math.PI / 6;
-      const R = M3_fromDir(axis);
-      const M_BRONZE = MAT(R_GOLD, 7, { spec: 0.9, k: 6 });
+    case 'GATL': case 'GFLA':
+      return FP_Gatling([16, -3.5, -12], vnorm([1, 0.04, 0.1]), frame, flashOnly, false);
+    // --- Armas encaradas (vista por las miras): la línea de mira pasa por el
+    //     centro de la pantalla (z = 0, y = 0) ---
+    case 'COMZ': case 'CFLZ': {
+      // fusil al hombro: el ojo detrás del alza, sobre la garganta de la culata
+      const P0 = [9, 0, -2.6];
       if (flashOnly) {
-        const muz = vadd(c0, vscale(axis, 36));
-        const a = rot + 1.2;
-        const off = M3_mulv(R, [Math.cos(a) * 2.8, Math.sin(a) * 2.8, 0]);
-        s.push(PR_ell(vadd(vadd(muz, off), vscale(axis, 2.5)), 3.4, 2.6, 2.6, R, M_FLASH));
-        s.push(PR_ell(vadd(vadd(muz, off), vscale(axis, 6)), 2.6, 3.4, 3.4, R, M_FIRE2));
+        const muz = vadd(P0, [30.5, 0, 0.5]);
+        if (frame === 0) {
+          s.push(PR_ell(vadd(muz, [3, 0, 0]), 3.2, 2.2, 2.2, null, M_FLASH));
+          s.push(PR_ell(vadd(muz, [6.5, 0, 0]), 2.4, 3.0, 3.0, null, M_FIRE2));
+        } else {
+          s.push(PR_ell(vadd(muz, [4, 0, 0.3]), 2.4, 1.8, 1.8, null, M_FIRE2));
+          s.push(PR_ell(vadd(muz, [9, 0, 1.8]), 3.5, 3.5, 3.0, null, M_SMOKE));
+        }
         return s;
       }
-      for (let k = 0; k < 6; k++) {
-        const a = rot + k / 6 * Math.PI * 2;
-        const off = M3_mulv(R, [Math.cos(a) * 2.8, Math.sin(a) * 2.8, 0]);
-        s.push(PR_rod(vadd(c0, vadd(off, vscale(axis, 4))), vadd(c0, vadd(off, vscale(axis, 36))), 0.75, M_STEEL));
-      }
-      s.push(PR_cyl(vadd(c0, vscale(axis, 7)), 1.4, 3, R, M_IRON));
-      s.push(PR_cyl(vadd(c0, vscale(axis, 20)), 3.8, 0.6, R, M_BRONZE));
-      s.push(PR_cyl(vadd(c0, vscale(axis, 34)), 3.7, 0.5, R, M_BRONZE));
-      s.push(PR_cyl(vadd(c0, vscale(axis, 0.5)), 5.0, 3.8, R, M_BRONZE));
-      s.push(PR_cyl(vadd(c0, vscale(axis, -3.6)), 4.0, 0.5, R, MAT(R_GOLD, 9, { spec: 0.6 })));
-      // guía de alimentación con cartuchos
-      s.push(PR_box(vadd(c0, [1.0, -2.6, 5.6]), 1.1, 1.0, 1.8, null, M_IRON));
-      for (let k = 0; k < 3; k++) s.push(PR_cyl(vadd(c0, [1.0, -2.6, 7.7 + k * 0.9]), 0.38, 0.9, M3_fromDir([0, 1, 0]), M_BRASS));
-      // alza en el lado izquierdo
-      s.push(PR_box(vadd(c0, [2, 5.2, 3.6]), 0.5, 0.3, 1.2, null, M_IRON));
-      // manivela a la derecha
-      const crankA = frame ? 2.0 : 0.7;
-      const hub = vadd(c0, [-0.5, -6.2, 0]);
-      const handle = vadd(hub, [Math.cos(crankA) * 3.6, -1.1, Math.sin(crankA) * 3.6]);
-      s.push(PR_cyl(hub, 1.2, 0.8, M3_fromDir([0, 1, 0]), M_IRON));
-      s.push(PR_rod(hub, handle, 0.55, M_IRON));
-      s.push(PR_rod(handle, vadd(handle, [0, -2.2, 0]), 0.65, MAT(R_WOOD, 8)));
-      for (const q of FP_Arm([5, -16, -22], vadd(handle, [0, -2.8, 0]))) s.push(q);
+      for (const q of WPN_Place(WPN_Rifle(false, false, true), P0, [1, 0, 0], [0, 0, 1])) s.push(q);
+      // mano izquierda envolviendo el guardamano por la izquierda
+      for (const q of FP_Arm([10, 11, -18], vadd(P0, [13, 1.5, -0.9]))) s.push(q);
       return s;
     }
+    case 'REVZ': case 'RFLZ': {
+      // revólver con el brazo extendido; al disparar el cañón sube (retroceso)
+      const lift = frame === 1 ? 0.28 : frame === 2 ? 0.1 : 0;
+      const back = frame === 1 ? 1.2 : frame === 2 ? 0.4 : 0;
+      const grip = [16 - back, 0, -1.75];
+      const dir = [Math.cos(lift), 0, Math.sin(lift)];
+      const up = [-Math.sin(lift), 0, Math.cos(lift)];
+      if (flashOnly) {
+        const muz = vadd(grip, vadd(vscale(dir, 8.6), vscale(up, 0.6)));
+        s.push(PR_ell(vadd(muz, vscale(dir, 1.6)), 2.0, 1.5, 1.5, M3_fromDir(dir), M_FLASH));
+        s.push(PR_ell(vadd(muz, vscale(dir, 3.4)), 1.4, 2.0, 2.0, M3_fromDir(dir), M_FIRE2));
+        return s;
+      }
+      for (const q of WPN_Place(WPN_Revolver(true), grip, dir, up)) s.push(q);
+      // mano algo menor que de cadera: el puño queda bajo el arma, sin taparla
+      const hand = vadd(grip, vadd(vscale(dir, -2.0), vscale(up, -3.0)));
+      for (const q of FP_Arm([6, -4.5, -10], hand, 0.8)) s.push(q);
+      return s;
+    }
+    case 'GATZ': case 'GFLZ':
+      return FP_Gatling([16, -3.8, -7.5], [1, 0, 0], frame, flashOnly, true);
     case 'DINW': {
       const poses = [
         { hand: [16, -8, -9.5], dir: [0.3, 0.15, 1], lit: false, elbow: [5, -16, -24] },

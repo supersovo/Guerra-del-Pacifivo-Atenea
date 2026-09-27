@@ -12,6 +12,13 @@ la geografía real de cada acción de armas, con tropas propias y enemigas, olea
 bombardeos y objetivos por fases. No hay ascensores, llaves ni misiones en
 interiores.
 
+Sobre esa base el motor agrega lo que se espera de un shooter actual: **alta
+resolución** automática (hasta cuatro veces la de DOOM, 1280×800 o más ancha en
+pantallas panorámicas), **letras nítidas** rasterizadas a la resolución real,
+sprites, texturas y cielos al doble de detalle, **puntería libre con el ratón**
+(mirar arriba y abajo; la bala va a la retícula) y **miras** con clic derecho,
+con un leve aumento propio de cada arma.
+
 ## Campaña
 
 | # | Acción de armas | Fecha | Objetivos |
@@ -50,13 +57,26 @@ servidor estático, por ejemplo `npx serve .`.
 | Acción | Teclado y ratón | Móvil | Mando |
 |--------|-----------------|-------|-------|
 | Marchar / desplazarse | W A S D o flechas | palanca izquierda | stick izquierdo |
-| Girar | ratón (clic en la pantalla para capturarlo) | arrastrar a la derecha | stick derecho |
+| Girar y apuntar | ratón (clic en la pantalla para capturarlo) | arrastrar a la derecha | stick derecho |
+| Mirar arriba / abajo | ratón; RePág / AvPág; Fin centra | arrastrar a la derecha | stick derecho; clic del stick centra |
 | Disparar | clic izquierdo, Ctrl o F | FUEGO | gatillo derecho |
+| Apuntar por las miras (mantener) | clic derecho o Z | MIRA | gatillo izquierdo |
 | Usar (izar la bandera) | E, Espacio o Enter | USAR | A |
 | Armas | 1–5, Q o rueda | ARMA | LB / RB |
 | Carta del terreno | Tab (+/− zoom, F seguir) | MAPA | — |
-| Correr / caminar | Mayúsculas | — | gatillo izquierdo |
+| Correr / caminar | Mayúsculas | — | clic del stick izquierdo |
 | Pausa / menú | P / Esc | MENÚ | Start |
+
+**Miras.** Con el Comblain la vista se acerca ×1,6, con la Gatling ×1,3 y con el
+revólver ×1,25; encarado, el soldado avanza más despacio, el ratón gira más fino
+y la dispersión del tiro es menor. Tras cada disparo el Comblain se baja para
+recargar y vuelve a encararse si se mantiene el botón. El corvo y la dinamita no
+tienen miras.
+
+**Opciones de pantalla.** *Resolución* automática (según los píxeles reales de la
+pantalla; baja sola si el equipo no sostiene unos 50 cuadros por segundo) o fija
+en 320×200, 640×400, 960×600 o 1280×800. *Apuntar con el ratón* puede
+desactivarse para volver al autoapuntado vertical de DOOM.
 
 Grados de dificultad: *Recluta*, *Cívico movilizado*, *Soldado de línea*,
 *Veterano de la campaña* y *¡Calacuerda!* (el toque de carga a la bayoneta).
@@ -89,6 +109,7 @@ Requieren Node.js y Playwright con Chromium:
 ```
 node tests/logic_test.js 1,2,3        # cumple los objetivos de cada mapa, iza la bandera y llega al intermedio
 node tests/combat_test.js <salida> 2  # combate con teclado real: cinco armas, avance, carta
+node tests/aim_test.js <salida>       # mirada con el ratón, tiro a la retícula, miras y resolución
 node tests/game_shots.js <salida> 1 vistas.json   # capturas desde puntos de vista
 node tests/ui_shots.js <salida>       # portada, menús, parte, carta, intermedio y final
 node tests/sprite_shots.js <salida>   # hojas de contacto de los sprites

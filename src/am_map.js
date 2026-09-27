@@ -121,10 +121,14 @@ function AM_Drawer() {
   const fw = SCREENWIDTH;
   const fh = setblocks >= 11 ? SCREENHEIGHT : SCREENHEIGHT - ST_HEIGHT * S;
   const fb = screens[0];
-  // pergamino
+  // pergamino (una fila por píxel lógico: se copia la fila anterior)
+  if (V_xmap.length < fw) V_xmap = new Int32Array(fw);
+  for (let x = 0; x < fw; x++) V_xmap[x] = Math.floor(x / S) & 63;
   for (let y = 0; y < fh; y++) {
+    const row = y * fw;
+    if (y % S) { fb.copyWithin(row, row - fw, row); continue; }
     const ty = (Math.floor(y / S) & 63) * 64;
-    for (let x = 0; x < fw; x++) fb[y * fw + x] = am_bgTile[ty + (Math.floor(x / S) & 63)];
+    for (let x = 0; x < fw; x++) fb[row + x] = am_bgTile[ty + V_xmap[x]];
   }
   const sc = am_scale * S;
   const ox = fw / 2, oy = fh / 2;

@@ -160,6 +160,13 @@ function ST_DrawBigNum(xRight, y, num, digits) {
   }
 }
 
+// Rótulo grabado: tinta clara con sombra oscura, sin contorno.
+function ST_Label(x, y, text) {
+  const d = SCALE >= 2 ? 0.5 : 1;
+  V_DrawText(x + d, y + d, text, false, V_Translations.engrave);
+  V_DrawText(x, y, text, false, V_Translations.label);
+}
+
 function ST_DrawSmallNum(xRight, y, num) {
   const s = String(Math.max(0, Math.floor(num)));
   const w = V_StringWidth(s, false);
@@ -182,6 +189,15 @@ function ST_Drawer(fullscreen) {
     for (let px = 320; px < 320 + UIOFS / S + 64; px += 64) V_DrawPatch(px, y0, side);
   }
   V_DrawPatch(0, y0, W_CacheLumpName('STBAR'));
+  // rótulos grabados en el cuero
+  ST_Label(7, y0 + 24, 'MUNIC.');
+  ST_Label(58, y0 + 24, 'SALUD');
+  ST_Label(110, y0 + 24, 'ARMAS');
+  ST_Label(191, y0 + 24, 'MORAL');
+  ST_Label(253, y0 + 5, 'REV');
+  ST_Label(253, y0 + 13, 'FUS');
+  ST_Label(253, y0 + 21, 'DIN');
+  for (let a = 0; a < 3; a++) ST_Label(293, y0 + 5 + a * 8, '/');
   // munición del arma actual
   const ammoType = weaponinfo[plyr.readyweapon].ammo;
   if (ammoType !== am_noammo) ST_DrawBigNum(44, y0 + 5, plyr.ammo[ammoType]);

@@ -169,7 +169,12 @@ function PR_boundRadius(p) {
 const FND_LIGHT = vnorm([-0.5, 0.6, -0.62]);   // desde arriba a la izquierda, hacia la cámara
 const FND_HALF = vnorm(vadd(FND_LIGHT, [0, 0, -1]));
 
+// Escala de las coordenadas locales que reciben los patrones de material
+// (al rasterizar a mayor resolución la escena se amplía; los patrones no).
+let FND_lpScale = 1;
+
 function FND_Shade(mat, n, lp) {
+  if (mat.pattern && FND_lpScale !== 1) lp = [lp[0] * FND_lpScale, lp[1] * FND_lpScale, lp[2] * FND_lpScale];
   if (mat.glow) {
     let tone = mat.tone;
     if (mat.pattern) tone += mat.pattern(lp, n);
@@ -215,7 +220,17 @@ function PR_Corners(R, c, r) {
 const PR_EDGES = [[0, 1], [2, 3], [4, 5], [6, 7], [0, 2], [1, 3], [4, 6], [5, 7], [0, 4], [1, 5], [2, 6], [3, 7]];
 
 // Renderiza una escena a una imagen indexada. Devuelve { w, h, px, left, top }.
+// opts.res: texeles por unidad de mapa (2 = sprites de alta resolución).
 function FND_Render(scene, opts) {
+  const res = opts.res || 1;
+  if (res !== 1) {
+    FND_lpScale = 1 / res;
+    try { return FND_RenderOrtho(SC_Scale(scene, res), opts, res); } finally { FND_lpScale = 1; }
+  }
+  return FND_RenderOrtho(scene, opts, 1);
+}
+
+function FND_RenderOrtho(scene, opts, res) {
   const yaw = opts.yaw || 0, elev = opts.elev === undefined ? 0.17 : opts.elev;
   const VM = FND_ViewMatrix(yaw, elev);
   // Preparar primitivas en espacio de vista con su rectángulo proyectado.
@@ -266,14 +281,18 @@ function FND_Render(scene, opts) {
       }
     }
   }
-  if (opts.outline !== false) FND_Outline(px, zbuf, w, h);
+  if (opts.outline !== false) FND_Outline(px, zbuf, w, h, res !== 1 ? 7 * res / 6 : 0);
   return FND_Crop({ w: w, h: h, px: px, left: -x0, top: y1 });
 }
 
 // Perspectiva (armas en primera persona): el ojo está en el origen mirando +x.
-// La pantalla lógica es de 320x200 con proyección 160 (como DOOM).
+// La pantalla lógica es de 320x200 con proyección 160 (como DOOM); opts.res
+// multiplica la resolución (2 = 640x400) y opts.zoom la distancia focal.
 function FND_RenderPersp(scene, opts) {
-  const W = 320, H = 200, proj = 160, NEAR = 0.5;
+  opts = opts || {};
+  const res = opts.res || 1;
+  const W = 320 * res, H = 200 * res, proj = 160 * res * (opts.zoom || 1), NEAR = 0.5;
+  const CX = 160 * res, CY = 100 * res;
   const zbuf = new Float32Array(W * H).fill(Infinity);
   const px = new Int16Array(W * H).fill(-1);
   const out = [0, 0, 0, 0, 0, 0];
@@ -293,7 +312,7 @@ function FND_RenderPersp(scene, opts) {
     if (!pts.length) continue;
     let sx0 = Infinity, sx1 = -Infinity, sy0 = Infinity, sy1 = -Infinity;
     for (const q of pts) {
-      const sx = 160 - q[1] / q[0] * proj, sy = 100 - q[2] / q[0] * proj;
+      const sx = CX - q[1] / q[0] * proj, sy = CY - q[2] / q[0] * proj;
       if (sx < sx0) sx0 = sx; if (sx > sx1) sx1 = sx;
       if (sy < sy0) sy0 = sy; if (sy > sy1) sy1 = sy;
     }
@@ -304,9 +323,9 @@ function FND_RenderPersp(scene, opts) {
     const oc = M3_mulv(Rt, vsub([0, 0, 0], p.c));
     lo[0] = oc[0]; lo[1] = oc[1]; lo[2] = oc[2];
     for (let iy = iy0; iy <= iy1; iy++) {
-      const dz = (100 - (iy + 0.5)) / proj;
+      const dz = (CY - (iy + 0.5)) / proj;
       for (let ix = ix0; ix <= ix1; ix++) {
-        const dy = (160 - (ix + 0.5)) / proj;
+        const dy = (CX - (ix + 0.5)) / proj;
         ld[0] = Rt[0][0] + Rt[1][0] * dy + Rt[2][0] * dz;
         ld[1] = Rt[0][1] + Rt[1][1] * dy + Rt[2][1] * dz;
         ld[2] = Rt[0][2] + Rt[1][2] * dy + Rt[2][2] * dz;

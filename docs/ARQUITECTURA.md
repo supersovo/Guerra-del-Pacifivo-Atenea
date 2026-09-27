@@ -100,8 +100,46 @@ y `NODES` en el arranque. Sobre eso, `terrain.js` ofrece:
   piso del frontal (azoteas); líneas cerradas con cielo al frente que tapan por
   columnas la geometría techada que hay detrás.
 - **Interpolación** entre tics de posiciones y sectores en movimiento, con el giro
-  del ratón aplicado de inmediato (menos latencia).
-- **Pantalla panorámica** (Hor+), detalle alto 640×400 y píxeles 1:1,2 como DOOM.
+  y la mirada del ratón aplicados de inmediato (menos latencia).
+- **Pantalla panorámica** (Hor+) con píxeles 1:1,2 como DOOM. La interfaz se
+  diseña en 320×200 lógicos multiplicados por `SCALE` (1 a 4): en modo automático
+  `I_ComputeScreenSize` elige la escala según los píxeles reales de la pantalla
+  (`devicePixelRatio`) dentro de un presupuesto de píxeles, y `D_AdaptResolution`
+  la baja si el cuadro tarda más de 20 ms.
+- **Mirada vertical** por *y-shearing*, como Heretic: el horizonte (`centery`) se
+  desplaza `tan(pitch) · projection` y las pendientes de los planos (`yslope`) se
+  recalculan con él. La pendiente de la mirada va en el ticcmd (`lookdelta`).
+- **Aumento de las miras**: `R_SetProjection(zoom)` recalcula la proyección y las
+  tablas que dependen del campo visual (ángulo por columna, en tiempo lineal;
+  corrección de distancia de los planos; escala del cielo). La luz no cambia.
+- **Densidad**: sprites, texturas y flats llevan `density` (texeles por unidad
+  de mapa). Los sprites se rasterizan al doble de resolución, las texturas y
+  flats se registran al doble (ampliación "bilineal nítida" con grano fino), y
+  los cielos son panoramas de 2048×400.
+
+### Puntería moderna (`p_user.js`, `p_pspr.js`, `r_things.js`)
+
+- **Apuntado libre**: con "apuntar con el ratón" los disparos salen desde los
+  ojos (`P_ShootZ`) con la pendiente de la mirada, sin autoapuntado: la bala va
+  exactamente a la retícula. Sin esa opción vuelve el autoapuntado de DOOM.
+- **Miras** (`BT_AIM`): `player.ads` pasa de 0 a 1 en unos 140 ms si el arma
+  tiene aumento (`weaponinfo.zoom`) y su cuadro actual lo permite
+  (`aimframes`); al recargar el Comblain baja sola. Encarado se reduce la
+  velocidad y la dispersión.
+- **Sprites de mira**: para cada arma con miras hay cuadros propios (COMZ, REVZ,
+  GATZ y sus fogonazos) modelados con alza y guion en la línea de mira; se anclan
+  al centro de la vista en lugar del borde inferior. Durante el encare el arma
+  baja y vuelve a subir en la nueva posición.
+
+### Letras de alta resolución (`content/font.js`, `v_video.js`)
+
+Desde 640×400 el texto no se amplía desde la fuente de mapa de bits: cada glifo
+se rasteriza con una fuente del sistema a la resolución real, con degradado en la
+rampa de lino (las traducciones de color siguen valiendo), antialias hacia un
+contorno negro y sombra. Contornos y rellenos se dibujan en dos pasadas; las
+métricas se ajustan a las de la fuente clásica para no alterar la diagramación.
+Los rótulos que antes venían pintados en las imágenes (barra de estado, portada,
+carta de campaña) se escriben al dibujar.
 
 ### Contenido procedural
 
@@ -111,11 +149,13 @@ Los sprites salen de una **fundición**: cada personaje es un modelo de primitiv
 (elipsoides, cajas, cilindros) con uniformes históricos, que se rasteriza con
 z-buffer desde 8 ángulos (como los modelos de arcilla fotografiados de DOOM) y en
 perspectiva para las armas en primera persona, se sombrea y se cuantiza a la
-paleta. Unos 790 cuadros se generan en menos de un segundo.
+paleta. Unos 800 cuadros se generan en un segundo y medio, al doble de la
+resolución de DOOM.
 
 ## Pruebas
 
 Las pruebas de `tests/` corren el juego real en Chromium sin interfaz: arranque y
 capturas, lógica completa de objetivos de los tres mapas (hasta izar la bandera y
-llegar al intermedio), combate con entrada de teclado, interfaz, hojas de contacto
-de sprites y el renderizador aislado.
+llegar al intermedio), combate con entrada de teclado, puntería (mirada con el
+ratón, tiro a la retícula, miras), interfaz, hojas de contacto de sprites y el
+renderizador aislado.

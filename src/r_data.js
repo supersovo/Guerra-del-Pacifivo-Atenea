@@ -111,9 +111,12 @@ function R_InitSprites() {
     }
   }
   for (const def of temp.values()) {
+    // real[i]: el cuadro i existe (los que faltan se rellenan con el primero)
+    def.real = new Uint8Array(def.frames.length);
     for (let i = 0; i < def.frames.length; i++) {
       const f = def.frames[i];
       if (!f) { def.frames[i] = def.frames[0]; continue; }
+      def.real[i] = 1;
       for (let r = 0; r < 8; r++) {
         if (f.lump[r] < 0) f.lump[r] = f.lump[0] >= 0 ? f.lump[0] : f.lump.find(function (x) { return x >= 0; });
       }

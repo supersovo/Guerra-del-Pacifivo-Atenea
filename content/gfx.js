@@ -49,19 +49,8 @@ function GFX_BuildStatusBar() {
       tx_put(t, x, y, [230, 196, 110]); tx_put(t, x + 1, y + 1, [90, 60, 20]);
     }
   }
-  // Rótulos grabados
-  const lab = [180, 150, 100];
-  tx_text(t, 7, 24, 'MUNIC.', lab, 1, [40, 26, 16]);
-  tx_text(t, 58, 24, 'SALUD', lab, 1, [40, 26, 16]);
-  tx_text(t, 110, 24, 'ARMAS', lab, 1, [40, 26, 16]);
-  tx_text(t, 191, 24, 'MORAL', lab, 1, [40, 26, 16]);
-  // Tabla de municiones
-  tx_text(t, 253, 5, 'REV', lab, 1, [40, 26, 16]);
-  tx_text(t, 253, 13, 'FUS', lab, 1, [40, 26, 16]);
-  tx_text(t, 253, 21, 'DIN', lab, 1, [40, 26, 16]);
-  tx_text(t, 293, 5, '/', lab, 1);
-  tx_text(t, 293, 13, '/', lab, 1);
-  tx_text(t, 293, 21, '/', lab, 1);
+  // Los rótulos (MUNIC., SALUD, ARMAS, MORAL, REV/FUS/DIN) se escriben al
+  // dibujar la barra (ST_Drawer), con letras nítidas a cualquier resolución.
   const img = gfx_quantizeFull(t, 3);
   W_AddLump('STBAR', V_MakeSolidPatch(320, 32, img.pixels, 0, 0), 'patch');
   // Relleno lateral para pantallas panorámicas
@@ -203,37 +192,13 @@ function gfx_morroScene(w, h, seed, opts) {
   return t;
 }
 
-function gfx_titleText(t, cx, y, str, scale, fill, outline) {
-  const tw = tx_textWidth(str, scale);
-  const x = Math.floor(cx - tw / 2);
-  // contorno
-  for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) {
-    if (dx || dy) tx_text(t, x + dx * Math.max(1, scale / 2), y + dy * Math.max(1, scale / 2), str, outline, scale);
-  }
-  tx_text(t, x + Math.max(1, scale / 2), y + Math.max(1, scale / 2) + 1, str, outline, scale);
-  // relleno con degradado vertical
-  const tmp = tx_new(t.w, t.h);
-  tx_fill(tmp, [0, 0, 0]);
-  tx_text(tmp, x, y, str, [255, 255, 255], scale);
-  const top = y, bot = y + 11 * scale;
-  for (let yy = Math.max(0, top - 4 * scale); yy < Math.min(t.h, bot); yy++) {
-    for (let xx = Math.max(0, x); xx < Math.min(t.w, x + tw + scale); xx++) {
-      if (tmp.r[yy * t.w + xx] > 128) {
-        const u = clamp((yy - top) / (bot - top - 4 * scale), 0, 1);
-        tx_put(t, xx, yy, tx_mix(fill[0], fill[1], u));
-      }
-    }
-  }
-}
-
 function GFX_BuildTitle() {
   const w = 428, h = 200;
   const t = gfx_morroScene(w, h, 8101, { flag: false, ships: true, morroX: 0.3 });
   // oscurecer para el texto
   for (let y = 0; y < 70; y++) for (let x = 0; x < w; x++) tx_mul(t, x, y, 0.75 + y / 280);
-  gfx_titleText(t, w / 2, 8, '1879', 6, [[255, 236, 160], [220, 120, 40]], [30, 10, 10]);
-  gfx_titleText(t, w / 2, 56, 'GUERRA DEL PACÍFICO', 2, [[250, 244, 230], [190, 170, 140]], [20, 10, 20]);
-  gfx_titleText(t, w / 2, 82, 'PISAGUA · DOLORES · ARICA', 1, [[240, 210, 150], [200, 160, 110]], [20, 10, 20]);
+  // El título (1879, GUERRA DEL PACÍFICO...) lo escribe D_PageDrawer con
+  // letras vectoriales a la resolución real.
   const img = gfx_quantizeFull(t, 5);
   W_AddLump('TITLEPIC', img, 'image');
   // Final: el Morro con la bandera izada
@@ -242,6 +207,12 @@ function GFX_BuildTitle() {
 }
 
 // --- Carta del teatro de operaciones -----------------------------------------------------------------------
+// Rótulos de la carta: [texto, x, y, tinta] en coordenadas de la imagen (428x200).
+const WIMAP_LABELS = [
+  ['OCÉANO', 16, 100, 'inksea'], ['PACÍFICO', 16, 110, 'inksea'],
+  ['PERÚ', 150, 30, 'inkred'], ['TARAPACÁ', 132, 108, 'inkred'], ['BOLIVIA »', 184, 186, 'inkred'],
+  ['N', 38, 11, 'ink']
+];
 const WIMAP_GEO = {
   lat0: -17.75, lat1: -20.45, lon0: -71.05, lon1: -68.9,
   x0: 12, y0: 6, x1: 212, y1: 194
@@ -318,22 +289,15 @@ function GFX_BuildCampaignMap() {
   };
   rail([[-18.48, -70.31], [-18.25, -70.28], [-18.01, -70.25]]);
   rail([[-19.6, -70.2], [-19.63, -70.12], [-19.68, -70.02], [-19.72, -69.93], [-19.85, -69.9]]);
-  // rótulos
+  // rótulos: los escribe WI_DrawMapLabels al dibujar la carta (letras nítidas)
   const ink = [60, 40, 26];
-  tx_text(t, 16, 100, 'OCÉANO', [70, 90, 120], 1);
-  tx_text(t, 16, 110, 'PACÍFICO', [70, 90, 120], 1);
   for (const p of WIMAP_PLACES) {
     const q = WIMAP_Proj(p.lat, p.lon);
     tx_disc(t, q[0], q[1], 1.6, ink);
-    tx_text(t, q[0] + p.dx, q[1] + p.dy, p.name, ink, 1);
   }
-  tx_text(t, 150, 30, 'PERÚ', [120, 70, 60], 1);
-  tx_text(t, 130, 150, 'TARAPACÁ', [120, 70, 60], 1);
-  tx_text(t, 184, 186, 'BOLIVIA »', [120, 70, 60], 1);
   // rosa de los vientos
   const rx = 40, ry = 30;
   for (let d = -8; d <= 8; d++) { tx_put(t, rx, ry + d, ink); tx_put(t, rx + d, ry, ink); }
-  tx_text(t, rx - 2, ry - 19, 'N', ink, 1);
   // marco
   tx_rect(t, 2, 2, w - 4, 1, [110, 80, 50]); tx_rect(t, 2, h - 3, w - 4, 1, [110, 80, 50]);
   tx_rect(t, 2, 2, 1, h - 4, [110, 80, 50]); tx_rect(t, w - 3, 2, 1, h - 4, [110, 80, 50]);

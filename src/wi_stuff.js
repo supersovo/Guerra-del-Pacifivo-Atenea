@@ -71,6 +71,16 @@ function WI_Responder(ev) {
   return false;
 }
 
+// Rótulos de la carta (nombres de lugares, mar y países) en tinta.
+function WI_DrawMapLabels() {
+  const img = W_CacheLumpName('WIMAP');
+  for (const l of WIMAP_LABELS) V_DrawText(V_FullImageX(img, l[1]), l[2], l[0], false, V_Translations[l[3]]);
+  for (const p of WIMAP_PLACES) {
+    const q = WIMAP_Proj(p.lat, p.lon);
+    V_DrawText(V_FullImageX(img, q[0] + p.dx), q[1] + p.dy, p.name, false, V_Translations.ink);
+  }
+}
+
 function WI_DrawMapMarkers(highlight, done) {
   for (const p of WIMAP_PLACES) {
     if (!p.battle) continue;
@@ -108,6 +118,7 @@ function WI_Panel(x, y, w, h) {
 
 function WI_Drawer() {
   V_DrawFullImage(W_CacheLumpName('WIMAP'));
+  WI_DrawMapLabels();
   const done = wi_info ? wi_info.last : 0;
   WI_DrawMapMarkers(0, done);
   const bx = 176;
@@ -172,6 +183,7 @@ function WI_BriefingResponder(ev) {
 function WI_BriefingDrawer() {
   if (!wi_brief) return;
   V_DrawFullImage(W_CacheLumpName('WIMAP'));
+  WI_DrawMapLabels();
   WI_DrawMapMarkers(wi_brief.map, wi_brief.map - 1);
   const b = BRIEFINGS[wi_brief.map];
   const bx = 118;

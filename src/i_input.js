@@ -13,8 +13,8 @@ const ev_keydown = 0, ev_keyup = 1, ev_mouse = 2, ev_char = 3, ev_pointer = 4;
 const I_events = [];
 let I_pointerLocked = false;
 let I_mouseDX = 0, I_mouseDY = 0;
-const I_touch = { active: false, moveX: 0, moveY: 0, turn: 0, stickId: null, lookId: null, lookX: 0 };
-const I_pad = { forward: 0, side: 0, turn: 0, buttons: {} };
+const I_touch = { active: false, moveX: 0, moveY: 0, turn: 0, look: 0, stickId: null, lookId: null, lookX: 0, lookY: 0 };
+const I_pad = { forward: 0, side: 0, turn: 0, look: 0, buttons: {} };
 
 function D_PostEvent(ev) {
   I_events.push(ev);
@@ -22,7 +22,7 @@ function D_PostEvent(ev) {
 
 // Teclas que el navegador no debe procesar mientras se juega.
 const I_blockedKeys = new Set(['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space', 'Tab',
-  'Backspace', 'Slash', 'Quote', 'F1', 'F2', 'F3', 'F4', 'F5', 'F6', 'F7', 'F8', 'F9', 'F10', 'F11', 'F12']);
+  'Backspace', 'Slash', 'Quote', 'PageUp', 'PageDown', 'Home', 'End', 'F1', 'F2', 'F3', 'F4', 'F5', 'F6', 'F7', 'F8', 'F9', 'F10', 'F11', 'F12']);
 
 function I_InitInput(canvas) {
   window.addEventListener('keydown', function (e) {
@@ -146,6 +146,7 @@ function I_InitTouch(canvas) {
     el.addEventListener('touchcancel', up, { passive: false });
   }
   btn('t-fire', 'TOUCH_FIRE');
+  btn('t-aim', 'TOUCH_AIM');
   btn('t-use', 'TOUCH_USE');
   btn('t-weap', 'TOUCH_WEAPON');
   btn('t-map', 'Tab');
@@ -190,13 +191,16 @@ function I_InitTouch(canvas) {
     const t = e.changedTouches[0];
     I_touch.lookId = t.identifier;
     I_touch.lookX = t.clientX;
+    I_touch.lookY = t.clientY;
   }, { passive: false });
   look.addEventListener('touchmove', function (e) {
     e.preventDefault();
     for (const t of e.changedTouches) {
       if (t.identifier === I_touch.lookId) {
         I_touch.turn += (t.clientX - I_touch.lookX);
+        I_touch.look += (t.clientY - I_touch.lookY) * (defaults.mouseInvertY ? -1 : 1);
         I_touch.lookX = t.clientX;
+        I_touch.lookY = t.clientY;
       }
     }
   }, { passive: false });
@@ -226,7 +230,7 @@ function I_UpdateTouchUI() {
 // --- Mando (Gamepad API) ------------------------------------------------------------------
 const I_padPrev = {};
 function I_PollGamepad() {
-  I_pad.forward = I_pad.side = I_pad.turn = 0;
+  I_pad.forward = I_pad.side = I_pad.turn = I_pad.look = 0;
   if (!navigator.getGamepads) return;
   const pads = navigator.getGamepads();
   for (const gp of pads) {
@@ -235,9 +239,10 @@ function I_PollGamepad() {
     I_pad.side = dz(gp.axes[0] || 0);
     I_pad.forward = -dz(gp.axes[1] || 0);
     I_pad.turn = dz(gp.axes[2] || 0);
+    I_pad.look = dz(gp.axes[3] || 0);
     const map = { 0: 'PAD_A', 1: 'PAD_B', 2: 'PAD_X', 3: 'PAD_Y', 4: 'PAD_LB', 5: 'PAD_RB',
-      6: 'PAD_LT', 7: 'PAD_RT', 8: 'PAD_BACK', 9: 'PAD_START', 12: 'ArrowUp', 13: 'ArrowDown',
-      14: 'ArrowLeft', 15: 'ArrowRight' };
+      6: 'PAD_LT', 7: 'PAD_RT', 8: 'PAD_BACK', 9: 'PAD_START', 10: 'PAD_LS', 11: 'PAD_RS',
+      12: 'ArrowUp', 13: 'ArrowDown', 14: 'ArrowLeft', 15: 'ArrowRight' };
     for (const k in map) {
       const b = gp.buttons[k];
       const pressed = !!(b && (b.pressed || b.value > 0.5));

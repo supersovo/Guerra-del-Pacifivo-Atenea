@@ -191,7 +191,46 @@ function tx_quantize(t, dither) {
   return out;
 }
 
-function tx_register(name, t, dither) {
+// --- Doble densidad -------------------------------------------------------------------
+// Las texturas se diseñan a 1 texel por unidad de mapa (como DOOM) y se
+// registran a TX_RES texeles por unidad para pantallas grandes: ampliación
+// "bilineal nítida" (pesos suavizados, los bordes siguen definidos), con
+// envolvimiento porque las texturas se repiten, más un grano fino que evita
+// el aspecto borroso. El renderizador lee la densidad (textures[...].density;
+// flats de 128x128).
+const TX_RES = 2;
+
+function tx_upscale(t, k, alpha) {
+  const W = t.w * k, H = t.h * k;
+  const o = tx_new(W, H);
+  const oa = alpha ? new Float32Array(W * H) : null;
+  const sw = t.w, sh = t.h;
+  for (let y = 0; y < H; y++) {
+    const fy = (y + 0.5) / k - 0.5;
+    const yi = Math.floor(fy);
+    let wy = fy - yi; wy = wy * wy * (3 - 2 * wy);
+    const r0 = ((yi % sh) + sh) % sh * sw, r1 = ((yi + 1) % sh + sh) % sh * sw;
+    for (let x = 0; x < W; x++) {
+      const fx = (x + 0.5) / k - 0.5;
+      const xi = Math.floor(fx);
+      let wx = fx - xi; wx = wx * wx * (3 - 2 * wx);
+      const c0 = ((xi % sw) + sw) % sw, c1 = ((xi + 1) % sw + sw) % sw;
+      const a = r0 + c0, b = r0 + c1, c = r1 + c0, d = r1 + c1;
+      const w00 = (1 - wx) * (1 - wy), w01 = wx * (1 - wy), w10 = (1 - wx) * wy, w11 = wx * wy;
+      const g = 1 + (tx_hash(7717, x, y) - 0.5) * 0.05;
+      const i = y * W + x;
+      o.r[i] = (t.r[a] * w00 + t.r[b] * w01 + t.r[c] * w10 + t.r[d] * w11) * g;
+      o.g[i] = (t.g[a] * w00 + t.g[b] * w01 + t.g[c] * w10 + t.g[d] * w11) * g;
+      o.b[i] = (t.b[a] * w00 + t.b[b] * w01 + t.b[c] * w10 + t.b[d] * w11) * g;
+      if (oa) oa[i] = alpha[a] * w00 + alpha[b] * w01 + alpha[c] * w10 + alpha[d] * w11;
+    }
+  }
+  return alpha ? { t: o, alpha: oa } : o;
+}
+
+// keepRes: la imagen ya viene a la densidad final (cielos).
+function tx_register(name, t, dither, keepRes) {
+  if (!keepRes && TX_RES > 1) t = tx_upscale(t, TX_RES);
   const idx = tx_quantize(t, dither);
   const cols = [];
   for (let x = 0; x < t.w; x++) {
@@ -199,12 +238,13 @@ function tx_register(name, t, dither) {
     for (let y = 0; y < t.h; y++) col[y] = idx[y * t.w + x];
     cols.push(col);
   }
-  W_AddLump(name, { width: t.w, height: t.h, columns: cols, masked: false }, 'texture');
+  W_AddLump(name, { width: t.w, height: t.h, columns: cols, masked: false, density: keepRes ? 1 : TX_RES }, 'texture');
   return idx;
 }
 
 // Textura enmascarada: alpha[i] < 0.5 = transparente.
 function tx_registerMasked(name, t, alpha, dither) {
+  if (TX_RES > 1) { const u = tx_upscale(t, TX_RES, alpha); t = u.t; alpha = u.alpha; }
   const idx = tx_quantize(t, dither);
   const px = new Int16Array(t.w * t.h);
   for (let i = 0; i < px.length; i++) px[i] = alpha[i] >= 0.5 ? idx[i] : -1;
@@ -215,10 +255,12 @@ function tx_registerMasked(name, t, alpha, dither) {
     for (let y = 0; y < t.h; y++) col[y] = idx[y * t.w + x];
     cols.push(col);
   }
-  W_AddLump(name, { width: t.w, height: t.h, columns: cols, posts: patch.columns, masked: true }, 'texture');
+  W_AddLump(name, { width: t.w, height: t.h, columns: cols, posts: patch.columns, masked: true, density: TX_RES }, 'texture');
 }
 
+// Flat de 64x64 unidades: se guarda a 64·TX_RES texeles de lado.
 function tx_registerFlat(name, t, dither) {
+  if (TX_RES > 1) t = tx_upscale(t, TX_RES);
   W_AddLump(name, tx_quantize(t, dither), 'flat');
 }
 

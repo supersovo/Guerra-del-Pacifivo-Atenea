@@ -13,11 +13,11 @@
 'use strict';
 
 const weaponinfo = [
-  { name: 'Corvo', short: 'CORVO', ammo: am_noammo, upstate: 'S_CORVOUP', downstate: 'S_CORVODOWN', readystate: 'S_CORVO', atkstate: 'S_CORVOATK1', flashstate: 'S_NULL' },
-  { name: 'Revólver Lefaucheux', short: 'REVÓLVER', ammo: am_revolver, upstate: 'S_REVOUP', downstate: 'S_REVODOWN', readystate: 'S_REVO', atkstate: 'S_REVOATK1', flashstate: 'S_REVOFLASH' },
-  { name: 'Fusil Comblain II', short: 'COMBLAIN', ammo: am_fusil, upstate: 'S_COMBUP', downstate: 'S_COMBDOWN', readystate: 'S_COMB', atkstate: 'S_COMBATK1', flashstate: 'S_COMBFLASH1' },
-  { name: 'Ametralladora Gatling', short: 'GATLING', ammo: am_fusil, upstate: 'S_GATLUP', downstate: 'S_GATLDOWN', readystate: 'S_GATL', atkstate: 'S_GATLATK1', flashstate: 'S_GATLFLASH1' },
-  { name: 'Dinamita', short: 'DINAMITA', ammo: am_dinamita, upstate: 'S_DINWUP', downstate: 'S_DINWDOWN', readystate: 'S_DINW', atkstate: 'S_DINWATK1', flashstate: 'S_NULL' }
+  { name: 'Corvo', short: 'CORVO', ammo: am_noammo, upstate: 'S_CORVOUP', downstate: 'S_CORVODOWN', readystate: 'S_CORVO', atkstate: 'S_CORVOATK1', flashstate: 'S_NULL', zoom: 1, aimframes: '' },
+  { name: 'Revólver Lefaucheux', short: 'REVÓLVER', ammo: am_revolver, upstate: 'S_REVOUP', downstate: 'S_REVODOWN', readystate: 'S_REVO', atkstate: 'S_REVOATK1', flashstate: 'S_REVOFLASH', zoom: 1.25, aimframes: 'ABC' },
+  { name: 'Fusil Comblain II', short: 'COMBLAIN', ammo: am_fusil, upstate: 'S_COMBUP', downstate: 'S_COMBDOWN', readystate: 'S_COMB', atkstate: 'S_COMBATK1', flashstate: 'S_COMBFLASH1', zoom: 1.6, aimframes: 'A' },
+  { name: 'Ametralladora Gatling', short: 'GATLING', ammo: am_fusil, upstate: 'S_GATLUP', downstate: 'S_GATLDOWN', readystate: 'S_GATL', atkstate: 'S_GATLATK1', flashstate: 'S_GATLFLASH1', zoom: 1.3, aimframes: 'AB' },
+  { name: 'Dinamita', short: 'DINAMITA', ammo: am_dinamita, upstate: 'S_DINWUP', downstate: 'S_DINWDOWN', readystate: 'S_DINW', atkstate: 'S_DINWATK1', flashstate: 'S_NULL', zoom: 1, aimframes: '' }
 ];
 
 const ammonames = ['Cartuchos de revólver', 'Cartuchos 11 mm', 'Dinamita'];

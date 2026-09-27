@@ -14,6 +14,8 @@ let V_BaseWidth = 320;                       // ancho lógico actual (320..560)
 function V_Init() {
   const n = SCREENWIDTH * SCREENHEIGHT;
   for (let i = 0; i < screens.length; i++) screens[i] = new Uint8Array(n);
+  // Los glifos de alta resolución dependen de SCALE.
+  V_hrCache.clear();
 }
 
 // --- Construcción de patches -------------------------------------------------------
@@ -56,6 +58,11 @@ function V_MakeSolidPatch(width, height, pixels, leftoffset, topoffset) {
 // translation: tabla opcional de 256 bytes para recolorear (como las traducciones de DOOM).
 function V_DrawPatch(x, y, patch, translation, flip) {
   if (!patch) return;
+  if (patch.density) {
+    if (patch.ocolumns) V_DrawPatchHR(x, y, patch, patch.ocolumns, null);
+    V_DrawPatchHR(x, y, patch, patch.columns, translation);
+    return;
+  }
   x -= patch.leftoffset;
   y -= patch.topoffset;
   const S = SCALE;
@@ -82,6 +89,53 @@ function V_DrawPatch(x, y, patch, translation, flip) {
             if (xx >= 0 && xx < W) fb[row + xx] = color;
           }
         }
+      }
+    }
+  }
+}
+
+// Patch de alta densidad (glifos vectoriales, etc.): sus columnas están en
+// píxeles reales (density por unidad lógica). Con density == SCALE se copia
+// 1:1; si no, se amplía o reduce por vecino más cercano.
+function V_DrawPatchHR(x, y, patch, columns, translation) {
+  if (!columns || !patch.pw) return;
+  const fb = screens[0];
+  const W = SCREENWIDTH, H = SCREENHEIGHT;
+  const px0 = Math.round(UIOFS + (x - patch.leftoffset) * SCALE);
+  const py0 = Math.round((y - patch.topoffset) * SCALE);
+  const k = SCALE / patch.density;
+  if (k === 1) {
+    for (let c = 0; c < patch.pw; c++) {
+      const sx = px0 + c;
+      if (sx < 0 || sx >= W) continue;
+      const col = columns[c];
+      for (let p = 0; p < col.length; p++) {
+        const post = col[p];
+        const pix = post.pixels;
+        let yy = py0 + post.top;
+        for (let j = 0; j < post.len; j++, yy++) {
+          if (yy < 0 || yy >= H) continue;
+          fb[yy * W + sx] = translation ? translation[pix[j]] : pix[j];
+        }
+      }
+    }
+    return;
+  }
+  const outw = Math.ceil(patch.pw * k);
+  for (let ox = 0; ox < outw; ox++) {
+    const sx = px0 + ox;
+    if (sx < 0 || sx >= W) continue;
+    const c = Math.floor(ox / k);
+    if (c >= patch.pw) continue;
+    const col = columns[c];
+    for (let p = 0; p < col.length; p++) {
+      const post = col[p];
+      const ya = Math.floor(py0 + post.top * k), yb = Math.floor(py0 + (post.top + post.len) * k);
+      for (let yy = Math.max(0, ya); yy < Math.min(H, yb); yy++) {
+        let j = Math.floor((yy - py0) / k) - post.top;
+        if (j < 0) j = 0; else if (j >= post.len) j = post.len - 1;
+        const color = post.pixels[j];
+        fb[yy * W + sx] = translation ? translation[color] : color;
       }
     }
   }
@@ -154,103 +208,166 @@ function V_DimRectPhys(x, y, w, h, level) {
 
 // Copia una imagen indexada completa (en píxeles lógicos) a la pantalla, centrada.
 // img = { width, height, pixels } ; se recorta si es más ancha que la pantalla.
+let V_xmap = new Int32Array(1);
 function V_DrawFullImage(img) {
   const S = SCALE;
   const fb = screens[0];
   const W = SCREENWIDTH, H = SCREENHEIGHT;
   const lw = W / S;
   const ox = Math.floor((img.width - lw) / 2);
-  for (let py = 0; py < H; py++) {
-    const iy = Math.min(img.height - 1, Math.floor(py / S));
-    const row = iy * img.width;
-    for (let px = 0; px < W; px++) {
-      let ix = Math.floor(px / S) + ox;
-      if (ix < 0) ix = 0; else if (ix >= img.width) ix = img.width - 1;
-      fb[py * W + px] = img.pixels[row + ix];
-    }
+  if (V_xmap.length < W) V_xmap = new Int32Array(W);
+  const xmap = V_xmap;
+  for (let px = 0; px < W; px++) {
+    let ix = Math.floor(px / S) + ox;
+    xmap[px] = ix < 0 ? 0 : ix >= img.width ? img.width - 1 : ix;
   }
+  const src = img.pixels;
+  for (let py = 0; py < H; py++) {
+    const row = Math.min(img.height - 1, Math.floor(py / S)) * img.width;
+    const dst = py * W;
+    if (py % S) { fb.copyWithin(dst, dst - W, dst); continue; }
+    for (let px = 0; px < W; px++) fb[dst + px] = src[row + xmap[px]];
+  }
+}
+
+// Coordenada x de la interfaz (0..320) que corresponde a la columna ix de una
+// imagen de pantalla completa dibujada con V_DrawFullImage.
+function V_FullImageX(img, ix) {
+  const lw = SCREENWIDTH / SCALE;
+  return ix - Math.floor((img.width - lw) / 2) - UIOFS / SCALE;
 }
 
 // Tapiza toda la pantalla con un flat de 64x64 (fondos del final, bordes de vista).
 function V_TileFlat(flat, darken) {
-  const S = SCALE;
-  const fb = screens[0];
-  const W = SCREENWIDTH, H = SCREENHEIGHT;
-  const cm = darken ? W_CacheLumpName('COLORMAP') : null;
-  const base = (darken || 0) * 256;
-  for (let py = 0; py < H; py++) {
-    const fy = (Math.floor(py / S) & 63) * 64;
-    for (let px = 0; px < W; px++) {
-      const c = flat[fy + (Math.floor(px / S) & 63)];
-      fb[py * W + px] = cm ? cm[base + c] : c;
-    }
-  }
+  V_TileFlatRectPhys(flat, 0, 0, SCREENWIDTH, SCREENHEIGHT, darken);
 }
 
+// Un texel del flat por píxel lógico (flats de 64 o 128 texeles de lado);
+// en alta resolución se amplía a la mitad de SCALE (textura más fina).
 function V_TileFlatRectPhys(flat, x, y, w, h, darken) {
-  const S = SCALE;
+  const n = Math.round(Math.sqrt(flat.length)), mask = n - 1;
+  const S = Math.max(1, SCALE >> 1);
   const fb = screens[0];
   const W = SCREENWIDTH, H = SCREENHEIGHT;
   const cm = darken ? W_CacheLumpName('COLORMAP') : null;
   const base = (darken || 0) * 256;
   const x0 = Math.max(0, x | 0), x1 = Math.min(W, (x + w) | 0);
   const y0 = Math.max(0, y | 0), y1 = Math.min(H, (y + h) | 0);
+  if (V_xmap.length < W) V_xmap = new Int32Array(W);
+  const xmap = V_xmap;
+  for (let px = x0; px < x1; px++) xmap[px] = Math.floor(px / S) & mask;
   for (let py = y0; py < y1; py++) {
-    const fy = (Math.floor(py / S) & 63) * 64;
+    const fy = (Math.floor(py / S) & mask) * n;
+    const row = py * W;
     for (let px = x0; px < x1; px++) {
-      const c = flat[fy + (Math.floor(px / S) & 63)];
-      fb[py * W + px] = cm ? cm[base + c] : c;
+      const c = flat[fy + xmap[px]];
+      fb[row + px] = cm ? cm[base + c] : c;
     }
   }
 }
 
 // --- Texto -------------------------------------------------------------------------
-// Las fuentes se generan en content/font.js y se registran como lumps de patches:
-// FNT_S<cód> (pequeña, estilo STCFN) y FNT_B<cód> (grande, estilo títulos de menú).
+// Fuente clásica de mapa de bits (content/font.js), registrada como lumps
+// FS<cód> (pequeña, estilo STCFN) y FB<cód> (grande, títulos de menú); desde
+// 640x400, glifos vectoriales rasterizados a la resolución real (FONT_MakeHR).
+// El parámetro "big" de las funciones de texto admite false/'small' (pequeña),
+// true/'big' (grande) y 'title' (portada).
 const V_fontCache = { small: new Map(), big: new Map() };
+const V_hrCache = new Map();
 
-function V_GetGlyph(ch, big) {
-  const cache = big ? V_fontCache.big : V_fontCache.small;
+function V_TextStyle(big) {
+  if (big === true) return 'big';
+  if (typeof big === 'string') return big;
+  return 'small';
+}
+
+function V_UseHR() {
+  return SCALE >= 2 && typeof FONT_HRAvailable === 'function' && FONT_HRAvailable();
+}
+
+function V_GetGlyph(ch, big, plain) {
+  const style = V_TextStyle(big);
+  if (V_UseHR()) {
+    const key = style + (plain ? '|p|' : '|o|') + ch;
+    let g = V_hrCache.get(key);
+    if (g === undefined) {
+      g = FONT_MakeHR(ch, style, SCALE, !!plain);
+      V_hrCache.set(key, g);
+    }
+    return g;
+  }
+  const isBig = style !== 'small';
+  const cache = isBig ? V_fontCache.big : V_fontCache.small;
   let g = cache.get(ch);
   if (g !== undefined) return g;
   const code = ch.codePointAt(0);
-  const name = (big ? 'FB' : 'FS') + code.toString(16).toUpperCase().padStart(4, '0');
+  const name = (isBig ? 'FB' : 'FS') + code.toString(16).toUpperCase().padStart(4, '0');
   const n = W_CheckNumForName(name);
   g = n >= 0 ? W_CacheLumpNum(n) : null;
   cache.set(ch, g);
   return g;
 }
 
+function V_SpaceWidth(style) {
+  if (V_UseHR()) return FONT_STYLES[style].space;
+  return style === 'small' ? 4 : style === 'title' ? 21 : 7;
+}
+
+// Con la fuente clásica, el estilo de portada es la grande ampliada x3.
+function V_ClassicMul(style) {
+  return style === 'title' && !V_UseHR() ? 3 : 1;
+}
+
+function V_LineHeight(style) {
+  return FONT_LINEH[style] || 11;
+}
+
 // Ancho de un texto en píxeles lógicos.
 function V_StringWidth(str, big) {
+  const style = V_TextStyle(big);
+  const sp = V_SpaceWidth(style);
   let w = 0, maxw = 0;
   for (const ch of str) {
     if (ch === '\n') { maxw = Math.max(maxw, w); w = 0; continue; }
-    if (ch === ' ') { w += big ? 7 : 4; continue; }
-    const g = V_GetGlyph(ch, big);
-    w += g ? g.width + (big ? 0 : 0) : (big ? 7 : 4);
+    if (ch === ' ') { w += sp; continue; }
+    const g = V_GetGlyph(ch, style);
+    w += g ? g.width * V_ClassicMul(style) : sp;
   }
   return Math.max(maxw, w);
 }
 
-// Dibuja texto; translation permite colorearlo (ver V_Translations).
+// Dibuja texto; translation permite colorearlo (ver V_Translations). Con
+// glifos vectoriales se pintan primero todos los contornos y luego los
+// rellenos. Devuelve la x lógica final.
 function V_DrawText(x, y, str, big, translation) {
-  let cx = x, cy = y;
-  const lineh = big ? 20 : 11;
-  for (const ch of str) {
-    if (ch === '\n') { cx = x; cy += lineh; continue; }
-    if (ch === ' ') { cx += big ? 7 : 4; continue; }
-    const g = V_GetGlyph(ch, big);
-    if (!g) { cx += big ? 7 : 4; continue; }
-    V_DrawPatch(cx, cy, g, translation);
-    cx += g.width;
+  const style = V_TextStyle(big);
+  const lineh = V_LineHeight(style);
+  const sp = V_SpaceWidth(style);
+  const hr = V_UseHR();
+  const plain = !!(translation && translation.plain);
+  let endx = x;
+  for (let pass = hr && !plain ? 0 : 1; pass < 2; pass++) {
+    let cx = x, cy = y;
+    for (const ch of str) {
+      if (ch === '\n') { cx = x; cy += lineh; continue; }
+      if (ch === ' ') { cx += sp; continue; }
+      const g = V_GetGlyph(ch, style, plain);
+      if (!g) { cx += sp; continue; }
+      if (!hr) {
+        if (style === 'title') { V_DrawPatchScaled(cx, cy, g, 3, translation); cx += g.width * 3; continue; }
+        V_DrawPatch(cx, cy, g, translation);
+      } else if (pass === 0) V_DrawPatchHR(cx, cy, g, g.ocolumns, null);
+      else V_DrawPatchHR(cx, cy, g, g.columns, translation);
+      cx += g.width;
+    }
+    endx = cx;
   }
-  return cx;
+  return endx;
 }
 
 function V_DrawTextCentered(y, str, big, translation) {
   const w = V_StringWidth(str, big);
-  V_DrawText(Math.floor(160 - w / 2), y, str, big, translation);
+  V_DrawText(160 - w / 2, y, str, big, translation);
 }
 
 // Tablas de traducción de color para las fuentes (la fuente base es "hueso").
@@ -270,4 +387,16 @@ function V_InitTranslations() {
   V_Translations.green = make(R_GREEN, 0);
   V_Translations.sand = make(R_SAND, 0);
   V_Translations.dark = make(R_GRAY, 8);
+  V_Translations.dark.plain = true;          // tinta sobre pergamino o cuero: sin contorno
+  // Tintas de la carta (sin contorno): sepia, azul del mar, rojo de los rótulos.
+  V_Translations.ink = make(R_WOOD, 10);
+  V_Translations.ink.plain = true;
+  V_Translations.inksea = make(R_NAVY, 5);
+  V_Translations.inksea.plain = true;
+  V_Translations.inkred = make(R_RED, 7);
+  V_Translations.inkred.plain = true;
+  V_Translations.label = make(R_WOOD, 3);    // rótulos grabados de la barra de estado
+  V_Translations.label.plain = true;
+  V_Translations.engrave = make(R_WOOD, 13);
+  V_Translations.engrave.plain = true;
 }

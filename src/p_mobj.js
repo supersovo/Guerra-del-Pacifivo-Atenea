@@ -300,8 +300,13 @@ function P_SpawnMissile(source, dest, type) {
 
 function P_SpawnPlayerMissile(source, type) {
   let an = source.angle;
-  let slope = P_AimLineAttack(source, an, 16 * 64);
-  if (!linetarget) {
+  let slope;
+  if (source.player && source.player.freeaim) {
+    // apuntado libre: se lanza hacia donde se mira
+    slope = Math.tan(source.player.pitch);
+    linetarget = null;
+  } else slope = P_AimLineAttack(source, an, 16 * 64);
+  if (!linetarget && !(source.player && source.player.freeaim)) {
     an = (an + (1 << 26)) >>> 0;
     slope = P_AimLineAttack(source, an, 16 * 64);
     if (!linetarget) {

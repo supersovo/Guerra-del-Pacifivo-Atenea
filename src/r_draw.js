@@ -109,6 +109,19 @@ function R_DrawSpan() {
   const src = ds_source;
   const cm = colormaps;
   const cmb = ds_colormap;
+  if (src.length === 16384) {
+    // flat de doble densidad: 128x128 texeles para 64x64 unidades
+    let xf = (((ds_xfrac % 64) + 64) % 64 * 131072) | 0;
+    let yf = (((ds_yfrac % 64) + 64) % 64 * 131072) | 0;
+    const xs = (ds_xstep * 131072) | 0;
+    const ys = (ds_ystep * 131072) | 0;
+    do {
+      fb[dest++] = cm[cmb + src[((yf >>> 9) & 16256) | ((xf >>> 16) & 127)]];
+      xf = (xf + xs) | 0;
+      yf = (yf + ys) | 0;
+    } while (count--);
+    return;
+  }
   let xf = (((ds_xfrac % 64) + 64) % 64 * 65536) | 0;
   let yf = (((ds_yfrac % 64) + 64) % 64 * 65536) | 0;
   const xs = (ds_xstep * 65536) | 0;

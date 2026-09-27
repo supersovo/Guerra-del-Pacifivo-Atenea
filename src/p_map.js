@@ -306,12 +306,19 @@ function PTR_ShootTraverse(inx) {
   return false;
 }
 
+// Altura desde la que dispara un actor: el jugador, desde los ojos (así la
+// bala sale hacia donde apunta la retícula); los demás, como en DOOM.
+function P_ShootZ(t1) {
+  if (t1.player) return t1.player.viewz;
+  return t1.z + (t1.height / 2) + 8;
+}
+
 function P_AimLineAttack(t1, angle, distance) {
   angle = angle >>> 0;
   shootthing = t1;
   const x2 = t1.x + distance * FineCos(angle);
   const y2 = t1.y + distance * FineSin(angle);
-  shootz = t1.z + (t1.height / 2) + 8;
+  shootz = P_ShootZ(t1);
   topslope = 100 / 160;
   bottomslope = -100 / 160;
   attackrange = distance;
@@ -327,7 +334,7 @@ function P_LineAttack(t1, angle, distance, slope, damage) {
   la_damage = damage;
   const x2 = t1.x + distance * FineCos(angle);
   const y2 = t1.y + distance * FineSin(angle);
-  shootz = t1.z + (t1.height / 2) + 8;
+  shootz = P_ShootZ(t1);
   attackrange = distance;
   aimslope = slope;
   P_PathTraverse(t1.x, t1.y, x2, y2, PT_ADDLINES | PT_ADDTHINGS, PTR_ShootTraverse);

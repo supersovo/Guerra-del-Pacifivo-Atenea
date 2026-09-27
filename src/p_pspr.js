@@ -121,7 +121,15 @@ function A_Light0(player) { player.extralight = 0; }
 function A_Light1(player) { player.extralight = 1; }
 function A_Light2(player) { player.extralight = 2; }
 
+// Pendiente del disparo. Con apuntado libre (ratón) la bala va exactamente
+// hacia la retícula, en el centro de la vista; en modo clásico, autoapuntado
+// vertical de DOOM (con tanteo a ±5,6° si no hay blanco al frente).
 function P_BulletSlope(mo) {
+  if (mo.player && mo.player.freeaim) {
+    bulletslope = Math.tan(mo.player.pitch);
+    linetarget = null;
+    return;
+  }
   let an = mo.angle;
   bulletslope = P_AimLineAttack(mo, an, 16 * 64);
   if (!linetarget) {
@@ -134,9 +142,13 @@ function P_BulletSlope(mo) {
   }
 }
 
+// Dispersión: con el arma encarada (miras) la desviación es cuatro veces menor.
 function P_GunShot(mo, accurate, damage) {
   let angle = mo.angle;
-  if (!accurate) angle = (angle + ((P_Random() - P_Random()) << 18)) >>> 0;
+  if (!accurate) {
+    const aimed = mo.player && mo.player.ads > 0.8;
+    angle = (angle + ((P_Random() - P_Random()) << (aimed ? 16 : 18))) >>> 0;
+  }
   P_LineAttack(mo, angle, MISSILERANGE, bulletslope, damage);
 }
 

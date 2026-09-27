@@ -37,6 +37,8 @@ function P_InitThinkers() {}
 function P_SpawnSpecials() {}
 function ST_ViewSizeChanged() {}
 function G_PendingTurn() { return 0; }
+function G_PendingPitch() { return 0; }
+function P_ViewZoom() { return 1; }
 function P_SpawnMapThing(mt) { if (mt.type === 'PLAYER1') playerstarts.push(mt); }
 function B_InitBattle() {}
 let screenShake = 0;
@@ -71,7 +73,7 @@ window.addEventListener('load', function () {
   RT.setup = performance.now() - t0;
   RT.render = function (x, y, z, angDeg) {
     const mo = { x: x, y: y, angle: DegToBAM(angDeg), oldvalid: false };
-    const player = { mo: mo, viewz: z, extralight: 0, fixedcolormap: -1, psprites: null };
+    const player = { mo: mo, viewz: z, extralight: 0, fixedcolormap: -1, psprites: null, pitch: 0, ads: 0, oldads: 0 };
     const sub = R_PointInSubsector(x, y);
     mo.subsector = sub;
     const t1 = performance.now();

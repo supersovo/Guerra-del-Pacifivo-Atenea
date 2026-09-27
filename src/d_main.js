@@ -12,6 +12,21 @@ let D_lastTime = 0;
 let D_accum = 0;
 let D_pagetic = 0;
 let D_wipeLast = 0;
+let D_renderAvg = 0, D_renderSamples = 0;
+
+// Resolución automática adaptable: si dibujar un cuadro del combate cuesta
+// en promedio más de 20 ms (menos de ~50 cuadros por segundo), se baja un
+// escalón la escala automática. No afecta a una resolución elegida a mano.
+function D_AdaptResolution(ms) {
+  if ((defaults.resolution | 0) !== 0 || SCALE <= 2) return;
+  D_renderAvg = D_renderSamples ? D_renderAvg * 0.95 + ms * 0.05 : ms;
+  if (++D_renderSamples > 150 && D_renderAvg > 20) {
+    I_autoScaleCap = SCALE - 1;
+    I_needResize = true;
+    D_renderSamples = 0;
+    console.log('Resolución automática: escala ' + I_autoScaleCap + ' (' + D_renderAvg.toFixed(1) + ' ms por cuadro)');
+  }
+}
 
 function D_Boot(line) {
   const el = document.getElementById('boot');
@@ -101,6 +116,9 @@ function D_PageTicker() {
 
 function D_PageDrawer() {
   V_DrawFullImage(W_CacheLumpName('TITLEPIC'));
+  V_DrawTextCentered(8, '1879', 'title', V_Translations.gold);
+  V_DrawTextCentered(58, 'GUERRA DEL PACÍFICO', true);
+  V_DrawTextCentered(82, 'PISAGUA · DOLORES · ARICA', false, V_Translations.sand);
   if (!menuactive && (D_pagetic & 32)) V_DrawTextCentered(178, 'Presione cualquier tecla', false, V_Translations.gold);
 }
 
@@ -199,8 +217,10 @@ function D_Frame(now) {
   }
   if (n >= 8) D_accum = 0;
   R_interpFrac = (defaults.interpolate && !paused && !menuactive) ? clamp(D_accum / TICMS, 0, 1) : 1;
+  const t0 = performance.now();
   D_Display();
   I_FinishUpdate();
+  if (gamestate === GS_LEVEL && !menuactive && !paused && !automapactive) D_AdaptResolution(performance.now() - t0);
 }
 
 function D_DoomLoop() {

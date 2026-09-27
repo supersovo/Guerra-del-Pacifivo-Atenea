@@ -22,14 +22,40 @@ function I_InitGraphics(canvas) {
   I_canvas = canvas;
   I_ctx = canvas.getContext('2d', { alpha: false });
   window.addEventListener('resize', function () { I_needResize = true; });
+  // Cambio de pantalla o de zoom del navegador (devicePixelRatio).
+  if (window.matchMedia) {
+    const watchDpr = function () {
+      try {
+        const mq = window.matchMedia('(resolution: ' + (window.devicePixelRatio || 1) + 'dppx)');
+        const on = function () { I_needResize = true; mq.removeEventListener('change', on); watchDpr(); };
+        mq.addEventListener('change', on);
+      } catch (e) { /* navegador antiguo */ }
+    };
+    watchDpr();
+  }
   if (window.visualViewport) window.visualViewport.addEventListener('resize', function () { I_needResize = true; });
   document.addEventListener('fullscreenchange', function () { I_needResize = true; });
   I_ComputeScreenSize();
 }
 
-// Calcula el tamaño del framebuffer según el detalle y la forma de la ventana.
+// Presupuesto de píxeles del framebuffer (el renderizador trabaja en la CPU).
+const I_PIXEL_BUDGET = 1400000;          // escritorio: hasta 1704x800 en 16:9
+const I_PIXEL_BUDGET_MOBILE = 800000;    // teléfonos y tabletas
+let I_magnification = 1;                 // píxeles físicos por fila del framebuffer
+let I_autoScaleCap = 4;                  // tope de la escala automática (baja si el equipo no da abasto)
+
+function I_IsMobile() {
+  try {
+    return navigator.maxTouchPoints > 0 && !!window.matchMedia && window.matchMedia('(pointer: coarse)').matches;
+  } catch (e) { return false; }
+}
+
+// Calcula el tamaño del framebuffer según la resolución elegida y la forma de
+// la ventana. La interfaz se diseña en 320x200 lógicos (píxeles 1:1,2 como
+// DOOM) y se multiplica por SCALE: 1 = 320x200 ... 4 = 1280x800 (o más ancho
+// en pantallas panorámicas). En modo automático la escala se ajusta a los
+// píxeles reales de la pantalla (devicePixelRatio), sin pasar del presupuesto.
 function I_ComputeScreenSize() {
-  const S = defaults.detailLevel ? 2 : 1;
   // Espacio disponible: la caja de contenido del contenedor (respeta su
   // relleno) o, sin contenedor, la ventana completa.
   let vw = window.innerWidth, vh = window.innerHeight;
@@ -40,12 +66,26 @@ function I_ComputeScreenSize() {
     vh = host.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom);
   }
   vw = Math.max(1, vw); vh = Math.max(1, vh);
+  // Ancho lógico "Hor+": 200 filas de píxeles 1:1,2 equivalen a 240 de alto
+  // visual; el ancho crece con la forma de la pantalla (4:3 = 320, 16:9 = 426).
   let baseW = 320;
   if (defaults.widescreen) {
-    const aspect = vw / vh;
-    baseW = Math.round(200 * aspect / 1.2);
+    baseW = Math.round(240 * vw / vh);
     baseW = Math.max(320, Math.min(560, baseW));
     baseW &= ~1;
+  }
+  // Tamaño CSS del canvas conservando la relación de aspecto.
+  const dispAspect = baseW / 240;
+  let cw = vw, ch = vw / dispAspect;
+  if (ch > vh) { ch = vh; cw = vh * dispAspect; }
+  const dpr = window.devicePixelRatio || 1;
+  let S = defaults.resolution | 0;
+  if (S < 1 || S > 4) {
+    // Automática: tantas filas como píxeles físicos haya (redondeando) y sin
+    // exceder el presupuesto de píxeles.
+    S = Math.max(1, Math.min(I_autoScaleCap, Math.round(ch * dpr / 200)));
+    const budget = I_IsMobile() ? I_PIXEL_BUDGET_MOBILE : I_PIXEL_BUDGET;
+    while (S > 1 && baseW * S * 200 * S > budget) S--;
   }
   const changed = (SCREENWIDTH !== baseW * S) || (SCREENHEIGHT !== 200 * S) || SCALE !== S;
   SCALE = S;
@@ -60,12 +100,12 @@ function I_ComputeScreenSize() {
     I_out32 = new Uint32Array(I_image.data.buffer);
     V_Init();
   }
-  // Ajuste CSS: mantener la relación de aspecto con píxeles 1:1,2.
-  const dispAspect = SCREENWIDTH / (SCREENHEIGHT * 1.2);
-  let cw = vw, ch = vw / dispAspect;
-  if (ch > vh) { ch = vh; cw = vh * dispAspect; }
   I_canvas.style.width = Math.floor(cw) + 'px';
   I_canvas.style.height = Math.floor(ch) + 'px';
+  // Ampliación grande: píxeles nítidos (estética clásica). Cercana a 1:1:
+  // suavizado, para que las letras y los bordes no se vean desparejos.
+  I_magnification = ch * dpr / SCREENHEIGHT;
+  I_canvas.style.imageRendering = I_magnification >= 1.75 ? 'pixelated' : 'auto';
   I_needResize = false;
   return changed;
 }

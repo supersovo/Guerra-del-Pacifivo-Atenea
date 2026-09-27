@@ -25,6 +25,14 @@ let markfloor = false, markceiling = false, maskedtexture = false;
 let toptexture = 0, bottomtexture = 0, midtexture = 0, segtextured = 0;
 let skypass = false;
 let maskedofs = 0;
+let maskeddensity = 1;
+
+// Altura de una textura en unidades de mapa (puede tener más de un texel por
+// unidad: density).
+function R_TexHeight(tex) {
+  const t = textures[tex];
+  return t.height / (t.density || 1);
+}
 
 let drawsegs = [];
 let ds_p = 0;
@@ -86,7 +94,7 @@ function R_ScaleFromGlobalAngle(visangle) {
   const sineb = Math.sin(angleb * BAM2RAD);
   const num = projection * sineb;
   const den = rw_distance * sinea;
-  const maxscale = 64 * SCALE;
+  const maxscale = 64 * SCALE * R_curZoom;
   if (den > num / maxscale) {
     let scale = num / den;
     if (scale > maxscale) scale = maxscale;
@@ -141,7 +149,7 @@ function R_StoreWallRange(start, stop) {
     markfloor = markceiling = true;
     if (fsky) markceiling = false;
     if (linedef.flags & ML_DONTPEGBOTTOM) {
-      const vtop = frontsector.floorheight + textures[sidedef.midtexture || 1].height;
+      const vtop = frontsector.floorheight + R_TexHeight(sidedef.midtexture || 1);
       rw_midtexturemid = vtop - viewz;
     } else {
       rw_midtexturemid = worldtop;
@@ -210,7 +218,7 @@ function R_StoreWallRange(start, stop) {
       if (linedef.flags & ML_DONTPEGTOP) {
         rw_toptexturemid = worldtop;
       } else {
-        const vtop = backsector.ceilingheight + textures[sidedef.toptexture || 1].height;
+        const vtop = backsector.ceilingheight + R_TexHeight(sidedef.toptexture || 1);
         rw_toptexturemid = vtop - viewz;
       }
     }
@@ -224,6 +232,7 @@ function R_StoreWallRange(start, stop) {
 
     if (sidedef.midtexture) {
       maskedtexture = true;
+      maskeddensity = (textures[texturetranslation[sidedef.midtexture]] || textures[1]).density || 1;
       R_EnsureOpenings(rw_stopx - rw_x);
       ds.maskedtexturecol = openings;
       ds.maskedofs = maskedofs = lastopening - rw_x;
@@ -340,10 +349,12 @@ function R_RenderSegLoop() {
         floorplane.bottom[rw_x + 1] = bottom;
       }
     }
-    let texturecolumn = 0;
+    // Columna de textura en unidades de mapa; cada textura la pasa a texeles
+    // según su densidad.
+    let texcol = 0, invscale = 0;
     if (segtextured) {
       const ang = ((rw_centerangle + xtoviewangle[rw_x]) >>> 0) * BAM2RAD - HALFPI;
-      texturecolumn = Math.floor(rw_offset - Math.tan(ang) * rw_distance);
+      texcol = rw_offset - Math.tan(ang) * rw_distance;
       if (fixedcolormap >= 0) dc_colormap = fixedcolormap;
       else {
         let index = Math.floor(rw_scale * lightscalemul);
@@ -351,14 +362,16 @@ function R_RenderSegLoop() {
         dc_colormap = walllights[index];
       }
       dc_x = rw_x;
-      dc_iscale = 1 / rw_scale;
+      invscale = 1 / rw_scale;
     }
     if (midtexture) {
+      const t = textures[midtexture], d = t.density || 1;
       dc_yl = yl;
       dc_yh = yh;
-      dc_texturemid = rw_midtexturemid;
-      dc_source = R_GetColumn(midtexture, texturecolumn);
-      dc_texheight = textures[midtexture].height;
+      dc_iscale = invscale * d;
+      dc_texturemid = rw_midtexturemid * d;
+      dc_source = R_GetColumn(midtexture, Math.floor(texcol * d));
+      dc_texheight = t.height;
       R_DrawColumn();
       ceilingclip[rw_x] = vh;
       floorclip[rw_x] = -1;
@@ -368,11 +381,13 @@ function R_RenderSegLoop() {
         pixhigh += pixhighstep;
         if (mid >= floorclip[rw_x]) mid = floorclip[rw_x] - 1;
         if (mid >= yl) {
+          const t = textures[toptexture], d = t.density || 1;
           dc_yl = yl;
           dc_yh = mid;
-          dc_texturemid = rw_toptexturemid;
-          dc_source = R_GetColumn(toptexture, texturecolumn);
-          dc_texheight = textures[toptexture].height;
+          dc_iscale = invscale * d;
+          dc_texturemid = rw_toptexturemid * d;
+          dc_source = R_GetColumn(toptexture, Math.floor(texcol * d));
+          dc_texheight = t.height;
           R_DrawColumn();
           if (!skypass) ceilingclip[rw_x] = mid;
         } else if (!skypass) {
@@ -386,11 +401,13 @@ function R_RenderSegLoop() {
         pixlow += pixlowstep;
         if (mid <= ceilingclip[rw_x]) mid = ceilingclip[rw_x] + 1;
         if (mid <= yh) {
+          const t = textures[bottomtexture], d = t.density || 1;
           dc_yl = mid;
           dc_yh = yh;
-          dc_texturemid = rw_bottomtexturemid;
-          dc_source = R_GetColumn(bottomtexture, texturecolumn);
-          dc_texheight = textures[bottomtexture].height;
+          dc_iscale = invscale * d;
+          dc_texturemid = rw_bottomtexturemid * d;
+          dc_source = R_GetColumn(bottomtexture, Math.floor(texcol * d));
+          dc_texheight = t.height;
           R_DrawColumn();
           floorclip[rw_x] = mid;
         } else {
@@ -403,7 +420,7 @@ function R_RenderSegLoop() {
         // Extensión Atenea: sólo queda abierto lo que está por encima del muro.
         if (yl < floorclip[rw_x]) floorclip[rw_x] = yl;
       }
-      if (maskedtexture) openings[maskedofs + rw_x] = texturecolumn;
+      if (maskedtexture) openings[maskedofs + rw_x] = Math.floor(texcol * maskeddensity);
     }
     rw_scale += rw_scalestep;
     topfrac += topstep;
@@ -411,7 +428,8 @@ function R_RenderSegLoop() {
   }
 }
 
-// Dibuja la textura enmascarada (rejas, barandas) de un drawseg.
+// Dibuja la textura enmascarada (rejas, barandas) de un drawseg. La columna
+// guardada ya está en texeles; la escala de los postes es por texel.
 function R_RenderMaskedSegRange(ds, x1, x2) {
   curline = ds.curline;
   frontsector = curline.frontsector;
@@ -419,6 +437,7 @@ function R_RenderMaskedSegRange(ds, x1, x2) {
   const texnum = texturetranslation[curline.sidedef.midtexture];
   const tex = textures[texnum];
   if (!tex) return;
+  const d = tex.density || 1;
   let lightnum = (frontsector.lightlevel >> LIGHTSEGSHIFT) + extralight;
   if (curline.v1.y === curline.v2.y) lightnum--;
   else if (curline.v1.x === curline.v2.x) lightnum++;
@@ -426,32 +445,34 @@ function R_RenderMaskedSegRange(ds, x1, x2) {
   const col = ds.maskedtexturecol;
   const mofs = ds.maskedofs;
   const step = ds.scalestep;
-  spryscale = ds.scale1 + (x1 - ds.x1) * step;
+  let scale = ds.scale1 + (x1 - ds.x1) * step;
   mfloorclip = ds.sprbottomclip; mfloorofs = ds.sprbottomofs;
   mceilingclip = ds.sprtopclip; mceilingofs = ds.sprtopofs;
+  let mid;
   if (curline.linedef.flags & ML_DONTPEGBOTTOM) {
-    dc_texturemid = Math.max(frontsector.floorheight, backsector.floorheight) + tex.height - viewz;
+    mid = Math.max(frontsector.floorheight, backsector.floorheight) + tex.height / d - viewz;
   } else {
-    dc_texturemid = Math.min(frontsector.ceilingheight, backsector.ceilingheight) - viewz;
+    mid = Math.min(frontsector.ceilingheight, backsector.ceilingheight) - viewz;
   }
-  dc_texturemid += curline.sidedef.rowoffset;
+  mid += curline.sidedef.rowoffset;
   dc_translation = null;
+  const w = tex.width;
   for (dc_x = x1; dc_x <= x2; dc_x++) {
     const c = col[mofs + dc_x];
     if (c !== MAXSHORTCOL) {
       if (fixedcolormap >= 0) dc_colormap = fixedcolormap;
       else {
-        let index = Math.floor(spryscale * lightscalemul);
+        let index = Math.floor(scale * lightscalemul);
         if (index >= MAXLIGHTSCALE) index = MAXLIGHTSCALE - 1;
         dc_colormap = walllights[index];
       }
-      sprtopscreen = centery - dc_texturemid * spryscale;
-      dc_iscale = 1 / spryscale;
-      const w = tex.width;
-      const posts = tex.posts[((c % w) + w) % w];
-      R_DrawMaskedColumn(posts);
+      sprtopscreen = centery - mid * scale;
+      spryscale = scale / d;
+      dc_iscale = d / scale;
+      dc_texturemid = mid * d;
+      R_DrawMaskedColumn(tex.posts[((c % w) + w) % w]);
       col[mofs + dc_x] = MAXSHORTCOL;
     }
-    spryscale += step;
+    scale += step;
   }
 }

@@ -26,20 +26,34 @@ function R_InitPlanes() {
   visplanes = [];
   lastvisplane = 0;
   yslope = new Float64Array(viewheight);
-  for (let i = 0; i < viewheight; i++) {
-    const dy = Math.abs(i - viewheight / 2 + 0.5);
-    yslope[i] = projection / dy;
-  }
   distscale = new Float64Array(viewwidth);
-  for (let i = 0; i < viewwidth; i++) {
-    const cosadj = Math.abs(Math.cos(xtoviewangle[i] * BAM2RAD));
-    distscale[i] = 1 / cosadj;
-  }
   spanstart = new Int32Array(viewheight);
   cachedheight = new Float64Array(viewheight);
   cacheddistance = new Float64Array(viewheight);
   cachedxstep = new Float64Array(viewheight);
   cachedystep = new Float64Array(viewheight);
+  R_yslopeCenter = NaN;
+}
+
+// Corrección de distancia por columna (depende del campo visual).
+function R_InitDistScale() {
+  for (let i = 0; i < viewwidth; i++) {
+    const cosadj = Math.abs(Math.cos(xtoviewangle[i] * BAM2RAD));
+    distscale[i] = 1 / cosadj;
+  }
+}
+
+// Pendiente por fila respecto del horizonte (centery), que se mueve al mirar
+// arriba o abajo y con el aumento de las miras.
+let R_yslopeCenter = NaN, R_yslopeProj = NaN;
+function R_SetupYSlope() {
+  if (centery === R_yslopeCenter && projection === R_yslopeProj) return;
+  R_yslopeCenter = centery;
+  R_yslopeProj = projection;
+  for (let i = 0; i < viewheight; i++) {
+    const dy = Math.max(0.5, Math.abs(i + 0.5 - centery));
+    yslope[i] = projection / dy;
+  }
 }
 
 function R_NewVisplane() {

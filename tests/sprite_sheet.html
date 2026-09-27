@@ -39,6 +39,17 @@ window.addEventListener('load', async function () {
       if (x < 0 || y < 0 || x >= cv.width || y >= cv.height) return;
       const o = (y * cv.width + x) * 4; d[o] = r; d[o + 1] = g; d[o + 2] = b;
     };
+    // Los sprites pueden tener más de un texel por unidad (density): se dibujan
+    // a la escala del mundo, con cada texel de zoom/density píxeles.
+    const blit = function (p, X0, Y0, k, ox, oy) {
+      const bs = Math.max(1, Math.ceil(k));
+      for (let c = 0; c < p.width; c++) for (const post of p.columns[c]) for (let j = 0; j < post.len; j++) {
+        const ci = post.pixels[j];
+        const X = Math.floor(X0 + c * k), Y = Math.floor(Y0 + (post.top + j) * k);
+        if (X < ox * zoom || X >= (ox + cell) * zoom || Y < oy * zoom || Y >= (oy + cell) * zoom) continue;
+        for (let zy = 0; zy < bs; zy++) for (let zx = 0; zx < bs; zx++) put(X + zx, Y + zy, pal[ci * 3], pal[ci * 3 + 1], pal[ci * 3 + 2]);
+      }
+    };
     rows.forEach(function (row, ry) {
       row.forEach(function (name, rx) {
         const n = W_CheckNumForName(name);
@@ -46,19 +57,22 @@ window.addEventListener('load', async function () {
         for (let k = 0; k < cell; k++) { for (let z = 0; z < zoom; z++) { put((ox + k) * zoom, (oy) * zoom + z, 60, 60, 60); put(ox * zoom + z, (oy + k) * zoom, 60, 60, 60); } }
         if (n < 0) return;
         const p = lumpinfo[n].data;
-        const psp = /^(CORV|REVO|RFLA|COMB|CFLA|GATL|GFLA|DINW)/.test(name);
-        // origen: centro horizontal de la celda, suelo a 85% de la altura
-        const gx = ox + (psp ? 0 : Math.floor(cell / 2)), gy = oy + (psp ? 0 : Math.floor(cell * 0.85));
-        const x0 = psp ? ox + (p.leftoffset + 0) * 0 + (320 - p.leftoffset > 0 ? 0 : 0) : gx - p.leftoffset;
-        let bx = gx - p.leftoffset, by = gy - p.topoffset;
-        if (psp) { bx = ox + Math.floor((1 - p.leftoffset) * cell / 320); by = oy + Math.floor((200 - p.topoffset) * cell / 320); }
-        for (let c = 0; c < p.width; c++) for (const post of p.columns[c]) for (let k = 0; k < post.len; k++) {
-          const ci = post.pixels[k];
-          const X = bx + c, Y = by + post.top + k;
-          if (X < ox || X >= ox + cell || Y < oy || Y >= oy + cell) continue;
-          for (let zy = 0; zy < zoom; zy++) for (let zx = 0; zx < zoom; zx++) put(X * zoom + zx, Y * zoom + zy, pal[ci * 3], pal[ci * 3 + 1], pal[ci * 3 + 2]);
+        const d = p.density || 1;
+        const psp = /^(CORV|REVO|RFLA|COMB|CFLA|GATL|GFLA|DINW|COMZ|CFLZ|REVZ|RFLZ|GATZ|GFLZ)/.test(name);
+        if (psp) {
+          // pantalla de 320x200 dentro de la celda; las armas encaradas se anclan
+          // por la línea de mira (fila 100), las demás por el borde inferior
+          const ads = /^(COMZ|CFLZ|REVZ|RFLZ|GATZ|GFLZ)/.test(name);
+          const sc = cell / 320 * zoom;
+          const x0 = (d - p.leftoffset) / d, y0 = ((ads ? 100 : 200) * d - p.topoffset) / d;
+          blit(p, ox * zoom + x0 * sc, oy * zoom + y0 * sc, sc / d, ox, oy);
+          if (ads) for (let k = -6; k <= 6; k++) { put(ox * zoom + 160 * sc + k, oy * zoom + 100 * sc, 255, 0, 255); put(ox * zoom + 160 * sc, oy * zoom + 100 * sc + k, 255, 0, 255); }
+          return;
         }
-        if (!psp) for (let k = -3; k <= 3; k++) for (let z = 0; z < zoom; z++) put((gx + k) * zoom + z, gy * zoom, 255, 255, 0);
+        // origen: centro horizontal de la celda, suelo a 85% de la altura
+        const gx = ox + Math.floor(cell / 2), gy = oy + Math.floor(cell * 0.85);
+        blit(p, (gx - p.leftoffset / d) * zoom, (gy - p.topoffset / d) * zoom, zoom / d, ox, oy);
+        for (let k = -3; k <= 3; k++) for (let z = 0; z < zoom; z++) put((gx + k) * zoom + z, gy * zoom, 255, 255, 0);
       });
     });
     ctx.putImageData(img, 0, 0);

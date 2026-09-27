@@ -68,6 +68,13 @@ const CF_NOCLIP = 1, CF_GODMODE = 2, CF_NOMOMENTUM = 4, CF_NOTARGET = 8;
 // --- Botones del ticcmd --------------------------------------------------------
 const BT_ATTACK = 1, BT_USE = 2, BT_CHANGE = 4;
 const BT_WEAPONMASK = 8 + 16 + 32, BT_WEAPONSHIFT = 3;
+const BT_AIM = 64;          // apuntar con las miras (clic derecho)
+const BT_CENTER = 128;      // centrar la mirada
+
+// Mirada vertical: ángulo máximo (radianes) y unidad del ticcmd (la misma que
+// el giro: 1/65536 de vuelta).
+const MAXPITCH = 0.56;
+const PITCHUNIT = 2 * Math.PI / 65536;
 
 // --- Física (p_local.h) --------------------------------------------------------
 const FRACUNIT = 65536;          // sólo para conversiones históricas

@@ -33,26 +33,34 @@ function M_StorageSet(key, value) {
 
 // --- Configuración (m_misc.c: M_LoadDefaults / M_SaveDefaults) --------------------
 const defaults = {
+  configVersion: 2,
   mouseSensitivity: 5,
   sfxVolume: 10,
   musicVolume: 7,
-  detailLevel: 1,        // 0 = bajo (320x200), 1 = alto (640x400)
+  resolution: 0,         // 0 = automática; 1..4 = 320x200, 640x400, 960x600, 1280x800
   screenblocks: 10,      // 10 = barra de estado, 11 = pantalla completa
   showMessages: 1,
   alwaysRun: 1,
   interpolate: 1,        // renderizado fluido con interpolación entre tics
   widescreen: 1,
   usegamma: 0,
+  mouseLook: 1,          // 1 = mirar arriba/abajo y apuntar con el ratón (moderno)
   mouseInvertY: 0,
-  mouseMove: 0,          // 1 = el eje Y del ratón mueve adelante/atrás (clásico)
+  mouseMove: 0,          // 1 = el eje Y del ratón mueve adelante/atrás (clásico, sin mirar)
   touchControls: 2,      // 0 = no, 1 = sí, 2 = automático
-  crosshair: 0
+  crosshair: 1
 };
+
+// Claves cuyo valor guardado por una versión anterior se descarta (cambió su
+// valor por omisión o su significado).
+const M_RESET_ON_UPGRADE = ['crosshair', 'resolution', 'mouseLook', 'mouseMove'];
 
 function M_LoadDefaults() {
   const saved = M_StorageGet('config', null);
   if (saved && typeof saved === 'object') {
+    const upgrade = saved.configVersion !== defaults.configVersion;
     for (const k in defaults) {
+      if (k === 'configVersion' || (upgrade && M_RESET_ON_UPGRADE.indexOf(k) >= 0)) continue;
       if (typeof saved[k] === typeof defaults[k]) defaults[k] = saved[k];
     }
   }

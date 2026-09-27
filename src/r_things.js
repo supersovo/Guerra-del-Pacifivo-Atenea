@@ -75,10 +75,12 @@ function R_ProjectSprite(thing) {
     flip = sprframe.flip[0];
   }
   const patch = lumpinfo[lump].data;
-  tx -= patch.leftoffset;
+  // density: texeles por unidad de mapa (2 = sprites de alta resolución)
+  const d = patch.density || 1;
+  tx -= patch.leftoffset / d;
   const x1 = Math.floor(centerx + tx * xscale);
   if (x1 > viewwidth) return;
-  tx += patch.width;
+  tx += patch.width / d;
   const x2 = Math.floor(centerx + tx * xscale) - 1;
   if (x2 < 0) return;
 
@@ -88,11 +90,11 @@ function R_ProjectSprite(thing) {
   vis.gx = px;
   vis.gy = py;
   vis.gz = pz;
-  vis.gzt = pz + patch.topoffset;
+  vis.gzt = pz + patch.topoffset / d;
   vis.texturemid = vis.gzt - viewz;
   vis.x1 = x1 < 0 ? 0 : x1;
   vis.x2 = x2 >= viewwidth ? viewwidth - 1 : x2;
-  const iscale = 1 / xscale;
+  const iscale = d / xscale;
   if (flip) {
     vis.startfrac = patch.width - 0.0001;
     vis.xiscale = -iscale;
@@ -114,12 +116,13 @@ function R_ProjectSprite(thing) {
 
 function R_DrawVisSprite(vis) {
   const patch = vis.patch;
+  const d = patch.density || 1;
   dc_colormap = vis.colormap;
   dc_translation = vis.translation;
   dc_iscale = Math.abs(vis.xiscale);
-  dc_texturemid = vis.texturemid;
-  spryscale = vis.scale;
-  sprtopscreen = centery - dc_texturemid * spryscale;
+  dc_texturemid = vis.texturemid * d;
+  spryscale = vis.scale / d;
+  sprtopscreen = centery - vis.texturemid * vis.scale;
   let frac = vis.startfrac;
   const w = patch.width;
   for (dc_x = vis.x1; dc_x <= vis.x2; dc_x++, frac += vis.xiscale) {
@@ -180,36 +183,78 @@ function R_DrawMasked() {
 }
 
 // --- Armas en primera persona (psprites) --------------------------------------------------
-function R_DrawPSprite(psp, lightcm) {
+// Sprites del arma vista por las miras: mismo cuadro con otro nombre. Se
+// dibujan centrados en la vista (la línea de mira pasa por el centro).
+const R_ADS_NAMES = { COMB: 'COMZ', CFLA: 'CFLZ', REVO: 'REVZ', RFLA: 'RFLZ', GATL: 'GATZ', GFLA: 'GFLZ' };
+let R_adsSprite = null;
+
+function R_InitADSSprites() {
+  R_adsSprite = new Int32Array(sprites.length).fill(-1);
+  for (const k in R_ADS_NAMES) {
+    const a = spritelookup.get(k), b = spritelookup.get(R_ADS_NAMES[k]);
+    if (a !== undefined && b !== undefined) R_adsSprite[a] = b;
+  }
+}
+
+// Devuelve el sprite de mira de un estado, o -1.
+function R_ADSSpriteFor(st) {
+  if (!R_adsSprite || R_adsSprite.length !== sprites.length) R_InitADSSprites();
+  const a = R_adsSprite[st.sprite];
+  if (a < 0) return -1;
+  const fr = st.frame & FF_FRAMEMASK;
+  return sprites[a].real[fr] ? a : -1;
+}
+
+// ads: encare (0..1). dip: descenso del arma durante la transición entre la
+// posición de cadera y la de puntería (px lógicos).
+function R_DrawPSprite(psp, lightcm, ads, dip) {
   const st = psp.state;
-  const sprdef = sprites[st.sprite];
-  if (!sprdef) return;
+  let spr = st.sprite;
+  let center = false;
+  if (ads > 0.5) {
+    const a = R_ADSSpriteFor(st);
+    if (a >= 0) { spr = a; center = true; }
+  }
+  const sprdef = sprites[spr];
+  if (!sprdef) return false;
   const sprframe = sprdef.frames[st.frame & FF_FRAMEMASK] || sprdef.frames[0];
   const patch = lumpinfo[sprframe.lump[0]].data;
   const S = pspritescale;
-  // Coordenadas lógicas: x centrada en 160; el borde inferior del arma se ancla
-  // al borde inferior de la vista cuando sy == WEAPONTOP.
-  const leftx = (psp.sx - patch.leftoffset - 160) * S + centerx;
-  const topy = viewheight - (patch.topoffset - (psp.sy - WEAPONTOP)) * S;
+  const d = patch.density || 1;
+  const tS = S / d;                       // píxeles de pantalla por texel
+  let sx = psp.sx, sy = psp.sy;
+  if (center) {
+    // encarado, el balanceo del paso casi no se nota
+    sx = 1 + (sx - 1) * 0.2;
+    sy = WEAPONTOP + (sy - WEAPONTOP) * 0.2;
+  }
+  sy += dip;
+  // Coordenadas lógicas: x centrada en 160. De cadera, el borde inferior del
+  // arma se ancla al borde inferior de la vista cuando sy == WEAPONTOP; por
+  // las miras, la fila de la línea de mira se ancla al centro de la vista.
+  const leftx = (sx - patch.leftoffset / d - 160) * S + centerx;
+  const anchor = center ? basecentery : viewheight;
+  const topy = anchor - (patch.topoffset / d - (sy - WEAPONTOP)) * S;
   const x1 = Math.floor(leftx);
-  const x2 = Math.floor(leftx + patch.width * S) - 1;
-  if (x2 < 0 || x1 >= viewwidth) return;
+  const x2 = Math.floor(leftx + patch.width * tS) - 1;
+  if (x2 < 0 || x1 >= viewwidth) return center;
   if (fixedcolormap >= 0) dc_colormap = fixedcolormap;
   else if (st.frame & FF_FULLBRIGHT) dc_colormap = 0;
   else dc_colormap = lightcm;
   dc_translation = null;
-  dc_iscale = 1 / S;
-  spryscale = S;
+  dc_iscale = 1 / tS;
+  spryscale = tS;
   sprtopscreen = topy;
-  dc_texturemid = (centery - topy) / S;
+  dc_texturemid = (centery - topy) / tS;
   mfloorclip = screenheightarray; mfloorofs = 0;
   mceilingclip = negonearray; mceilingofs = 0;
   const start = Math.max(0, x1), end = Math.min(viewwidth - 1, x2);
   for (dc_x = start; dc_x <= end; dc_x++) {
-    const tc = Math.floor((dc_x - leftx) / S);
+    const tc = Math.floor((dc_x - leftx) / tS);
     if (tc < 0 || tc >= patch.width) continue;
     R_DrawMaskedColumn(patch.columns[tc]);
   }
+  return center;
 }
 
 function R_DrawPlayerSprites() {
@@ -219,6 +264,10 @@ function R_DrawPlayerSprites() {
   let lightnum = (sec.lightlevel >> LIGHTSEGSHIFT) + extralight;
   const lights = scalelight[clamp(lightnum, 0, LIGHTLEVELS - 1)];
   const lightcm = lights[MAXLIGHTSCALE - 1];
+  let ads = player.ads;
+  if (defaults.interpolate && R_interpFrac < 1) ads = player.oldads + (player.ads - player.oldads) * R_interpFrac;
+  const dip = (ads < 0.5 ? ads : 1 - ads) * 2 * 36;
+  let sights = false;
   for (let i = 0; i < NUMPSPRITES; i++) {
     const psp = player.psprites[i];
     if (psp.state) {
@@ -228,19 +277,38 @@ function R_DrawPlayerSprites() {
         psp.sx = psp.oldsx + (sx - psp.oldsx) * R_interpFrac;
         psp.sy = psp.oldsy + (sy - psp.oldsy) * R_interpFrac;
       }
-      R_DrawPSprite(psp, lightcm);
+      if (R_DrawPSprite(psp, lightcm, ads, dip) && i === ps_weapon) sights = true;
       psp.sx = sx; psp.sy = sy;
     }
   }
-  if (defaults.crosshair && setblocks >= 10) {
-    const cx = Math.floor(centerx), cy = Math.floor(centery);
-    const fb = screens[0];
-    const col = C(R_GOLD, 2);
-    for (let d = 2; d <= 4; d++) {
-      fb[ylookup[cy] + columnofs[cx - d]] = col;
-      fb[ylookup[cy] + columnofs[cx + d]] = col;
-      fb[ylookup[cy - d] + columnofs[cx]] = col;
-      fb[ylookup[cy + d] + columnofs[cx]] = col;
-    }
+  // Retícula en el centro de la vista (hacia allí van los disparos); se
+  // oculta cuando se apunta por las miras.
+  if (defaults.crosshair && setblocks >= 10 && !sights && player.health > 0) R_DrawCrosshair();
+}
+
+// Retícula moderna: cuatro trazos con un hueco central y un punto, con borde
+// oscuro para verse sobre cielo claro o terreno oscuro.
+function R_DrawCrosshair() {
+  const S = SCALE;
+  const cx = Math.floor(centerx), cy = Math.floor(basecentery);
+  const t = Math.max(1, Math.round(S / 2));        // grosor
+  const gap = Math.round(2.5 * S), len = Math.round(3.5 * S);
+  const light = C(R_LINEN, 0), dark = C(R_GRAY, 15);
+  const rects = [
+    [cx - gap - len, cy - (t >> 1), len, t], [cx + gap + 1, cy - (t >> 1), len, t],
+    [cx - (t >> 1), cy - gap - len, t, len], [cx - (t >> 1), cy + gap + 1, t, len],
+    [cx - (t >> 1), cy - (t >> 1), t, t]
+  ];
+  for (const r of rects) R_FillViewRect(r[0] - 1, r[1] - 1, r[2] + 2, r[3] + 2, dark);
+  for (const r of rects) R_FillViewRect(r[0], r[1], r[2], r[3], light);
+}
+
+function R_FillViewRect(x, y, w, h, color) {
+  const fb = screens[0];
+  const x0 = Math.max(0, x), x1 = Math.min(viewwidth, x + w);
+  const y0 = Math.max(0, y), y1 = Math.min(viewheight, y + h);
+  for (let yy = y0; yy < y1; yy++) {
+    const row = ylookup[yy];
+    for (let xx = x0; xx < x1; xx++) fb[row + columnofs[xx]] = color;
   }
 }

@@ -14,15 +14,18 @@ let skytexturemid = 150;
 let skyiscale = 1;
 let skyactive = true;
 
+// Una fila del cielo por píxel lógico (160 de proyección), ampliada con el
+// aumento de las miras.
 function R_InitSkyMap() {
-  skyiscale = 1 / SCALE;
-  if (setblocks < 10) skyiscale = 1 / (SCALE * setblocks / 10);
+  skyiscale = 160 / projection;
 }
 
+// horizonRow en filas lógicas (el cielo puede tener más de un texel por fila:
+// textures[...].density).
 function R_SetSky(texname, horizonRow) {
   skytexture = R_TextureNumForName(texname);
   const t = textures[skytexture];
-  skytexturemid = horizonRow !== undefined ? horizonRow : Math.floor(t.height * 0.75);
+  skytexturemid = horizonRow !== undefined ? horizonRow * (t.density || 1) : Math.floor(t.height * 0.75);
 }
 
 function R_DrawSkyBackground() {
@@ -30,7 +33,7 @@ function R_DrawSkyBackground() {
   const tex = textures[skytexture];
   const colmask = tex.width - 1;
   const shift = 32 - Math.round(Math.log2(tex.width));
-  dc_iscale = skyiscale;
+  dc_iscale = skyiscale * (tex.density || 1);
   dc_texturemid = skytexturemid;
   dc_colormap = fixedcolormap >= 0 ? fixedcolormap : 0;
   dc_translation = null;

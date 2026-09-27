@@ -23,7 +23,11 @@ let viewwidth = 320, viewheight = 168;
 let scaledviewwidth = 320;
 let viewwindowx = 0, viewwindowy = 0;
 let centerx = 160, centery = 84;
+let basecentery = 84;            // centro vertical de la vista con la mirada horizontal
 let projection = 160;
+let baseprojection = 160;        // proyección sin el aumento de las miras
+let viewpitch = 0;               // pendiente de la mirada: tan(ángulo vertical)
+let R_curZoom = -1;              // aumento con el que se calcularon las tablas
 let lightscalemul = 16;
 let setsizeneeded = true;
 let setblocks = 10;
@@ -114,26 +118,40 @@ function R_ExecuteSetViewSize() {
   viewwindowx = (SCREENWIDTH - viewwidth) >> 1;
   viewwindowy = setblocks >= 10 ? 0 : ((SCREENHEIGHT - stbar - viewheight) >> 1);
   centerx = viewwidth / 2;
-  centery = viewheight / 2;
+  centery = basecentery = viewheight / 2;
   // Proyección "Hor+": el campo vertical es el de DOOM a 4:3; el horizontal se
   // amplía en pantallas panorámicas.
-  projection = (setblocks >= 10 ? 160 * SCALE : 160 * SCALE * setblocks / 10);
-  lightscalemul = 16 * 160 / projection;
+  baseprojection = (setblocks >= 10 ? 160 * SCALE : 160 * SCALE * setblocks / 10);
 
   R_InitBuffer(viewwidth, viewheight, viewwindowx, viewwindowy);
-  R_InitTextureMapping();
   R_InitPlanes();
   R_InitSegArrays();
   R_InitLightTables();
-  R_InitSkyMap();
   R_InitSpriteArrays();
+  R_curZoom = -1;
+  R_SetProjection(1);
   ST_ViewSizeChanged();
+}
+
+// Proyección con el aumento de las miras (1 = sin aumento). Recalcula las
+// tablas que dependen del campo visual: ángulo por columna, corrección de
+// distancia de los planos y escala del cielo. La iluminación no cambia: el
+// índice de luz se toma de la escala dividida por la proyección.
+function R_SetProjection(zoom) {
+  if (zoom === R_curZoom) return;
+  R_curZoom = zoom;
+  projection = baseprojection * zoom;
+  lightscalemul = 16 * 160 / projection;
+  R_InitTextureMapping();
+  R_InitDistScale();
+  R_InitSkyMap();
 }
 
 function R_InitTextureMapping() {
   const focallength = projection;
-  viewangletox = new Int32Array(FINEANGLES / 2);
-  for (let i = 0; i < FINEANGLES / 2; i++) {
+  const half = FINEANGLES / 2;
+  if (viewangletox.length !== half) viewangletox = new Int32Array(half);
+  for (let i = 0; i < half; i++) {
     const tan = finetangent[i];
     let t;
     if (tan > 2) t = -1;
@@ -145,15 +163,17 @@ function R_InitTextureMapping() {
     }
     viewangletox[i] = t;
   }
-  xtoviewangle = new Uint32Array(viewwidth + 1);
-  for (let x = 0; x <= viewwidth; x++) {
-    let i = 0;
-    while (viewangletox[i] > x) i++;
+  // xtoviewangle[x] = menor ángulo cuya columna es <= x. viewangletox decrece
+  // con el ángulo, así que se recorre x de derecha a izquierda (lineal).
+  if (xtoviewangle.length !== viewwidth + 1) xtoviewangle = new Uint32Array(viewwidth + 1);
+  let i = 0;
+  for (let x = viewwidth; x >= 0; x--) {
+    while (i < half - 1 && viewangletox[i] > x) i++;
     xtoviewangle[x] = ((i << ANGLETOFINESHIFT) - ANG90) >>> 0;
   }
-  for (let i = 0; i < FINEANGLES / 2; i++) {
-    if (viewangletox[i] === -1) viewangletox[i] = 0;
-    else if (viewangletox[i] === viewwidth + 1) viewangletox[i] = viewwidth;
+  for (let k = 0; k < half; k++) {
+    if (viewangletox[k] === -1) viewangletox[k] = 0;
+    else if (viewangletox[k] === viewwidth + 1) viewangletox[k] = viewwidth;
   }
   clipangle = xtoviewangle[0];
 }
@@ -208,8 +228,15 @@ function R_SetupFrame(player) {
     viewx = mo.x; viewy = mo.y; viewz = player.viewz;
   }
   // El ángulo no se interpola: se usa el último más el giro de ratón pendiente
-  // (sin retardo y sin saltos al consumirse en el siguiente tic).
+  // (sin retardo y sin saltos al consumirse en el siguiente tic). Igual la
+  // mirada vertical.
   viewangle = (mo.angle + G_PendingTurn()) >>> 0;
+  // Aumento de las miras y mirada vertical ("y-shearing", como Heretic): el
+  // horizonte se desplaza en la pantalla según la pendiente de la mirada.
+  R_SetProjection(P_ViewZoom(player, f));
+  viewpitch = Math.tan(clamp(player.pitch + G_PendingPitch(), -MAXPITCH, MAXPITCH));
+  centery = basecentery + viewpitch * projection;
+  R_SetupYSlope();
   if (screenShake > 0) {
     viewx += (M_Random() - 128) / 64 * Math.min(4, screenShake / 8);
     viewy += (M_Random() - 128) / 64 * Math.min(4, screenShake / 8);

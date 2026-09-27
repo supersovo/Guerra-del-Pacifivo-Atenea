@@ -23,7 +23,8 @@ const MAPLUMPS = ['E1M1', 'E1M2', 'E1M3'];
 function G_NewPlayer() {
   return {
     mo: null, playerstate: PST_REBORN,
-    cmd: { forwardmove: 0, sidemove: 0, angleturn: 0, buttons: 0 },
+    cmd: { forwardmove: 0, sidemove: 0, angleturn: 0, lookdelta: 0, buttons: 0, freeaim: 0 },
+    pitch: 0, centering: false, ads: 0, oldads: 0, freeaim: false,
     viewz: 0, oldviewz: 0, viewheight: VIEWHEIGHT, deltaviewheight: 0, bob: 0,
     health: MAXHEALTH, armorpoints: 0, armortype: 0,
     powers: new Array(NUMPOWERS).fill(0), cards: [false, false, false], backpack: false,
@@ -60,8 +61,12 @@ const KEYS = {
   right: ['ArrowRight'],
   fire: ['ControlLeft', 'ControlRight', 'MOUSE1', 'TOUCH_FIRE', 'PAD_RT', 'KeyF'],
   use: ['KeyE', 'Space', 'TOUCH_USE', 'PAD_A', 'Enter'],
-  run: ['ShiftLeft', 'ShiftRight', 'PAD_LT'],
-  strafe: ['AltLeft', 'AltRight']
+  run: ['ShiftLeft', 'ShiftRight', 'PAD_LS'],
+  strafe: ['AltLeft', 'AltRight'],
+  aim: ['MOUSE2', 'KeyZ', 'PAD_LT', 'TOUCH_AIM'],
+  lookup: ['PageUp'],
+  lookdown: ['PageDown'],
+  centerview: ['End', 'PAD_RS']
 };
 
 // Teclas pulsadas desde el último tic: un toque más breve que un tic (28 ms)
@@ -86,8 +91,24 @@ function G_PendingTurn() {
   return ((-((mousex * 8) | 0)) * 65536) >>> 0;
 }
 
+// Ídem para la mirada vertical (radianes).
+function G_PendingPitch() {
+  if (gamestate !== GS_LEVEL || paused || menuactive || !defaults.mouseLook) return 0;
+  return ((mousey * 8) | 0) * PITCHUNIT;
+}
+
+// Aumento actual de la vista (con las miras, el ratón gira más despacio).
+function G_CurrentZoom() {
+  const p = players[0];
+  if (gamestate !== GS_LEVEL || !p || !p.mo) return 1;
+  return P_ViewZoom(p, 1);
+}
+
+const LOOKSPEED = 360;      // mirada con teclas: unidades de ticcmd por tic
+
 function G_BuildTiccmd(cmd) {
-  cmd.forwardmove = cmd.sidemove = cmd.angleturn = cmd.buttons = 0;
+  cmd.forwardmove = cmd.sidemove = cmd.angleturn = cmd.buttons = cmd.lookdelta = 0;
+  cmd.freeaim = defaults.mouseLook ? 1 : 0;
   const strafe = G_KeyDown('strafe');
   let speed = (G_KeyDown('run') ? 1 : 0) ^ (defaults.alwaysRun ? 1 : 0);
   let forward = 0, side = 0;
@@ -107,6 +128,7 @@ function G_BuildTiccmd(cmd) {
   if (G_KeyDown('strafeleft')) side -= sidemove[speed];
   if (G_KeyDown('fire')) cmd.buttons |= BT_ATTACK;
   if (G_KeyDown('use')) cmd.buttons |= BT_USE;
+  if (G_KeyDown('aim')) cmd.buttons |= BT_AIM;
   // Cambio de arma: teclas 1..5, rueda del ratón, botón táctil o del mando.
   for (let i = 0; i < NUMWEAPONS; i++) {
     const d = 'Digit' + (i + 1), n = 'Numpad' + (i + 1);
@@ -120,24 +142,37 @@ function G_BuildTiccmd(cmd) {
     if (w >= 0) cmd.buttons |= BT_CHANGE | (w << BT_WEAPONSHIFT);
     nextWeaponRequest = 0;
   }
-  // Ratón
+  // Ratón: giro y, con "apuntar con el ratón", mirada vertical (moderno);
+  // si no, opcionalmente avance (clásico).
   cmd.angleturn -= (mousex * 8) | 0;
-  if (defaults.mouseMove) forward += mousey;
+  if (defaults.mouseLook) cmd.lookdelta += (mousey * 8) | 0;
+  else if (defaults.mouseMove) forward += mousey;
   mousex = mousey = 0;
+  if (defaults.mouseLook) {
+    if (G_KeyDown('lookup')) cmd.lookdelta += LOOKSPEED;
+    if (G_KeyDown('lookdown')) cmd.lookdelta -= LOOKSPEED;
+    if (G_KeyDown('centerview')) cmd.buttons |= BT_CENTER;
+  } else cmd.buttons |= BT_CENTER;
   // Pantalla táctil
   if (I_touch.moveX || I_touch.moveY) {
     forward += Math.round(I_touch.moveY * forwardmove[1]);
     side += Math.round(I_touch.moveX * sidemove[1]);
   }
+  const zs = 1 / G_CurrentZoom();
   if (I_touch.turn) {
-    cmd.angleturn -= Math.round(I_touch.turn * 60 * (defaults.mouseSensitivity + 5) / 10);
+    cmd.angleturn -= Math.round(I_touch.turn * 60 * (defaults.mouseSensitivity + 5) / 10 * zs);
     I_touch.turn = 0;
   }
+  if (I_touch.look) {
+    if (defaults.mouseLook) cmd.lookdelta -= Math.round(I_touch.look * 60 * (defaults.mouseSensitivity + 5) / 10 * zs);
+    I_touch.look = 0;
+  }
   // Mando
-  if (I_pad.forward || I_pad.side || I_pad.turn) {
+  if (I_pad.forward || I_pad.side || I_pad.turn || I_pad.look) {
     forward += Math.round(I_pad.forward * forwardmove[1]);
     side += Math.round(I_pad.side * sidemove[1]);
-    cmd.angleturn -= Math.round(I_pad.turn * angleturn[1] * 1.2);
+    cmd.angleturn -= Math.round(I_pad.turn * angleturn[1] * 1.2 * zs);
+    if (defaults.mouseLook) cmd.lookdelta -= Math.round(I_pad.look * 700 * zs * (defaults.mouseInvertY ? -1 : 1));
   }
   const MAXPLMOVE = forwardmove[1];
   if (forward > MAXPLMOVE) forward = MAXPLMOVE; else if (forward < -MAXPLMOVE) forward = -MAXPLMOVE;
@@ -147,6 +182,8 @@ function G_BuildTiccmd(cmd) {
   gamekeytapped = {};
   if (cmd.angleturn > 32767) cmd.angleturn = 32767;
   if (cmd.angleturn < -32768) cmd.angleturn = -32768;
+  if (cmd.lookdelta > 32767) cmd.lookdelta = 32767;
+  if (cmd.lookdelta < -32768) cmd.lookdelta = -32768;
 }
 
 // Siguiente/anterior arma poseída.
@@ -195,9 +232,10 @@ function G_Responder(ev) {
       gamekeydown[ev.data1] = false;
       return false;
     case ev_mouse: {
-      const sens = (defaults.mouseSensitivity + 5) / 10;
+      // Con las miras el ratón gira más despacio (proporcional al aumento).
+      const sens = (defaults.mouseSensitivity + 5) / 10 / G_CurrentZoom();
       mousex += ev.data2 * sens;
-      if (defaults.mouseMove) mousey += -ev.data3 * sens * (defaults.mouseInvertY ? -1 : 1);
+      if (defaults.mouseLook || defaults.mouseMove) mousey += -ev.data3 * sens * (defaults.mouseInvertY ? -1 : 1);
       return true;
     }
   }

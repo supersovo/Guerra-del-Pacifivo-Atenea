@@ -16,31 +16,43 @@ const SPR_DEATHVIEW = { yaw: Math.PI * 0.64, elev: 0.26 };   // 3/4 lateral para
 const SPR_ITEMVIEW = { yaw: Math.PI - 0.55, elev: 0.5 };      // objetos en el suelo, vistos desde arriba
 const SPR_DECOVIEW = { yaw: Math.PI - 0.35, elev: 0.2 };
 let SPR_count = 0;
+// Densidad de los sprites: texeles por unidad de mapa (2 = el doble de
+// resolución que DOOM, para pantallas de 1280x800 o más). Las armas en
+// primera persona se rasterizan a 640x400.
+const SPR_RES = 2;
+const SPR_PRES = 2;
 
 function SPR_Put(name, img) {
-  W_AddLump(name, FND_ToPatch(img), 'sprite');
+  const patch = FND_ToPatch(img);
+  patch.density = SPR_RES;
+  W_AddLump(name, patch, 'sprite');
   SPR_count++;
 }
 
 // Ocho rotaciones de una escena (cuadro vivo de un personaje u objeto).
 function SPR_Rot(base, frame, scene, elev) {
   for (let r = 0; r < 8; r++) {
-    SPR_Put(base + frame + (r + 1), FND_Render(scene, { yaw: Math.PI - r * Math.PI / 4, elev: elev }));
+    SPR_Put(base + frame + (r + 1), FND_Render(scene, { yaw: Math.PI - r * Math.PI / 4, elev: elev, res: SPR_RES }));
   }
 }
 
 // Cuadro único (rotación 0). center: origen vertical en el medio de la imagen
 // (efectos que aparecen en el punto de impacto, no apoyados en el suelo).
 function SPR_One(base, frame, scene, view, center) {
-  const img = FND_Render(scene, view || SPR_DECOVIEW);
+  const img = FND_Render(scene, Object.assign({ res: SPR_RES }, view || SPR_DECOVIEW));
   if (center) img.top = Math.round(img.h / 2);
   SPR_Put(base + frame + '0', img);
 }
 
-// Arma en primera persona.
-function SPR_PSprite(name, scene) {
-  const img = FND_RenderPersp(scene, { outline: true });
-  W_AddLump(name, V_MakePatch(img.w, img.h, img.px, 1 - img.screenX, 200 - img.screenY), 'sprite');
+// Arma en primera persona. De cadera se ancla al borde inferior de la vista;
+// encarada (ads), la línea de mira (fila 100 de la pantalla de 320x200) se
+// ancla al centro. zoom: distancia focal del modelo encarado.
+function SPR_PSprite(name, scene, ads, zoom) {
+  const res = SPR_PRES;
+  const img = FND_RenderPersp(scene, { outline: true, res: res, zoom: zoom || 1 });
+  const patch = V_MakePatch(img.w, img.h, img.px, res - img.screenX, (ads ? 100 : 200) * res - img.screenY);
+  patch.density = res;
+  W_AddLump(name, patch, 'sprite');
   SPR_count++;
 }
 
@@ -205,6 +217,13 @@ function SPR_Weapons() {
   for (let f = 0; f < 2; f++) SPR_PSprite('GATL' + 'AB'[f] + '0', FP_Build('GATL', f));
   for (let f = 0; f < 2; f++) SPR_PSprite('GFLA' + 'AB'[f] + '0', FP_Build('GFLA', f, true));
   for (let f = 0; f < 5; f++) SPR_PSprite('DINW' + 'ABCDE'[f] + '0', FP_Build('DINW', f));
+  // Encaradas, por las miras (clic derecho): alza y guion en el centro.
+  SPR_PSprite('COMZA0', FP_Build('COMZ', 0), true, 1.1);
+  for (let f = 0; f < 2; f++) SPR_PSprite('CFLZ' + 'AB'[f] + '0', FP_Build('CFLZ', f, true), true, 1.1);
+  for (let f = 0; f < 3; f++) SPR_PSprite('REVZ' + 'ABC'[f] + '0', FP_Build('REVZ', f), true, 1.2);
+  SPR_PSprite('RFLZA0', FP_Build('RFLZ', 1, true), true, 1.2);
+  for (let f = 0; f < 2; f++) SPR_PSprite('GATZ' + 'AB'[f] + '0', FP_Build('GATZ', f), true, 1.1);
+  for (let f = 0; f < 2; f++) SPR_PSprite('GFLZ' + 'AB'[f] + '0', FP_Build('GFLZ', f, true), true, 1.1);
 }
 
 // Construye todos los sprites. progressCb(msg) informa el avance en la consola de arranque.
