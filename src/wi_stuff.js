@@ -92,16 +92,33 @@ function WI_DrawMapMarkers(highlight, done) {
   }
 }
 
+// Panel de pergamino limpio (con borde) para escribir sobre la carta.
+function WI_Panel(x, y, w, h) {
+  if (!am_bgTile) AM_BuildBackground();
+  const S = SCALE, fb = screens[0], W = SCREENWIDTH;
+  const x0 = UIOFS + x * S, y0 = y * S, x1 = x0 + w * S, y1 = y0 + h * S;
+  for (let py = Math.max(0, y0); py < Math.min(SCREENHEIGHT, y1); py++) {
+    const ty = (Math.floor(py / S) & 63) * 64;
+    for (let px = Math.max(0, x0); px < Math.min(W, x1); px++) fb[py * W + px] = am_bgTile[ty + (Math.floor(px / S) & 63)];
+  }
+  const ink = C(R_WOOD, 11);
+  V_FillRect(x, y, w, 1, ink); V_FillRect(x, y + h - 1, w, 1, ink);
+  V_FillRect(x, y, 1, h, ink); V_FillRect(x + w - 1, y, 1, h, ink);
+}
+
 function WI_Drawer() {
   V_DrawFullImage(W_CacheLumpName('WIMAP'));
   const done = wi_info ? wi_info.last : 0;
   WI_DrawMapMarkers(0, done);
   const bx = 176;
   const t = MAPTITLES[wi_info.last] || '';
-  V_DrawText(bx, 16, 'ACCIÓN CUMPLIDA', true, V_Translations.red);
-  V_DrawText(bx, 40, t, false, V_Translations.dark);
-  const rows = [['Bajas enemigas', wi_counts.kills, '%'], ['Pertrechos', wi_counts.items, '%'], ['Depósitos ocultos', wi_counts.secret, '%']];
-  let y = 62;
+  WI_Panel(bx - 8, 6, 316 - bx + 8, 188);
+  V_DrawText(bx, 12, 'ACCIÓN', true, V_Translations.red);
+  V_DrawText(bx, 32, 'CUMPLIDA', true, V_Translations.red);
+  V_DrawText(bx, 56, t, false, V_Translations.dark);
+  const rows = [['Bajas enemigas', wi_counts.kills, '%'], ['Pertrechos', wi_counts.items, '%']];
+  if (wi_info.maxsecret) rows.push(['Depósitos ocultos', wi_counts.secret, '%']);
+  let y = 76;
   for (const r of rows) {
     V_DrawText(bx, y, r[0], false, V_Translations.dark);
     if (r[1] >= 0) V_DrawText(bx + 104, y, r[1] + r[2], false, V_Translations.red);
@@ -158,7 +175,7 @@ function WI_BriefingDrawer() {
   WI_DrawMapMarkers(wi_brief.map, wi_brief.map - 1);
   const b = BRIEFINGS[wi_brief.map];
   const bx = 118;
-  V_DimRectPhys(UIOFS + (bx - 6) * SCALE, 4 * SCALE, (320 - bx + 4) * SCALE, 192 * SCALE, 5);
+  WI_Panel(bx - 8, 4, 320 - bx + 4, 192);
   V_DrawText(bx, 10, b.title, true, V_Translations.red);
   V_DrawText(bx, 32, b.date, false, V_Translations.dark);
   let remaining = wi_brief.chars;

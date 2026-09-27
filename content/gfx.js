@@ -146,6 +146,14 @@ function gfx_morroScene(w, h, seed, opts) {
       tx_put(t, x, y, c);
     }
   }
+  // cerros de la costa al fondo, velados por la bruma (detrás del Morro)
+  for (let x = 0; x < w; x++) {
+    const hh = 10 + tx_vnoise(seed + 9, x / w * 6, 0.5, 6, 1) * 16;
+    for (let y = Math.floor(horizon - hh); y < horizon; y++) {
+      const k = 0.35 + 0.35 * clamp((y - (horizon - hh)) / 6, 0, 1);
+      tx_blend(t, x, y, [70, 50, 80], k);
+    }
+  }
   // el Morro: gran promontorio a la izquierda del centro, acantilado sobre el mar
   const mx = w * (opts.morroX || 0.34);
   for (let x = 0; x < w; x++) {
@@ -163,13 +171,6 @@ function gfx_morroScene(w, h, seed, opts) {
       c = tx_scale(c, 0.85 + tx_hash(seed + 5, x >> 1, y >> 1) * 0.2);
       if (rel > -0.02 && rel < 0.1 && y < top + 3) c = [170, 100, 80];
       tx_put(t, x, y, c);
-    }
-  }
-  // cerros al fondo
-  for (let x = 0; x < w; x++) {
-    const hh = 10 + tx_vnoise(seed + 9, x / w * 6, 0.5, 6, 1) * 16;
-    for (let y = Math.floor(horizon - hh); y < horizon; y++) {
-      if (x > mx + w * 0.12) tx_blend(t, x, y, [70, 50, 80], 0.7);
     }
   }
   // mástil y bandera chilena sobre la cumbre

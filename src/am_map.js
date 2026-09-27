@@ -8,7 +8,7 @@
 'use strict';
 
 let automapactive = false;
-let am_scale = 0.35;          // píxeles lógicos por unidad de mapa
+let am_scale = 0.18;          // píxeles lógicos por unidad de mapa (los campos son extensos)
 let am_cx = 0, am_cy = 0;     // centro de la vista (coordenadas de mapa)
 let am_follow = true, am_grid = false;
 let am_zoom = 1, am_panx = 0, am_pany = 0;
@@ -141,11 +141,14 @@ function AM_Drawer() {
   }
   const plyr = players[0];
   const allmap = plyr.powers[pw_allmap] || automapRevealAll;
-  const inkDark = C(R_WOOD, 14), inkMid = C(R_WOOD, 10), inkLight = C(R_SAND, 7), inkSea = C(R_SEA, 6), inkFaint = C(R_SAND, 5);
+  const inkDark = C(R_WOOD, 14), inkMid = C(R_WOOD, 11), inkLight = C(R_SAND, 9), inkSea = C(R_SEA, 6), inkFaint = C(R_WOOD, 6);
   for (const ld of lines) {
     const mapped = (ld.flags & ML_MAPPED) || automapRevealAll;
-    if (!mapped && !allmap) continue;
     if (ld.flags & ML_DONTDRAW && !automapRevealAll) continue;
+    // La carta trae el relieve (curvas de nivel) aunque no se haya recorrido;
+    // lo ya visto se entinta con más fuerza.
+    const relief = ld.backsector && Math.abs(ld.frontsector.floorheight - ld.backsector.floorheight) >= 16;
+    if (!mapped && !allmap && !relief) continue;
     let color;
     if (!mapped) color = inkFaint;
     else if (!ld.backsector) color = inkDark;
@@ -205,8 +208,9 @@ function AM_Drawer() {
   const ylow = Math.floor(fh / S) - 12;
   V_DrawText(4, ylow, (levelinfo.title || '') + '   ' + mins + ':' + String(secs).padStart(2, '0'), false, V_Translations.dark);
   if (battle && battle.objectives.length) {
-    V_DrawText(4, 4, 'OBJETIVOS', false, V_Translations.dark);
-    let y = 16;
+    // abajo a la izquierda, sobre el título (arriba quedan los mensajes)
+    let y = ylow - 11 * battle.objectives.length - 12;
+    V_DrawText(4, y - 12, 'OBJETIVOS', false, V_Translations.dark);
     for (const o of battle.objectives) {
       V_DrawText(4, y, (o.done ? '[X] ' : '[ ] ') + o.title, false, o.done ? V_Translations.green : V_Translations.dark);
       y += 11;

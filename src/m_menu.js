@@ -42,8 +42,11 @@ const BattleMenu = {
   ]
 };
 
+const SKILL_SUBS = ['Poca resistencia: para conocer el terreno', 'Para quien empieza su primera campaña',
+  'La dureza real de la campaña', 'Más enemigos, más certeros', 'El enemigo rápido y temible'];
+
 const SkillMenu = {
-  title: 'GRADO DE DIFICULTAD', big: true, x: 48, y: 62, spacing: 18, prev: MainMenu, items: SKILL_NAMES.map(function (n, i) {
+  title: 'GRADO DE DIFICULTAD', big: false, x: 56, y: 52, spacing: 26, prev: MainMenu, items: SKILL_NAMES.map(function (n, i) {
     return M_Item(n, function () {
       if (i === sk_nightmare) {
         M_StartMessage('¡Calacuerda! El enemigo es más rápido\ny dispara más. ¿Listo para la carga?\n\n(S/N)', function (yes) {
@@ -52,7 +55,7 @@ const SkillMenu = {
         return;
       }
       M_StartGame(i);
-    });
+    }, { sub: SKILL_SUBS[i] });
   })
 };
 
@@ -294,7 +297,8 @@ function M_Drawer() {
     return;
   }
   if (!menuactive || !currentMenu) return;
-  V_DimScreen(gamestate === GS_LEVEL ? 14 : 10);
+  // Sobre la portada se oscurece más para que el título no se superponga.
+  V_DimScreen(gamestate === GS_LEVEL ? 14 : 28);
   const m = currentMenu;
   if (m === MainMenu) {
     V_DrawTextCentered(12, '1879', true, V_Translations.gold);
