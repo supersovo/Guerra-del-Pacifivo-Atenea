@@ -1,0 +1,4 @@
+# Salidas de las pruebas (capturas)
+tests/out/
+node_modules/
+.DS_Store

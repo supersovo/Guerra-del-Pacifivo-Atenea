@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#000000">
+<title>1879: Guerra del Pacífico</title>
+<meta name="description" content="Shooter en primera persona sobre la Guerra del Pacífico (1879-1880), con un motor de arquitectura DOOM escrito en JavaScript: Pisagua, Dolores y el Morro de Arica.">
+<style>
+  html, body { margin: 0; height: 100%; background: #000; overflow: hidden; touch-action: none; }
+  body { display: flex; align-items: center; justify-content: center; }
+  #screen { display: block; image-rendering: pixelated; image-rendering: crisp-edges; background: #000; outline: none; }
+  #boot {
+    position: fixed; inset: 0; margin: 0; padding: 12px 16px; box-sizing: border-box; overflow: auto;
+    background: #000; color: #b8b8b8; font: 14px/1.35 "Courier New", Courier, monospace; white-space: pre-wrap; z-index: 5;
+  }
+  #boot::first-line { color: #fff; background: #7a1c14; }
+  #touch { position: fixed; inset: 0; display: none; z-index: 4; pointer-events: none; -webkit-user-select: none; user-select: none; }
+  #touch > * { pointer-events: auto; position: absolute; box-sizing: border-box; }
+  #t-look { right: 0; top: 0; width: 55%; height: 100%; }
+  #t-stick { left: max(16px, env(safe-area-inset-left)); bottom: 20px; width: 150px; height: 150px; border-radius: 50%;
+    background: rgba(240, 230, 200, 0.12); border: 2px solid rgba(240, 230, 200, 0.35); }
+  #t-knob { position: absolute; left: 50%; top: 50%; width: 64px; height: 64px; margin: -32px 0 0 -32px; border-radius: 50%;
+    background: rgba(240, 230, 200, 0.35); border: 2px solid rgba(255, 255, 255, 0.5); pointer-events: none; }
+  .t-btn { border-radius: 50%; background: rgba(240, 230, 200, 0.14); border: 2px solid rgba(240, 230, 200, 0.4);
+    color: rgba(255, 250, 235, 0.85); font: bold 13px/1 sans-serif; display: flex; align-items: center; justify-content: center; text-align: center; }
+  .t-btn.on { background: rgba(214, 60, 40, 0.45); }
+  #t-fire { right: max(18px, env(safe-area-inset-right)); bottom: 28px; width: 104px; height: 104px; font-size: 15px; }
+  #t-use { right: 136px; bottom: 22px; width: 64px; height: 64px; }
+  #t-weap { right: 34px; bottom: 150px; width: 64px; height: 64px; }
+  #t-map { right: 16px; top: 16px; width: 52px; height: 52px; font-size: 11px; }
+  #t-menu { left: 16px; top: 16px; width: 52px; height: 52px; font-size: 11px; }
+</style>
+</head>
+<body>
+<canvas id="screen" tabindex="0" aria-label="Pantalla del juego"></canvas>
+<pre id="boot" aria-live="polite"></pre>
+<div id="touch" aria-hidden="true">
+  <div id="t-look"></div>
+  <div id="t-stick"><div id="t-knob"></div></div>
+  <div id="t-fire" class="t-btn">FUEGO</div>
+  <div id="t-use" class="t-btn">USAR</div>
+  <div id="t-weap" class="t-btn">ARMA</div>
+  <div id="t-map" class="t-btn">MAPA</div>
+  <div id="t-menu" class="t-btn">MENÚ</div>
+</div>
+<noscript><p style="color:#ccc;font-family:monospace">Este juego necesita JavaScript.</p></noscript>
+
+<!-- Motor Atenea: núcleo (arquitectura de DOOM) -->
+<script src="src/doomdef.js"></script>
+<script src="src/tables.js"></script>
+<script src="src/m_random.js"></script>
+<script src="src/m_misc.js"></script>
+<script src="src/w_wad.js"></script>
+<script src="src/v_video.js"></script>
+<script src="src/i_video.js"></script>
+<script src="src/i_input.js"></script>
+<script src="src/i_sound.js"></script>
+<!-- Contenido procedural del IWAD -->
+<script src="content/palette.js"></script>
+<script src="content/font.js"></script>
+<script src="content/textures.js"></script>
+<script src="content/sky.js"></script>
+<script src="content/foundry.js"></script>
+<script src="content/models.js"></script>
+<script src="content/sprites.js"></script>
+<script src="content/face.js"></script>
+<script src="content/gfx.js"></script>
+<script src="content/sounds.js"></script>
+<script src="content/music.js"></script>
+<script src="content/historia.js"></script>
+<!-- Renderizador -->
+<script src="src/r_draw.js"></script>
+<script src="src/r_data.js"></script>
+<script src="src/r_main.js"></script>
+<script src="src/r_bsp.js"></script>
+<script src="src/r_segs.js"></script>
+<script src="src/r_plane.js"></script>
+<script src="src/r_sky.js"></script>
+<script src="src/r_things.js"></script>
+<!-- Herramientas de mapas (compilador y constructor de nodos BSP) -->
+<script src="tools/nodebuild.js"></script>
+<script src="tools/mapcompile.js"></script>
+<!-- Simulación -->
+<script src="src/info.js"></script>
+<script src="src/d_items.js"></script>
+<script src="src/p_tick.js"></script>
+<script src="src/p_mobj.js"></script>
+<script src="src/p_maputl.js"></script>
+<script src="src/p_map.js"></script>
+<script src="src/p_sight.js"></script>
+<script src="src/p_enemy.js"></script>
+<script src="src/p_pspr.js"></script>
+<script src="src/p_inter.js"></script>
+<script src="src/p_user.js"></script>
+<script src="src/p_spec.js"></script>
+<script src="src/p_doors.js"></script>
+<script src="src/p_floor.js"></script>
+<script src="src/p_lights.js"></script>
+<script src="src/p_switch.js"></script>
+<script src="src/p_battle.js"></script>
+<script src="src/p_setup.js"></script>
+<!-- Interfaz y flujo del juego -->
+<script src="src/s_sound.js"></script>
+<script src="src/hu_stuff.js"></script>
+<script src="src/st_stuff.js"></script>
+<script src="src/am_map.js"></script>
+<script src="src/m_menu.js"></script>
+<script src="src/wi_stuff.js"></script>
+<script src="src/f_finale.js"></script>
+<script src="src/f_wipe.js"></script>
+<script src="src/g_game.js"></script>
+<!-- Campos de batalla -->
+<script src="content/maps/terrain.js"></script>
+<script src="content/maps/e1m1.js"></script>
+<script src="content/maps/e1m2.js"></script>
+<script src="content/maps/e1m3.js"></script>
+<!-- Arranque -->
+<script src="src/d_main.js"></script>
+<script>
+  window.addEventListener('load', function () {
+    D_DoomMain().catch(function (e) {
+      const el = document.getElementById('boot');
+      if (el) { el.style.display = 'block'; el.textContent += '\nERROR: ' + (e && e.stack || e) + '\n'; }
+      console.error(e);
+    });
+  });
+</script>
+</body>
+</html>

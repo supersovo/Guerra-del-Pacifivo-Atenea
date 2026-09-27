@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Prueba del renderizador</title>
+<style>body{margin:0;background:#000}canvas{image-rendering:pixelated;display:block}</style>
+</head>
+<body>
+<canvas id="screen"></canvas>
+<script src="../src/doomdef.js"></script>
+<script src="../src/tables.js"></script>
+<script src="../src/m_random.js"></script>
+<script src="../src/m_misc.js"></script>
+<script src="../src/w_wad.js"></script>
+<script src="../src/v_video.js"></script>
+<script src="../content/palette.js"></script>
+<script src="../content/font.js"></script>
+<script src="../content/textures.js"></script>
+<script src="../content/sky.js"></script>
+<script src="../src/r_draw.js"></script>
+<script src="../src/r_data.js"></script>
+<script src="../src/r_main.js"></script>
+<script src="../src/r_bsp.js"></script>
+<script src="../src/r_segs.js"></script>
+<script src="../src/r_plane.js"></script>
+<script src="../src/r_sky.js"></script>
+<script src="../src/r_things.js"></script>
+<script src="../src/p_setup.js"></script>
+<script src="../tools/nodebuild.js"></script>
+<script src="../tools/mapcompile.js"></script>
+<script src="testmap.js"></script>
+<script>
+'use strict';
+// --- Stubs mínimos para probar el renderizador aislado ---
+let leveltime = 0;
+function P_InitThinkers() {}
+function P_SpawnSpecials() {}
+function ST_ViewSizeChanged() {}
+function G_PendingTurn() { return 0; }
+function P_SpawnMapThing(mt) { if (mt.type === 'PLAYER1') playerstarts.push(mt); }
+function B_InitBattle() {}
+let screenShake = 0;
+
+window.RT = {};
+window.addEventListener('load', function () {
+  const t0 = performance.now();
+  PAL_BuildLumps();
+  FONT_BuildLumps();
+  TX_BuildTextures();
+  TX_BuildFlats();
+  W_AddMarker('S_START'); W_AddMarker('S_END');
+  R_InitData();
+  const map = MC_CompileMap(TESTMAP_DEF);
+  map.info = { sky: 'CIELO1' };
+  W_AddLump('TEST', map, 'map');
+  RT.mapstats = { lines: map.lines.length, sectors: map.sectors.length, segs: map.segs.length,
+    subsectors: map.subsectors.length, nodes: map.nodes.length, warnings: map.warnings };
+  const canvas = document.getElementById('screen');
+  canvas.width = 640; canvas.height = 400;
+  SCALE = 2; SCREENWIDTH = 640; SCREENHEIGHT = 400; UIOFS = 0; V_BaseWidth = 320;
+  V_Init();
+  const ctx = canvas.getContext('2d');
+  const img = ctx.createImageData(640, 400);
+  const out32 = new Uint32Array(img.data.buffer);
+  const pal = W_CacheLumpName('PLAYPAL');
+  const lut = new Uint32Array(256);
+  for (let i = 0; i < 256; i++) lut[i] = 0xff000000 | (pal[i*3+2] << 16) | (pal[i*3+1] << 8) | pal[i*3];
+  P_SetupLevel('TEST', 2);
+  setblocks = 11;
+  R_ExecuteSetViewSize();
+  RT.setup = performance.now() - t0;
+  RT.render = function (x, y, z, angDeg) {
+    const mo = { x: x, y: y, angle: DegToBAM(angDeg), oldvalid: false };
+    const player = { mo: mo, viewz: z, extralight: 0, fixedcolormap: -1, psprites: null };
+    const sub = R_PointInSubsector(x, y);
+    mo.subsector = sub;
+    const t1 = performance.now();
+    R_RenderPlayerView(player);
+    const dt = performance.now() - t1;
+    const fb = screens[0];
+    for (let i = 0; i < fb.length; i++) out32[i] = lut[fb[i]];
+    ctx.putImageData(img, 0, 0);
+    return dt;
+  };
+  RT.ready = true;
+});
+</script>
+</body>
+</html>

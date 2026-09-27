@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Hoja de contactos de sprites</title>
+<style>body{margin:0;background:#2a2a2a}canvas{image-rendering:pixelated;display:block}</style>
+</head>
+<body>
+<canvas id="sheet"></canvas>
+<script src="../src/doomdef.js"></script>
+<script src="../src/tables.js"></script>
+<script src="../src/m_random.js"></script>
+<script src="../src/m_misc.js"></script>
+<script src="../src/w_wad.js"></script>
+<script src="../src/v_video.js"></script>
+<script src="../content/palette.js"></script>
+<script src="../content/foundry.js"></script>
+<script src="../content/models.js"></script>
+<script src="../content/sprites.js"></script>
+<script>
+'use strict';
+// Dibuja una lista de lumps de sprite en una grilla, con la línea del suelo
+// (topoffset) y el eje (leftoffset) marcados para verificar los anclajes.
+window.SS = { ready: false };
+window.addEventListener('load', async function () {
+  PAL_BuildLumps();
+  await SPR_BuildSprites(function (m) { console.log(m); });
+  const pal = W_CacheLumpName('PLAYPAL');
+  SS.draw = function (rows, cell, zoom) {
+    const cv = document.getElementById('sheet');
+    const cols = Math.max.apply(null, rows.map(function (r) { return r.length; }));
+    cv.width = cols * cell * zoom; cv.height = rows.length * cell * zoom;
+    const ctx = cv.getContext('2d');
+    ctx.fillStyle = '#6b6258'; ctx.fillRect(0, 0, cv.width, cv.height);
+    const img = ctx.createImageData(cv.width, cv.height);
+    const d = img.data;
+    for (let i = 0; i < d.length; i += 4) { d[i] = 107; d[i + 1] = 98; d[i + 2] = 88; d[i + 3] = 255; }
+    const put = function (x, y, r, g, b) {
+      if (x < 0 || y < 0 || x >= cv.width || y >= cv.height) return;
+      const o = (y * cv.width + x) * 4; d[o] = r; d[o + 1] = g; d[o + 2] = b;
+    };
+    rows.forEach(function (row, ry) {
+      row.forEach(function (name, rx) {
+        const n = W_CheckNumForName(name);
+        const ox = rx * cell, oy = ry * cell;
+        for (let k = 0; k < cell; k++) { for (let z = 0; z < zoom; z++) { put((ox + k) * zoom, (oy) * zoom + z, 60, 60, 60); put(ox * zoom + z, (oy + k) * zoom, 60, 60, 60); } }
+        if (n < 0) return;
+        const p = lumpinfo[n].data;
+        const psp = /^(CORV|REVO|RFLA|COMB|CFLA|GATL|GFLA|DINW)/.test(name);
+        // origen: centro horizontal de la celda, suelo a 85% de la altura
+        const gx = ox + (psp ? 0 : Math.floor(cell / 2)), gy = oy + (psp ? 0 : Math.floor(cell * 0.85));
+        const x0 = psp ? ox + (p.leftoffset + 0) * 0 + (320 - p.leftoffset > 0 ? 0 : 0) : gx - p.leftoffset;
+        let bx = gx - p.leftoffset, by = gy - p.topoffset;
+        if (psp) { bx = ox + Math.floor((1 - p.leftoffset) * cell / 320); by = oy + Math.floor((200 - p.topoffset) * cell / 320); }
+        for (let c = 0; c < p.width; c++) for (const post of p.columns[c]) for (let k = 0; k < post.len; k++) {
+          const ci = post.pixels[k];
+          const X = bx + c, Y = by + post.top + k;
+          if (X < ox || X >= ox + cell || Y < oy || Y >= oy + cell) continue;
+          for (let zy = 0; zy < zoom; zy++) for (let zx = 0; zx < zoom; zx++) put(X * zoom + zx, Y * zoom + zy, pal[ci * 3], pal[ci * 3 + 1], pal[ci * 3 + 2]);
+        }
+        if (!psp) for (let k = -3; k <= 3; k++) for (let z = 0; z < zoom; z++) put((gx + k) * zoom + z, gy * zoom, 255, 255, 0);
+      });
+    });
+    ctx.putImageData(img, 0, 0);
+  };
+  SS.ready = true;
+});
+</script>
+</body>
+</html>
