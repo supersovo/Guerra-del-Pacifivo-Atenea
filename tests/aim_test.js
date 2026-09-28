@@ -26,7 +26,7 @@ try { playwright = require('playwright'); } catch (e) { playwright = require('/o
   const scr = await page.evaluate('({ w: SCREENWIDTH, h: SCREENHEIGHT, s: SCALE })');
   check(scr.s >= 3, 'resolución automática: ' + scr.w + 'x' + scr.h + ' (escala ' + scr.s + ')');
 
-  await page.evaluate('G_InitNew(sk_medium, 1); players[0].cheats |= CF_GODMODE | CF_NOTARGET; hu_big = null;');
+  await page.evaluate("G_InitNew(sk_medium, 1); players[0].cheats |= CF_GODMODE | CF_NOTARGET; hu_big = null; hu_queue = [];");
   await page.waitForTimeout(1500);
 
   // 1) Mirada vertical con el ratón: el horizonte baja al mirar arriba.
@@ -82,7 +82,7 @@ try { playwright = require('playwright'); } catch (e) { playwright = require('/o
   check(fire.low, 'disparo al centro de la retícula alcanza a un blanco en el suelo a 500 u');
   check(fire.high, 'mirando arriba se alcanza a un blanco 120 u más alto');
   check(!fire.level, 'con la mirada horizontal el tiro pasa bajo el blanco alto (sin autoapuntado)');
-  await page.evaluate('G_InitNew(sk_medium, 1); players[0].cheats |= CF_GODMODE | CF_NOTARGET; hu_big = null;');
+  await page.evaluate("G_InitNew(sk_medium, 1); players[0].cheats |= CF_GODMODE | CF_NOTARGET; hu_big = null; hu_queue = [];");
   await page.waitForTimeout(1200);
   await page.evaluate('players[0].pitch = 0; players[0].ammo[am_fusil] = 50;');
 

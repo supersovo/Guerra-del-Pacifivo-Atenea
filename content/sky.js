@@ -10,6 +10,12 @@
 //   CIELO1 — Pisagua, mañana del 2 de noviembre de 1879: humo del bombardeo.
 //   CIELO2 — Dolores, tarde del 19 de noviembre de 1879: polvo y Andes.
 //   CIELO3 — Arica, amanecer del 7 de junio de 1880: alba sobre el Morro.
+//   CIELO4 — Tacna, mañana del 26 de mayo de 1880: meseta del Intiorko, los
+//            Andes con el Tacora nevado y el verde del valle al sur.
+//   CIELO5 — Chorrillos, alba del 13 de enero de 1881: bruma de la costa de
+//            Lima, el Morro Solar al suroeste y el humo del pueblo.
+//   CIELO6 — Miraflores, tarde del 15 de enero de 1881: sol bajo sobre el
+//            Pacífico, humo de la escuadra y las torres de Lima al norte.
 // =============================================================================
 'use strict';
 
@@ -130,6 +136,24 @@ function sky_smoke(t, seed, deg, width, heightRows, drift) {
   }
 }
 
+// Siluetas de un pueblo o ciudad en el horizonte (casas bajas y torres de
+// iglesia) entre dos rumbos; towers: [[rumbo, alto en filas lógicas], ...].
+function sky_skyline(t, seed, fromDeg, toDeg, col, towers) {
+  for (let x = 0; x < SKY_W; x++) {
+    const deg = x / SKY_W * 360;
+    if (sky_angDist(deg, (fromDeg + toDeg) / 2) > Math.abs(toDeg - fromDeg) / 2) continue;
+    const cell = Math.floor(deg * 3);
+    let h = 2 + Math.floor(tx_hash(seed, cell, 0) * 3.5);
+    for (const tw of towers || []) {
+      const d = sky_angDist(deg, tw[0]);
+      if (d < 0.35) h = Math.max(h, tw[1]);
+      else if (d < 0.6) h = Math.max(h, tw[1] * 0.6);
+      else if (d < 0.9) h = Math.max(h, tw[1] * 0.35);
+    }
+    for (let y = Math.floor((SKY_LHORIZON - h) * SKY_R); y < SKY_HORIZON + SKY_R; y++) tx_put(t, x, y, col);
+  }
+}
+
 // Registra el cielo como textura con su densidad (texeles por fila lógica).
 function sky_register(name, t) {
   tx_register(name, t, 9, true);
@@ -211,5 +235,90 @@ function SKY_BuildSkies() {
       return tx_mix([96, 70, 80], [40, 30, 36], clamp(f * 2, 0, 1));
     });
     sky_register('CIELO3', t);
+  }
+  // ---------------- CIELO4: Tacna, mañana en el Intiorko ----------------
+  {
+    const t = tx_new(SKY_W, SKY_H);
+    sky_gradient(t, [[0, [70, 118, 190]], [70, [104, 152, 214]], [128, [182, 204, 226]], [150, [226, 224, 214]]]);
+    // sol de la mañana al noreste
+    for (let y = 40 * SKY_R; y < SKY_HORIZON; y++) for (let x = 0; x < SKY_W; x++) {
+      const deg = x / SKY_W * 360;
+      const s = Math.max(0, 1 - sky_angDist(deg, 55) / 70) * clamp((y / SKY_R - 40) / 110, 0, 1);
+      if (s > 0) tx_blend(t, x, y, [255, 240, 204], s * 0.5);
+    }
+    sky_clouds(t, 3401, 60, 100, 0.26, [252, 250, 246], [200, 204, 214], 55, [255, 236, 200]);
+    // Los Andes con el volcán Tacora nevado al noreste
+    sky_mountains(t, 3402, 350, 140, 12, 30, [124, 110, 132], [244, 246, 252], [200, 198, 212], 24);
+    // Cerros de la costa al poniente, bajos y ocres
+    sky_mountains(t, 3403, 170, 250, 3, 8, [178, 146, 112], null, [228, 216, 196], 26);
+    // Polvo y humo de la batalla sobre la meseta (este) y el llano
+    sky_smoke(t, 3404, 8, 9, 50, -0.5);
+    sky_smoke(t, 3405, 340, 7, 40, -0.4);
+    sky_smoke(t, 3406, 30, 6, 34, -0.3);
+    sky_belowHorizon(t, function (deg, f) {
+      // el verde del valle de Tacna, al sur
+      const valley = Math.max(0, 1 - sky_angDist(deg, 285) / 40);
+      const base = tx_mix([220, 200, 160], [168, 138, 100], clamp(f * 2, 0, 1));
+      return tx_mix(base, tx_mix([150, 170, 96], [96, 118, 60], clamp(f * 3, 0, 1)), valley * clamp(1 - f * 4, 0, 1) * 0.8);
+    });
+    sky_register('CIELO4', t);
+  }
+  // ---------------- CIELO5: Chorrillos al alba ----------------
+  {
+    const t = tx_new(SKY_W, SKY_H);
+    sky_gradient(t, [[0, [44, 56, 96]], [60, [86, 96, 136]], [112, [168, 150, 162]], [140, [214, 184, 170]], [150, [226, 206, 190]]]);
+    // alba sobre los cerros de Lima, al oriente
+    for (let y = 50 * SKY_R; y < SKY_HORIZON; y++) for (let x = 0; x < SKY_W; x++) {
+      const deg = x / SKY_W * 360;
+      const d = sky_angDist(deg, 10);
+      const s = Math.max(0, 1 - d / 100) * Math.pow(clamp((y / SKY_R - 50) / 100, 0, 1), 1.3);
+      if (s > 0) tx_blend(t, x, y, tx_mix([255, 176, 120], [255, 226, 170], clamp(1 - d / 40, 0, 1)), s * 0.75);
+    }
+    // bruma de la costa (neblina limeña)
+    sky_clouds(t, 3501, 104, 146, 0.58, [236, 222, 214], [150, 146, 160], 10, [255, 214, 170]);
+    // estribaciones andinas al este y el Morro Solar al suroeste
+    sky_mountains(t, 3502, 320, 120, 8, 20, [96, 86, 104], null, [176, 156, 164], 26);
+    sky_mountains(t, 3503, 215, 262, 10, 18, [104, 88, 80], null, [170, 150, 150], 12);
+    // humo de Chorrillos en llamas (sur) y de la batalla en San Juan
+    sky_smoke(t, 3504, 262, 10, 80, 1.1);
+    sky_smoke(t, 3505, 300, 8, 56, 0.9);
+    sky_smoke(t, 3506, 330, 6, 40, 0.8);
+    sky_belowHorizon(t, function (deg, f) {
+      const sea = sky_angDist(deg, 180) < 80;
+      if (sea) return tx_mix([150, 150, 170], [40, 60, 86], clamp(f * 3, 0, 1));
+      return tx_mix([170, 150, 130], [96, 84, 70], clamp(f * 2, 0, 1));
+    });
+    sky_register('CIELO5', t);
+  }
+  // ---------------- CIELO6: Miraflores, tarde del 15 de enero ----------------
+  {
+    const t = tx_new(SKY_W, SKY_H);
+    sky_gradient(t, [[0, [60, 92, 160]], [70, [100, 132, 190]], [120, [196, 180, 170]], [140, [236, 196, 150]], [150, [246, 214, 170]]]);
+    // sol de la tarde bajando sobre el Pacífico (oeste)
+    for (let y = 30 * SKY_R; y < SKY_HORIZON; y++) for (let x = 0; x < SKY_W; x++) {
+      const deg = x / SKY_W * 360;
+      const d = sky_angDist(deg, 195);
+      const s = Math.max(0, 1 - d / 90) * Math.pow(clamp((y / SKY_R - 30) / 120, 0, 1), 1.2);
+      if (s > 0) tx_blend(t, x, y, tx_mix([255, 150, 70], [255, 236, 170], clamp(1 - d / 25, 0, 1)), s * 0.8);
+    }
+    sky_clouds(t, 3601, 80, 124, 0.4, [255, 226, 190], [150, 120, 130], 195, [255, 190, 110]);
+    // cerros de Lima al oriente y el San Cristóbal al noreste
+    sky_mountains(t, 3602, 330, 150, 6, 18, [116, 100, 112], null, [196, 170, 160], 24);
+    // Lima al norte: casas, torres de la Catedral y de las iglesias
+    sky_skyline(t, 3603, 70, 115, [118, 100, 104], [[84, 16], [86, 17], [92, 12], [99, 14], [104, 10], [110, 11]]);
+    // humo de los cañones de la escuadra frente a la costa y de los reductos
+    sky_smoke(t, 3604, 200, 7, 46, 1.2);
+    sky_smoke(t, 3605, 225, 6, 38, 1.0);
+    sky_smoke(t, 3606, 20, 8, 44, 1.0);
+    sky_smoke(t, 3607, 340, 7, 36, 0.8);
+    sky_belowHorizon(t, function (deg, f) {
+      const sea = sky_angDist(deg, 190) < 85;
+      if (sea) {
+        const glint = Math.max(0, 1 - sky_angDist(deg, 195) / 12) * clamp(1 - f * 3, 0, 1);
+        return tx_mix(tx_mix([176, 150, 140], [40, 70, 96], clamp(f * 2.5, 0, 1)), [255, 214, 150], glint * 0.8);
+      }
+      return tx_mix([182, 160, 124], [110, 96, 70], clamp(f * 2, 0, 1));
+    });
+    sky_register('CIELO6', t);
   }
 }

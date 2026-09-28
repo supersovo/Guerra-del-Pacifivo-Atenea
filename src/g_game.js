@@ -17,8 +17,8 @@ let d_skill = sk_medium, d_map = 1;
 let exitTimer = 0;
 let wminfo = null;
 
-const NUMMAPS = 3;
-const MAPLUMPS = ['E1M1', 'E1M2', 'E1M3'];
+const NUMMAPS = 6;
+const MAPLUMPS = ['E1M1', 'E1M2', 'E1M3', 'E1M4', 'E1M5', 'E1M6'];
 
 function G_NewPlayer() {
   return {
@@ -313,7 +313,7 @@ function G_DoLoadLevel() {
   paused = false;
   I_currentPal = -1;
   S_ChangeMusic(levelinfo.music || 'M_E1M1', true);
-  HU_ShowBigMessage(levelinfo.title + '\n' + (levelinfo.date || ''));
+  HU_ShowBigMessage(levelinfo.title + '\n' + (levelinfo.date || ''), true);
   const obj = B_PendingObjective();
   if (obj) HU_PlayerMessage(players[0], 'Objetivo: ' + obj.title);
   M_SaveProgress(gamemap);

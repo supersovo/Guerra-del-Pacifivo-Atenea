@@ -2,7 +2,8 @@
 // wi_stuff.js — Pantalla de intermedio y parte de operaciones (wi_stuff.c)
 // -----------------------------------------------------------------------------
 // Como el intermedio de DOOM (con el mapa del episodio y "USTED ESTÁ AQUÍ"),
-// pero sobre una carta del teatro de operaciones de Tarapacá y Arica.
+// pero sobre cartas del teatro de operaciones: Tarapacá, Tacna y Arica
+// (acciones 1 a 4) y la campaña de Lima (5 y 6).
 // =============================================================================
 'use strict';
 
@@ -71,20 +72,23 @@ function WI_Responder(ev) {
   return false;
 }
 
-// Rótulos de la carta (nombres de lugares, mar y países) en tinta.
-function WI_DrawMapLabels() {
-  const img = W_CacheLumpName('WIMAP');
-  for (const l of WIMAP_LABELS) V_DrawText(V_FullImageX(img, l[1]), l[2], l[0], false, V_Translations[l[3]]);
-  for (const p of WIMAP_PLACES) {
-    const q = WIMAP_Proj(p.lat, p.lon);
+// Carta de la acción (fondo, rótulos de lugares, mar y países en tinta).
+function WI_DrawMap(battle) {
+  const spec = CAMPAIGN_MapFor(battle);
+  const img = W_CacheLumpName(spec.lump);
+  V_DrawFullImage(img);
+  for (const l of spec.labels) V_DrawText(V_FullImageX(img, l[1]), l[2], l[0], false, V_Translations[l[3]]);
+  for (const p of spec.places) {
+    const q = spec.proj(p.lat, p.lon);
     V_DrawText(V_FullImageX(img, q[0] + p.dx), q[1] + p.dy, p.name, false, V_Translations.ink);
   }
+  return spec;
 }
 
-function WI_DrawMapMarkers(highlight, done) {
-  for (const p of WIMAP_PLACES) {
+function WI_DrawMapMarkers(spec, highlight, done) {
+  for (const p of spec.places) {
     if (!p.battle) continue;
-    const q = WIMAP_Proj(p.lat, p.lon);
+    const q = spec.proj(p.lat, p.lon);
     const x = q[0] - (428 - 320) / 2;
     const y = q[1];
     if (done && p.battle <= done) {
@@ -97,7 +101,9 @@ function WI_DrawMapMarkers(highlight, done) {
     if (highlight === p.battle && (wi_bcnt & 16)) {
       const star = W_CacheLumpName('M_STAR2');
       V_DrawPatch(x, y, star);
-      V_DrawText(x + 10, y + 6, 'USTED ESTÁ AQUÍ', false, V_Translations.red);
+      // el rótulo va a la izquierda si a la derecha lo taparía el parte
+      const here = 'USTED ESTÁ AQUÍ', w = V_StringWidth(here, false);
+      V_DrawText(x + 10 + w > 106 ? x - w - 2 : x + 10, y + 6, here, false, V_Translations.red);
     }
   }
 }
@@ -117,10 +123,8 @@ function WI_Panel(x, y, w, h) {
 }
 
 function WI_Drawer() {
-  V_DrawFullImage(W_CacheLumpName('WIMAP'));
-  WI_DrawMapLabels();
   const done = wi_info ? wi_info.last : 0;
-  WI_DrawMapMarkers(0, done);
+  WI_DrawMapMarkers(WI_DrawMap(done || 1), 0, done);
   const bx = 176;
   const t = MAPTITLES[wi_info.last] || '';
   WI_Panel(bx - 8, 6, 316 - bx + 8, 188);
@@ -147,7 +151,8 @@ function WI_Drawer() {
 }
 
 // --- Parte de operaciones (briefing) ------------------------------------------------------------------
-const MAPTITLES = { 1: 'Desembarco en Pisagua', 2: 'Batalla de Dolores (San Francisco)', 3: 'Toma del Morro de Arica' };
+const MAPTITLES = { 1: 'Desembarco en Pisagua', 2: 'Batalla de Dolores (San Francisco)', 3: 'Batalla de Tacna (Alto de la Alianza)',
+  4: 'Toma del Morro de Arica', 5: 'Batalla de San Juan y Chorrillos', 6: 'Batalla de Miraflores' };
 
 function WI_StartBriefing(map, first) {
   const b = BRIEFINGS[map];
@@ -182,9 +187,7 @@ function WI_BriefingResponder(ev) {
 
 function WI_BriefingDrawer() {
   if (!wi_brief) return;
-  V_DrawFullImage(W_CacheLumpName('WIMAP'));
-  WI_DrawMapLabels();
-  WI_DrawMapMarkers(wi_brief.map, wi_brief.map - 1);
+  WI_DrawMapMarkers(WI_DrawMap(wi_brief.map), wi_brief.map, wi_brief.map - 1);
   const b = BRIEFINGS[wi_brief.map];
   const bx = 118;
   WI_Panel(bx - 8, 4, 320 - bx + 4, 192);

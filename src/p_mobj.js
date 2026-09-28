@@ -14,7 +14,7 @@ function P_SetMobjState(mobj, state) {
     mobj.state = st;
     mobj.stateNum = state;
     mobj.tics = st.tics;
-    mobj.sprite = st.sprite;
+    mobj.sprite = mobj.spriteOverride !== undefined ? mobj.spriteOverride : st.sprite;
     mobj.frame = st.frame;
     if (st.action) st.action(mobj);
     if (mobj.removed) return false;
@@ -61,6 +61,10 @@ function P_XYMovement(mo) {
           return;
         }
         P_ExplodeMissile(mo);
+      } else if (mo.flags & MF_GIB) {
+        mo.momx *= -0.3;   // un resto rebota contra el muro
+        mo.momy *= -0.3;
+        xmove = ymove = 0;
       } else {
         mo.momx = mo.momy = 0;
       }
@@ -80,8 +84,9 @@ function P_XYMovement(mo) {
     if (player && mo.stateNum >= S_('S_PLAY_RUN1') && mo.stateNum <= S_('S_PLAY_RUN4')) P_SetMobjState(player.mo, S_('S_PLAY'));
     mo.momx = mo.momy = 0;
   } else {
-    mo.momx *= FRICTION;
-    mo.momy *= FRICTION;
+    const f = (mo.flags & MF_GIB) ? 0.7 : FRICTION;   // los restos no resbalan lejos
+    mo.momx *= f;
+    mo.momy *= f;
   }
 }
 
@@ -105,7 +110,15 @@ function P_ZMovement(mo) {
         mo.player.deltaviewheight = mo.momz / 8;
         S_StartSound(mo, 'oof');
       }
-      mo.momz = 0;
+      if ((mo.flags & MF_GIB) && mo.momz < -2.5) {
+        // Un resto que cae rebota, pierde fuerza y deja una mancha.
+        mo.momz = -mo.momz * 0.35;
+        mo.momx *= 0.6;
+        mo.momy *= 0.6;
+        P_SpawnBlood(mo.x, mo.y, mo.floorz + 2, 6);
+      } else {
+        mo.momz = 0;
+      }
     }
     mo.z = mo.floorz;
     if ((mo.flags & MF_MISSILE) && !(mo.flags & MF_NOCLIP)) {
@@ -241,7 +254,12 @@ function P_SpawnMapThing(mthing, skill) {
     mobj.mineArmed = true;
   }
   if (type === MT.PUNTO) B_RegisterSpawnPoint(mobj);
-  if (mthing.hold) mobj.holdPosition = true;
+  if (mthing.hold) {
+    mobj.holdPosition = true;
+    mobj.home = [mobj.x, mobj.y];
+  }
+  if (mthing.goal) B_SetGoal(mobj, mthing.goal[0], mthing.goal[1]);
+  if (mobj.tag && (mobj.flags & MF_COUNTKILL)) B_CountTagged(mobj);
 }
 
 // --- Efectos -----------------------------------------------------------------------------
@@ -263,6 +281,86 @@ function P_SpawnBlood(x, y, z, damage) {
   if (th.tics < 1) th.tics = 1;
   if (damage <= 12 && damage >= 9) P_SetMobjState(th, S_('S_BLOOD2'));
   else if (damage < 9) P_SetMobjState(th, S_('S_BLOOD3'));
+}
+
+// --- Desmembramiento (extensión Atenea) ------------------------------------------------------
+// Quien muere por una explosión salta en pedazos: cabeza, brazos y piernas
+// (sprites GH/GB/GP + código del uniforme) salen despedidos desde el punto de
+// impacto, dan vueltas, rebotan y quedan en el suelo; en el lugar queda el
+// tronco destrozado (GT). Del jinete o del artillero quedan el caballo muerto
+// o la pieza sola (gibstate). Los caídos cercanos al impacto también se
+// despedazan. Se limita la cantidad de restos para no cargar las batallas.
+const MAXGIBS = 256;
+let gibList = [];
+
+function P_SpawnGib(target, part, ang, power, zfrac) {
+  const spr = spritelookup.get('G' + part + target.info.gib);
+  if (spr === undefined) return null;
+  const mo = P_SpawnMobj(target.x + (P_Random() - 128) / 16, target.y + (P_Random() - 128) / 16,
+    target.z + target.info.height * zfrac, MT.GIB);
+  mo.spriteOverride = spr;
+  if (part === 'T') {
+    P_SetMobjState(mo, S_('S_REMAINS'));
+  } else {
+    P_SetMobjState(mo, S_('S_GIB1') + (P_Random() & 3));
+    mo.tics = 1 + (P_Random() & 3);
+  }
+  const a = (ang + ((P_Random() - P_Random()) << 21)) >>> 0;
+  const sp = power * (0.6 + P_Random() / 360);
+  mo.momx = sp * FineCos(a);
+  mo.momy = sp * FineSin(a);
+  mo.momz = part === 'T' ? power * 0.4 : 3 + power * (0.8 + P_Random() / 512);
+  gibList.push(mo);
+  if (gibList.length > MAXGIBS) P_RemoveMobj(gibList.shift());
+  return mo;
+}
+
+function P_Dismember(target, spot, dist) {
+  const kind = target.info.gibkind || 'human';
+  const ang = dist < 8 ? ((P_Random() << 24) >>> 0) : R_PointToAngle2(spot.x, spot.y, target.x, target.y);
+  const power = 6.5 * Math.max(0.45, Math.min(1.25, 1.25 - dist / 150));
+  const rider = kind === 'rider';
+  const zh = rider ? 0.97 : 0.9, zb = rider ? 0.8 : 0.68, zp = rider ? 0.6 : 0.3;
+  P_SpawnGib(target, 'H', ang, power * 1.1, zh);
+  P_SpawnGib(target, 'B', ang, power, zb);
+  P_SpawnGib(target, 'B', ang, power, zb);
+  P_SpawnGib(target, 'P', ang, power * 0.8, zp);
+  if (!rider) P_SpawnGib(target, 'P', ang, power * 0.8, zp);
+  for (let i = 0; i < 6; i++) {
+    const b = P_SpawnMobj(target.x, target.y, target.z + target.info.height * 0.5, MT.BLOOD);
+    b.momx = (P_Random() - P_Random()) / 32;
+    b.momy = (P_Random() - P_Random()) / 32;
+    b.momz = 2 + P_Random() / 64;
+  }
+  S_StartSound(target, 'slop');
+  target.gibbed = true;
+  target.flags &= ~MF_SOLID;
+  if (kind === 'human') {
+    // En el lugar queda el tronco: el mismo mobj, ya sin animación de caída.
+    target.spriteOverride = spritelookup.get('GT' + target.info.gib);
+    target.momx *= 0.35;
+    target.momy *= 0.35;
+    P_SetMobjState(target, S_('S_REMAINS'));
+  } else {
+    // El caballo o la pieza quedan solos; el tronco del hombre cae al lado.
+    P_SpawnGib(target, 'T', ang, power * 0.5, rider ? 0.6 : 0.3);
+    if (target.info.gibstate) P_SetMobjState(target, target.info.gibstate);
+  }
+}
+
+// Un resto en vuelo gotea sangre; al quedar quieto en el suelo, reposa.
+function A_GibFly(mo) {
+  if (mo.z > mo.floorz || mo.momz > 0) {
+    if (P_Random() < 60) {
+      const b = P_SpawnMobj(mo.x, mo.y, mo.z, MT.BLOOD);
+      P_SetMobjState(b, S_('S_BLOOD3'));
+    }
+    return;
+  }
+  if (Math.abs(mo.momx) + Math.abs(mo.momy) < 1.2) {
+    mo.momx = mo.momy = 0;
+    P_SetMobjState(mo, S_('S_GIB_REST'));
+  }
 }
 
 function P_CheckMissileSpawn(th) {

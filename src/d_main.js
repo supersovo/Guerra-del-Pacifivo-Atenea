@@ -61,7 +61,7 @@ async function D_DoomMain() {
   D_Boot('  S_START..S_END: fundición de sprites en 8 rotaciones');
   await M_NextFrame();
   await SPR_BuildSprites(function (msg) { D_Boot('    ' + msg); });
-  D_Boot('  STBAR, STF*, TITLEPIC, WIMAP: interfaz.');
+  D_Boot('  STBAR, STF*, TITLEPIC, WIMAP, WIMAP2: interfaz.');
   await M_NextFrame();
   FACE_BuildLumps();
   GFX_BuildAll();

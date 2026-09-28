@@ -1,7 +1,8 @@
 // Prueba de la lógica de batalla en Chromium: para cada mapa cumple los
-// objetivos (elimina las unidades etiquetadas, cruza las líneas de avance),
-// iza la bandera y comprueba que se pasa al intermedio. La simulación se
-// adelanta llamando a P_Ticker directamente (35 tics = 1 segundo de juego).
+// objetivos (elimina las unidades etiquetadas, lleva al jugador a las
+// posiciones que lo exigen, cruza las líneas de avance), iza la bandera y
+// comprueba que se pasa al intermedio. La simulación se adelanta llamando a
+// P_Ticker directamente (35 tics = 1 segundo de juego).
 //   node tests/logic_test.js [mapas, p.ej. 1,2,3]
 'use strict';
 const path = require('path');
@@ -9,7 +10,7 @@ let playwright;
 try { playwright = require('playwright'); } catch (e) { playwright = require('/opt/node22/lib/node_modules/playwright'); }
 
 (async function () {
-  const maps = (process.argv[2] || '1,2,3').split(',').map(Number);
+  const maps = (process.argv[2] || '1,2,3,4,5,6').split(',').map(Number);
   const browser = await playwright.chromium.launch();
   const page = await browser.newPage({ viewport: { width: 960, height: 600 } });
   const errors = [];
@@ -46,6 +47,7 @@ try { playwright = require('playwright'); } catch (e) { playwright = require('/o
         const o = battle.objectives[i];
         if (o.kill) {
           const tag = o.killtag;
+          if (o.near) tp(o.near[0], o.near[1], 0);   // las batallas masivas exigen estar en la posición
           // Esperar a que aparezcan todas las oleadas pendientes con esa etiqueta.
           for (let guard = 0; guard < 400 && (battle.pendingTags[tag] || alive(tag).length); guard++) {
             for (const mo of alive(tag)) P_DamageMobj(mo, p.mo, p.mo, 10000);

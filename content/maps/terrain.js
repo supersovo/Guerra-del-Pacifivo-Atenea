@@ -168,16 +168,19 @@ function TR_Pillar(B, pts, top, tex, flat, light) {
 
 // --- Obras militares ------------------------------------------------------------------------------------
 // Trinchera N-S: foso (base-16) con parapeto de sacos (base+16) al oeste
-// (dir = -1) o al este (dir = +1).
-function TR_TrenchNS(B, x0, x1, y0, y1, base, dir) {
-  B.sector(MC_Rect(x0, y0, x1, y1), { floor: base - 16, ceil: TR_SKY, ftex: 'TIERRA1', ctex: 'F_SKY1', wall: 'TIERRA1', lower: 'TIERRA1', light: 184 });
+// (dir = -1) o al este (dir = +1). opts.depth: profundidad del foso; con 8,
+// la tropa sale por encima del parapeto (contraataques de las batallas masivas).
+function TR_TrenchNS(B, x0, x1, y0, y1, base, dir, opts) {
+  const d = (opts && opts.depth) || 16;
+  B.sector(MC_Rect(x0, y0, x1, y1), { floor: base - d, ceil: TR_SKY, ftex: 'TIERRA1', ctex: 'F_SKY1', wall: 'TIERRA1', lower: 'TIERRA1', light: 184 });
   const p = dir < 0 ? MC_Rect(x0 - 24, y0, x0, y1) : MC_Rect(x1, y0, x1 + 24, y1);
   B.sector(p, { floor: base + 16, ceil: TR_SKY, ftex: 'SACOSF', ctex: 'F_SKY1', wall: 'SACOS1', lower: 'SACOS1' });
 }
 
 // Trinchera E-O con parapeto al sur (dir = -1) o al norte (dir = +1).
-function TR_TrenchEW(B, x0, x1, y0, y1, base, dir) {
-  B.sector(MC_Rect(x0, y0, x1, y1), { floor: base - 16, ceil: TR_SKY, ftex: 'TIERRA1', ctex: 'F_SKY1', wall: 'TIERRA1', lower: 'TIERRA1', light: 184 });
+function TR_TrenchEW(B, x0, x1, y0, y1, base, dir, opts) {
+  const d = (opts && opts.depth) || 16;
+  B.sector(MC_Rect(x0, y0, x1, y1), { floor: base - d, ceil: TR_SKY, ftex: 'TIERRA1', ctex: 'F_SKY1', wall: 'TIERRA1', lower: 'TIERRA1', light: 184 });
   const p = dir < 0 ? MC_Rect(x0, y0 - 24, x1, y0) : MC_Rect(x0, y1, x1, y1 + 24);
   B.sector(p, { floor: base + 16, ceil: TR_SKY, ftex: 'SACOSF', ctex: 'F_SKY1', wall: 'SACOS1', lower: 'SACOS1' });
 }
@@ -233,4 +236,49 @@ function TR_RadialHill(B, cx, cy, N, M, dh, base, rfun, propsFn) {
 // Carpa de campaña (sector bajo de lona).
 function TR_Tent(B, x0, y0, x1, y1, base) {
   return B.sector(MC_Rect(x0, y0, x1, y1), { floor: base + 56, ceil: TR_SKY, ftex: 'CARPAF', ctex: 'F_SKY1', wall: 'CARPA1', lower: 'CARPA1', light: 208 });
+}
+
+// --- Tropas ---------------------------------------------------------------------------------------------
+// Fila de n soldados de (x0, y0) a (x1, y1), con un leve desorden.
+// opts: { tag, hold, skill, jitter, seed, advance: [dx, dy] (marcha en
+// formación a una posición trasladada) }. Separación mínima: 56 unidades
+// (80 para la caballería), para que nadie aparezca trabado con su vecino.
+function TR_Rank(B, type, x0, y0, x1, y1, n, angle, opts) {
+  opts = opts || {};
+  const jit = opts.jitter === undefined ? 10 : opts.jitter;
+  for (let i = 0; i < n; i++) {
+    const t = n === 1 ? 0.5 : i / (n - 1);
+    const seed = (opts.seed || 1) * 7919 + i;
+    const x = Math.round(x0 + (x1 - x0) * t + (TR_Hash(seed, 1) * 2 - 1) * jit);
+    const y = Math.round(y0 + (y1 - y0) * t + (TR_Hash(seed, 2) * 2 - 1) * jit);
+    const o = { tag: opts.tag, hold: opts.hold, skill: opts.skill };
+    if (opts.advance) o.goal = [x + opts.advance[0], y + opts.advance[1]];
+    B.thing(type, x, y, angle, o);
+  }
+}
+
+// Varias filas paralelas (una columna de n filas separadas dx, dy).
+function TR_Ranks(B, type, x0, y0, x1, y1, n, rows, dx, dy, angle, opts) {
+  for (let r = 0; r < rows; r++) {
+    TR_Rank(B, type, x0 + dx * r, y0 + dy * r, x1 + dx * r, y1 + dy * r, n, angle,
+      Object.assign({}, opts, { seed: ((opts && opts.seed) || 1) * 31 + r }));
+  }
+}
+
+// Reducto de campaña: cuatro parapetos de tierra (+32, no se trepan) con la
+// gola (entrada) abierta hacia 'open' ('N', 'S', 'E', 'W'). Interior al nivel base.
+function TR_Redoubt(B, x0, y0, x1, y1, base, open, props) {
+  const p = Object.assign({ floor: base + 32, ceil: TR_SKY, ftex: 'SACOSF', ctex: 'F_SKY1', wall: 'SACOS1', lower: 'SACOS1' }, props || {});
+  const T = 24, gap = 96;
+  const cx = (x0 + x1) / 2, cy = (y0 + y1) / 2;
+  const side = function (s, r) { if (open === s) return; B.sector(r, p); };
+  // lados completos salvo la gola, que se parte en dos tramos
+  if (open === 'S') { B.sector(MC_Rect(x0, y0, cx - gap / 2, y0 + T), p); B.sector(MC_Rect(cx + gap / 2, y0, x1, y0 + T), p); }
+  else side('S', MC_Rect(x0, y0, x1, y0 + T));
+  if (open === 'N') { B.sector(MC_Rect(x0, y1 - T, cx - gap / 2, y1), p); B.sector(MC_Rect(cx + gap / 2, y1 - T, x1, y1), p); }
+  else side('N', MC_Rect(x0, y1 - T, x1, y1));
+  if (open === 'W') { B.sector(MC_Rect(x0, y0 + T, x0 + T, cy - gap / 2), p); B.sector(MC_Rect(x0, cy + gap / 2, x0 + T, y1 - T), p); }
+  else side('W', MC_Rect(x0, y0 + T, x0 + T, y1 - T));
+  if (open === 'E') { B.sector(MC_Rect(x1 - T, y0 + T, x1, cy - gap / 2), p); B.sector(MC_Rect(x1 - T, cy + gap / 2, x1, y1 - T), p); }
+  else side('E', MC_Rect(x1 - T, y0 + T, x1, y1 - T));
 }

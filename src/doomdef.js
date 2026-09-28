@@ -149,6 +149,7 @@ const MF_SKULLFLY = 0x1000000;
 const MF_NOTDMATCH = 0x2000000;
 const MF_TURRET = 0x4000000;     // extensión Atenea: no se desplaza (artillería)
 const MF_LOBBED = 0x8000000;     // extensión Atenea: proyectil con parábola (dinamita)
+const MF_GIB = 0x10000000;       // extensión Atenea: resto humano (atraviesa a los demás y rebota)
 
 // --- Fotogramas de sprite ------------------------------------------------------
 const FF_FULLBRIGHT = 0x8000;

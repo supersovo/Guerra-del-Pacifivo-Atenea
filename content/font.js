@@ -266,12 +266,16 @@ const FONT_SANS = 'Verdana, "DejaVu Sans", Tahoma, "Segoe UI", "Liberation Sans"
 const FONT_STYLES = {
   small: { family: FONT_SERIF, weight: '700', cap: 7, top: 4, shade0: 0, shade1: 3, outline: 0.55, shadow: 0.55, space: 3.2, track: 0.45, fit: 0.97 },
   big: { family: FONT_SERIF, weight: '700', cap: 14, top: 9, shade0: 0, shade1: 7, outline: 0.9, shadow: 1, space: 5.5, track: 0.8, fit: 0.95, bevel: true },
-  title: { family: FONT_SERIF, weight: '700', cap: 40, top: 12, shade0: 0, shade1: 9, outline: 1.6, shadow: 2.2, space: 14, track: 1.5, sx: 1.12, bevel: true }
+  title: { family: FONT_SERIF, weight: '700', cap: 40, top: 12, shade0: 0, shade1: 9, outline: 1.6, shadow: 2.2, space: 14, track: 1.5, sx: 1.12, bevel: true },
+  // Tamaños intermedios para avisos en combate (más discretos): se ajustan a la
+  // fuente clásica chica o grande escalada (base, k).
+  note: { family: FONT_SERIF, weight: '700', cap: 5.5, top: 3, shade0: 0, shade1: 3, outline: 0.45, shadow: 0.45, space: 2.6, track: 0.35, fit: 0.97, base: 'small', k: 5.5 / 7 },
+  medium: { family: FONT_SERIF, weight: '700', cap: 10, top: 6, shade0: 0, shade1: 6, outline: 0.7, shadow: 0.8, space: 4, track: 0.6, fit: 0.95, bevel: true, base: 'big', k: 10 / 14 }
 };
 // Compresión adicional de algunos glifos anchos (el % de la barra de estado).
 const FONT_NARROW = { '%': 0.74, 'M': 0.92, 'W': 0.9, 'm': 0.94, 'w': 0.92, '—': 0.8 };
 const FONT_SAMPLE = 'Desembarco en Pisagua. Batalla de Dolores; toma del Morro de Arica: ¡VICTORIA! 0123456789% ÁÉÍÓÚñ';
-const FONT_LINEH = { small: 11, big: 20, title: 50 };
+const FONT_LINEH = { small: 11, big: 20, title: 50, note: 9, medium: 15 };
 
 let FONT_canvas = null, FONT_ctx2d = null;
 const FONT_metricsCache = new Map();
@@ -323,7 +327,8 @@ function FONT_Metrics(key, D) {
     let classic = 0, natural = 0, count = 0;
     for (const ch of FONT_SAMPLE) {
       if (ch === ' ') continue;
-      classic += FONT_ClassicAdvance(ch, key === 'big');
+      const base = st.base || key;
+      classic += FONT_ClassicAdvance(ch, base === 'big') * (st.k || 1);
       natural += ctx.measureText(ch).width / D;
       count++;
     }

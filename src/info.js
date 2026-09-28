@@ -103,6 +103,8 @@ function ST_Infantry(P, spr, attackAction) {
 }
 ST_Infantry('S_GUAR', 'GUAR', 'A_RifleAttack');
 ST_Infantry('S_BOLI', 'BOLI', 'A_RemingtonAttack');
+ST_Infantry('S_COLO', 'COLO', 'A_RemingtonAttack');
+ST_Infantry('S_RESE', 'RESE', 'A_RifleAttack');
 
 // Tropa aliada: infante chileno con fusil Comblain.
 ST_Def('S_CHIL_STND', 'CHIL', 'A', 10, 'A_AllyLook', 'S_CHIL_STND2');
@@ -114,12 +116,22 @@ ST_Seq('S_CHIL_PAIN', 'CHIL', [['G', 3], ['G', 3, 'A_Pain']], 'S_CHIL_RUN1');
 ST_Seq('S_CHIL_DIE', 'CHIL', [['H', 5], ['I', 5, 'A_Scream'], ['J', 5, 'A_Fall'], ['K', 5], ['L', -1]], 'S_NULL');
 ST_Seq('S_CHIL_XDIE', 'CHIL', [['M', 5], ['N', 5, 'A_XScream'], ['O', 5, 'A_Fall'], ['P', 5], ['Q', -1]], 'S_NULL');
 
+// Granaderos a Caballo: caballería chilena aliada (carga al sable).
+ST_Def('S_GRAN_STND', 'GRAN', 'A', 10, 'A_AllyLook', 'S_GRAN_STND2');
+ST_Def('S_GRAN_STND2', 'GRAN', 'B', 10, 'A_AllyLook', 'S_GRAN_STND');
+ST_Seq('S_GRAN_RUN', 'GRAN', [['A', 3, 'A_AllyChase'], ['B', 3, 'A_AllyChase'], ['C', 3, 'A_AllyChase'], ['D', 3, 'A_AllyChase']], 'S_GRAN_RUN1');
+ST_Seq('S_GRAN_ATK', 'GRAN', [['E', 5, 'A_FaceTarget'], ['F', 5, 'A_FaceTarget'], ['G', 6, 'A_SaberAttack']], 'S_GRAN_RUN1');
+ST_Seq('S_GRAN_PAIN', 'GRAN', [['H', 3], ['H', 3, 'A_Pain']], 'S_GRAN_RUN1');
+ST_Seq('S_GRAN_DIE', 'GRAN', [['I', 6], ['J', 6, 'A_Scream'], ['K', 6], ['L', 6, 'A_Fall'], ['M', 6], ['N', -1]], 'S_NULL');
+ST_Def('S_GRAN_GIB', 'GRAN', 'O', -1, null, 'S_NULL');
+
 // Batería chilena (Krupp) con su dotación.
 ST_Def('S_ARTC_STND', 'ARTC', 'A', 10, 'A_Look', 'S_ARTC_STND');
 ST_Def('S_ARTC_SEE', 'ARTC', 'A', 8, 'A_TurretChase', 'S_ARTC_SEE');
 ST_Seq('S_ARTC_ATK', 'ARTC', [['B', 14, 'A_FaceTarget'], ['C*', 6, 'A_CannonFire'], ['D', 12], ['A', 45]], 'S_ARTC_SEE');
 ST_Seq('S_ARTC_PAIN', 'ARTC', [['E', 4], ['E', 4, 'A_Pain']], 'S_ARTC_SEE');
 ST_Seq('S_ARTC_DIE', 'ARTC', [['F', 6], ['G', 6, 'A_Scream'], ['H', 6, 'A_Fall'], ['I', 6], ['J', -1]], 'S_NULL');
+ST_Def('S_ARTC_GIB', 'ARTC', 'K', -1, null, 'S_NULL');
 
 // Bayoneta calada: carga rápida cuerpo a cuerpo.
 ST_Def('S_BAYO_STND', 'BAYO', 'A', 10, 'A_Look', 'S_BAYO_STND2');
@@ -138,6 +150,7 @@ ST_Seq('S_HUSA_RUN', 'HUSA', [['A', 3, 'A_Chase'], ['B', 3, 'A_Chase'], ['C', 3,
 ST_Seq('S_HUSA_ATK', 'HUSA', [['E', 5, 'A_FaceTarget'], ['F', 5, 'A_FaceTarget'], ['G', 6, 'A_SaberAttack']], 'S_HUSA_RUN1');
 ST_Seq('S_HUSA_PAIN', 'HUSA', [['H', 3], ['H', 3, 'A_Pain']], 'S_HUSA_RUN1');
 ST_Seq('S_HUSA_DIE', 'HUSA', [['I', 6], ['J', 6, 'A_Scream'], ['K', 6], ['L', 6, 'A_Fall'], ['M', 6], ['N', -1]], 'S_NULL');
+ST_Def('S_HUSA_GIB', 'HUSA', 'O', -1, null, 'S_NULL');
 
 // Artillería: pieza fija con su dotación.
 ST_Def('S_ARTI_STND', 'ARTI', 'A', 10, 'A_Look', 'S_ARTI_STND');
@@ -145,6 +158,7 @@ ST_Def('S_ARTI_SEE', 'ARTI', 'A', 8, 'A_TurretChase', 'S_ARTI_SEE');
 ST_Seq('S_ARTI_ATK', 'ARTI', [['B', 16, 'A_FaceTarget'], ['C*', 6, 'A_CannonFire'], ['D', 12], ['A', 40]], 'S_ARTI_SEE');
 ST_Seq('S_ARTI_PAIN', 'ARTI', [['E', 4], ['E', 4, 'A_Pain']], 'S_ARTI_SEE');
 ST_Seq('S_ARTI_DIE', 'ARTI', [['F', 6], ['G', 6, 'A_Scream'], ['H', 6, 'A_Fall'], ['I', 6], ['J', -1]], 'S_NULL');
+ST_Def('S_ARTI_GIB', 'ARTI', 'K', -1, null, 'S_NULL');
 
 // Dinamitero.
 ST_Def('S_DINA_STND', 'DINA', 'A', 10, 'A_Look', 'S_DINA_STND2');
@@ -178,9 +192,17 @@ ST_Def('S_DINM4', 'DINM', 'D*', 2, null, 'S_DINM1');
 ST_Seq('S_PUFF', 'PUFF', [['A*', 4], ['B', 4], ['C', 4], ['D', 4]], 'S_NULL');
 ST_Seq('S_BLOOD', 'BLUD', [['C', 8], ['B', 8], ['A', 8]], 'S_NULL');
 ST_Seq('S_SMOKE', 'HUMO', [['A', 6], ['B', 6], ['C', 6], ['D', 6]], 'S_NULL');
-ST_Seq('S_MINEBLAST', 'EXPL', [['A*', 4, 'A_MineExplode'], ['B*', 5], ['C*', 5], ['D*', 5], ['E', 6]], 'S_NULL');
-ST_Seq('S_MINEARM', 'TNT1', [['A', 12, 'A_MineClick'], ['A', 1, 'A_MineDetonate']], 'S_NULL');
-ST_Seq('S_BIGBLAST', 'EXPL', [['A*', 3, 'A_BigExplode'], ['B*', 4], ['C*', 4], ['D*', 5], ['E', 6]], 'S_NULL');
+ST_Seq('S_MINEBLAST', 'EXPL', [['A*', 4], ['B*', 5], ['C*', 5], ['D*', 5], ['E', 6]], 'S_NULL');   // daño: P_Detonate
+ST_Seq('S_MINEARM', 'TNT1', [['A', 12], ['A', 1, 'A_MineDetonate']], 'S_NULL');   // el clic lo da T_MineThink
+ST_Seq('S_BIGBLAST', 'EXPL', [['A*', 3], ['B*', 4], ['C*', 4], ['D*', 5], ['E', 6]], 'S_NULL');   // daño: P_Detonate
+
+// --- Desmembramiento: partes que vuelan (el sprite real lo fija spriteOverride) ---
+ST_Def('S_GIB1', 'GHCL', 'A', 3, 'A_GibFly', 'S_GIB2');
+ST_Def('S_GIB2', 'GHCL', 'B', 3, 'A_GibFly', 'S_GIB3');
+ST_Def('S_GIB3', 'GHCL', 'C', 3, 'A_GibFly', 'S_GIB4');
+ST_Def('S_GIB4', 'GHCL', 'D', 3, 'A_GibFly', 'S_GIB1');
+ST_Def('S_GIB_REST', 'GHCL', 'E', -1, null, 'S_NULL');
+ST_Def('S_REMAINS', 'GTCL', 'A', -1, null, 'S_NULL');
 
 // --- Barril de pólvora (explota al dispararle) ---
 ST_Def('S_BARR', 'BARR', 'A', -1, null, 'S_NULL');
@@ -272,13 +294,13 @@ MI_Def('CHILENO', {
   doomednum: 4001, spawnstate: 'S_CHIL_STND', spawnhealth: 45, seestate: 'S_CHIL_RUN1', painstate: 'S_CHIL_PAIN1',
   painchance: 180, painsound: 'plpain', missilestate: 'S_CHIL_ATK1', deathstate: 'S_CHIL_DIE1',
   xdeathstate: 'S_CHIL_XDIE1', deathsound: 'chdth', speed: 8, radius: 16, height: 56, mass: 100,
-  flags: MF_SOLID | MF_SHOOTABLE, title: 'Infante chileno', faction: 1
+  flags: MF_SOLID | MF_SHOOTABLE, title: 'Infante chileno', faction: 1, gib: 'CL'
 });
 MI_Def('ARTILLERO_CL', {
   doomednum: 4002, spawnstate: 'S_ARTC_STND', spawnhealth: 120, seestate: 'S_ARTC_SEE', painstate: 'S_ARTC_PAIN1',
   painchance: 60, painsound: 'plpain', missilestate: 'S_ARTC_ATK1', deathstate: 'S_ARTC_DIE1', deathsound: 'chdth',
   speed: 0, radius: 32, height: 48, mass: 10000000, reactiontime: 12, sightdist: 3600,
-  flags: MF_SOLID | MF_SHOOTABLE | MF_TURRET, title: 'Batería Krupp chilena', faction: 1
+  flags: MF_SOLID | MF_SHOOTABLE | MF_TURRET, title: 'Batería Krupp chilena', faction: 1, gib: 'AC', gibkind: 'crew', gibstate: 'S_ARTC_GIB'
 });
 
 MI_Def('GUARDIA', {
@@ -286,47 +308,74 @@ MI_Def('GUARDIA', {
   attacksound: 'rifle2', painstate: 'S_GUAR_PAIN1', painchance: 200, painsound: 'popain', missilestate: 'S_GUAR_ATK1',
   deathstate: 'S_GUAR_DIE1', xdeathstate: 'S_GUAR_XDIE1', deathsound: 'podth', speed: 8, radius: 20, height: 56,
   mass: 100, activesound: 'posact', flags: MF_SOLID | MF_SHOOTABLE | MF_COUNTKILL, dropitem: 'CARTUCHOS',
-  title: 'Guardia Nacional (Perú)', faction: 2
+  title: 'Guardia Nacional (Perú)', faction: 2, gib: 'GU'
 });
 MI_Def('BOLIVIANO', {
   doomednum: 9, spawnstate: 'S_BOLI_STND', spawnhealth: 30, seestate: 'S_BOLI_RUN1', seesound: 'posit',
   painstate: 'S_BOLI_PAIN1', painchance: 170, painsound: 'popain', missilestate: 'S_BOLI_ATK1',
   deathstate: 'S_BOLI_DIE1', xdeathstate: 'S_BOLI_XDIE1', deathsound: 'podth', speed: 8, radius: 20, height: 56,
   mass: 100, activesound: 'posact', flags: MF_SOLID | MF_SHOOTABLE | MF_COUNTKILL, dropitem: 'CARTUCHOS',
-  title: 'Infante boliviano', faction: 2
+  title: 'Infante boliviano', faction: 2, gib: 'BO'
 });
 MI_Def('BAYONETA', {
   doomednum: 3002, spawnstate: 'S_BAYO_STND', spawnhealth: 80, seestate: 'S_BAYO_RUN1', seesound: 'sgtsit',
   attacksound: 'sgtatk', painstate: 'S_BAYO_PAIN1', painchance: 170, painsound: 'popain', meleestate: 'S_BAYO_ATK1',
   deathstate: 'S_BAYO_DIE1', xdeathstate: 'S_BAYO_XDIE1', deathsound: 'sgtdth', speed: 11, radius: 22, height: 56,
-  mass: 300, activesound: 'posact', flags: MF_SOLID | MF_SHOOTABLE | MF_COUNTKILL, title: 'Infante con bayoneta', faction: 2
+  mass: 300, activesound: 'posact', flags: MF_SOLID | MF_SHOOTABLE | MF_COUNTKILL, title: 'Infante con bayoneta', faction: 2, gib: 'PL'
 });
 MI_Def('HUSAR', {
   doomednum: 3005, spawnstate: 'S_HUSA_STND', spawnhealth: 150, seestate: 'S_HUSA_RUN1', seesound: 'horse',
   attacksound: 'saber', painstate: 'S_HUSA_PAIN1', painchance: 90, painsound: 'hpain', meleestate: 'S_HUSA_ATK1',
   deathstate: 'S_HUSA_DIE1', deathsound: 'hdeath', speed: 15, radius: 30, height: 88, mass: 700,
-  activesound: 'hooves', flags: MF_SOLID | MF_SHOOTABLE | MF_COUNTKILL, title: 'Húsar de caballería', faction: 2
+  activesound: 'hooves', flags: MF_SOLID | MF_SHOOTABLE | MF_COUNTKILL, title: 'Húsar de caballería', faction: 2, gib: 'HU', gibkind: 'rider', gibstate: 'S_HUSA_GIB'
 });
 MI_Def('ARTILLERO', {
   doomednum: 3006, spawnstate: 'S_ARTI_STND', spawnhealth: 70, seestate: 'S_ARTI_SEE', seesound: 'posit',
   painstate: 'S_ARTI_PAIN1', painchance: 100, painsound: 'popain', missilestate: 'S_ARTI_ATK1',
   deathstate: 'S_ARTI_DIE1', deathsound: 'podth', speed: 0, radius: 32, height: 48, mass: 10000000,
   reactiontime: 20, sightdist: 3600, flags: MF_SOLID | MF_SHOOTABLE | MF_COUNTKILL | MF_TURRET,
-  title: 'Pieza de artillería', faction: 2
+  title: 'Pieza de artillería', faction: 2, gib: 'AP', gibkind: 'crew', gibstate: 'S_ARTI_GIB'
 });
 MI_Def('DINAMITERO', {
   doomednum: 3001, spawnstate: 'S_DINA_STND', spawnhealth: 60, seestate: 'S_DINA_RUN1', seesound: 'posit',
   painstate: 'S_DINA_PAIN1', painchance: 200, painsound: 'popain', missilestate: 'S_DINA_ATK1',
   deathstate: 'S_DINA_DIE1', xdeathstate: 'S_DINA_XDIE1', deathsound: 'podth', speed: 8, radius: 20, height: 56,
   mass: 100, activesound: 'posact', flags: MF_SOLID | MF_SHOOTABLE | MF_COUNTKILL, dropitem: 'DINAMITA1',
-  title: 'Zapador dinamitero', faction: 2
+  title: 'Zapador dinamitero', faction: 2, gib: 'ZA'
 });
 MI_Def('OFICIAL', {
   doomednum: 3003, spawnstate: 'S_OFIC_STND', spawnhealth: 220, seestate: 'S_OFIC_RUN1', seesound: 'ofsit',
   attacksound: 'saber', painstate: 'S_OFIC_PAIN1', painchance: 60, painsound: 'popain', meleestate: 'S_OFIC_MELEE1',
   missilestate: 'S_OFIC_ATK1', deathstate: 'S_OFIC_DIE1', deathsound: 'ofdth', speed: 9, radius: 20, height: 60,
   mass: 250, activesound: 'posact', flags: MF_SOLID | MF_SHOOTABLE | MF_COUNTKILL, dropitem: 'CAJA_REV',
-  title: 'Oficial', faction: 2
+  title: 'Oficial', faction: 2, gib: 'OF'
+});
+
+// Tropas de las batallas de Tacna y de Lima
+MI_Def('COLORADO', {
+  doomednum: 3007, spawnstate: 'S_COLO_STND', spawnhealth: 40, seestate: 'S_COLO_RUN1', seesound: 'posit',
+  painstate: 'S_COLO_PAIN1', painchance: 140, painsound: 'popain', missilestate: 'S_COLO_ATK1',
+  deathstate: 'S_COLO_DIE1', xdeathstate: 'S_COLO_XDIE1', deathsound: 'podth', speed: 9, radius: 20, height: 56,
+  mass: 100, activesound: 'posact', flags: MF_SOLID | MF_SHOOTABLE | MF_COUNTKILL, dropitem: 'CARTUCHOS',
+  title: 'Colorados de Bolivia', faction: 2, gib: 'CO'
+});
+MI_Def('RESERVA', {
+  doomednum: 3008, spawnstate: 'S_RESE_STND', spawnhealth: 20, seestate: 'S_RESE_RUN1', seesound: 'posit',
+  painstate: 'S_RESE_PAIN1', painchance: 210, painsound: 'popain', missilestate: 'S_RESE_ATK1',
+  deathstate: 'S_RESE_DIE1', xdeathstate: 'S_RESE_XDIE1', deathsound: 'podth', speed: 7, radius: 20, height: 56,
+  mass: 100, activesound: 'posact', flags: MF_SOLID | MF_SHOOTABLE | MF_COUNTKILL, dropitem: 'CARTUCHOS',
+  title: 'Reserva de Lima', faction: 2, gib: 'RE'
+});
+MI_Def('GRANADERO', {
+  doomednum: 4003, spawnstate: 'S_GRAN_STND', spawnhealth: 150, seestate: 'S_GRAN_RUN1', seesound: 'horse',
+  attacksound: 'saber', painstate: 'S_GRAN_PAIN1', painchance: 90, painsound: 'hpain', meleestate: 'S_GRAN_ATK1',
+  deathstate: 'S_GRAN_DIE1', deathsound: 'hdeath', speed: 15, radius: 30, height: 88, mass: 700,
+  activesound: 'hooves', flags: MF_SOLID | MF_SHOOTABLE, title: 'Granadero a caballo', faction: 1, gib: 'GR', gibkind: 'rider', gibstate: 'S_GRAN_GIB'
+});
+
+// Partes de un cuerpo desmembrado por una explosión.
+MI_Def('GIB', {
+  spawnstate: 'S_GIB1', radius: 6, height: 8, mass: 20, flags: MF_NOBLOCKMAP | MF_DROPOFF | MF_GIB, title: 'Restos'
 });
 
 // Proyectiles
@@ -419,7 +468,7 @@ function P_InitInfo() {
     st.sprite = st.spritename === 'TNT1' ? -1 : spritelookup.has(st.spritename) ? spritelookup.get(st.spritename) : -2;
   }
   for (const mi of mobjinfo) {
-    for (const k of ['spawnstate', 'seestate', 'painstate', 'meleestate', 'missilestate', 'deathstate', 'xdeathstate', 'raisestate']) {
+    for (const k of ['spawnstate', 'seestate', 'painstate', 'meleestate', 'missilestate', 'deathstate', 'xdeathstate', 'raisestate', 'gibstate']) {
       if (typeof mi[k] === 'string') mi[k] = S_(mi[k]);
     }
   }

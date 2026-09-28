@@ -205,14 +205,19 @@ function P_KillMobj(source, target) {
     P_DropWeapon(target.player);
     if (automapactive) AM_Stop();
   }
-  if (target.health < -target.info.spawnhealth && target.info.xdeathstate !== S_NULL) {
-    P_SetMobjState(target, target.info.xdeathstate);
+  if (P_blastSpot && target.info.gib && !target.player) {
+    // Muerto por una explosión: salta en pedazos, sin animación de caída.
+    P_Dismember(target, P_blastSpot, P_blastDist);
   } else {
-    P_SetMobjState(target, target.info.deathstate);
+    if (target.health < -target.info.spawnhealth && target.info.xdeathstate !== S_NULL) {
+      P_SetMobjState(target, target.info.xdeathstate);
+    } else {
+      P_SetMobjState(target, target.info.deathstate);
+    }
+    if (target.removed) return;
+    target.tics -= P_Random() & 3;
+    if (target.tics < 1) target.tics = 1;
   }
-  if (target.removed) return;
-  target.tics -= P_Random() & 3;
-  if (target.tics < 1) target.tics = 1;
   const drop = target.info.dropitem;
   if (drop && MT[drop] !== undefined) {
     const mo = P_SpawnMobj(target.x, target.y, ONFLOORZ, MT[drop]);
@@ -224,6 +229,9 @@ function P_DamageMobj(target, inflictor, source, damage) {
   if (!(target.flags & MF_SHOOTABLE)) return;
   if (target.health <= 0) return;
   if (source && source !== target && B_SameFaction(source, target)) return;   // sin fuego amigo
+  // Batallas masivas: el fuego entre tropas de la IA hiere menos (40 %); la
+  // batalla dura más y el tiro del jugador decide.
+  if (battle && battle.massive && source && !source.player && !target.player) damage = Math.max(1, Math.round(damage * 0.4));
   const player = target.player;
   if (player && gameskill === sk_baby) damage >>= 1;
   if (inflictor && !(target.flags & MF_NOCLIP) && !(target.flags & MF_TURRET)) {

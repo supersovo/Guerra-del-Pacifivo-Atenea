@@ -49,8 +49,8 @@ MAPDEFS.push({
     ],
     bombards: [
       // La escuadra bate el pueblo y las laderas.
-      { zone: [-1280, -1856, -512, 1856], interval: [80, 170], damage: 100, safe: 400, stop: { objective: 3 } },
-      { zone: [-512, -1984, 1152, 1984], interval: [110, 220], damage: 100, safe: 400, stop: { objective: 3 } }
+      { zone: [-1280, -1856, -512, 1856], interval: [80, 170], damage: 100, safe: 400, side: 1, stop: { objective: 3 } },
+      { zone: [-512, -1984, 1152, 1984], interval: [110, 220], damage: 100, safe: 400, side: 1, stop: { objective: 3 } }
     ]
   },
   build: function (B) {

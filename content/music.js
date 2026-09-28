@@ -88,6 +88,66 @@ const MUS_SONGS = {
       'E2 B2 E2 B2 G2 D3 G2 D3 B2 F#2 B2 F#2 E2 B2 E2:2' },
     drums: 'K.rrS.s.K.s.S.rr'
   },
+  // Tacna: paso de ataque sobre el Alto de la Alianza (Sol menor)
+  M_TACNA: {
+    bpm: 126,
+    lead: { inst: 'bugle', notes:
+      'D5 D5 G5 D5 Bb4 G4 D5:2 C5 Bb4 A4 G4 A4:4 ' +
+      'D5 D5 G5 A5 Bb5 A5 G5:2 F#5 G5 A5 F#5 D5:4 ' +
+      'Bb5:2 A5 G5 A5:2 G5 F5 G5:2 F5 Eb5 D5:4 ' +
+      'Eb5 D5 C5 Bb4 C5 D5 Eb5 F#5 G5 D5 Bb4 D5 G4:4' },
+    harm: { inst: 'fife', notes:
+      'Bb5 Bb5 D6 Bb5 G5 D5 G5:2 Eb5 D5 C5 Bb4 C5:4 ' +
+      'Bb5 Bb5 D6 C6 D6 C6 Bb5:2 A5 Bb5 C6 A5 F#5:4 ' +
+      'D6:2 C6 Bb5 C6:2 Bb5 A5 Bb5:2 A5 G5 F#5:4 ' +
+      'G5 F5 Eb5 D5 Eb5 F5 G5 A5 Bb5 F#5 D5 F#5 D5:4', gain: 0.22 },
+    bass: { inst: 'bass', notes:
+      'G2 D3 G2 D3 G2 D3 G2 D3 Eb2 Bb2 Eb2 Bb2 D2 A2 D2 A2 ' +
+      'G2 D3 G2 D3 Eb2 Bb2 Eb2 Bb2 D2 A2 D2 A2 D2 A2 D2 F#2 ' +
+      'Bb2 F3 Bb2 F3 F2 C3 F2 C3 Eb2 Bb2 Eb2 Bb2 D2 A2 D2 A2 ' +
+      'C3 G2 C3 G2 G2 D3 G2 D3 D2 A2 D2 F#2 G2 D3 G2:2' },
+    drums: 'K.s.S.srK.s.SsS.'
+  },
+  // Chorrillos: el asalto del amanecer sobre San Juan y el Morro Solar (Do menor)
+  M_LIMA1: {
+    bpm: 138,
+    lead: { inst: 'fife', notes:
+      'C5 C5 Eb5 G5 C6:2 G5 Eb5 F5 Ab5 G5 F5 Eb5:2 D5:2 ' +
+      'C5 C5 Eb5 G5 Bb5:2 Ab5 G5 F5 Eb5 D5 F5 C5:4 ' +
+      'G5 G5 Ab5 G5 F5:2 Eb5:2 F5 F5 G5 F5 Eb5:2 D5:2 ' +
+      'C5 D5 Eb5 F5 G5 Ab5 B5:2 C6 G5 Eb5 D5 C5:4' },
+    harm: { inst: 'bugle', notes:
+      'R:8 G4:2 G4:2 C5:4 ' +
+      'R:8 G4:2 C5:2 Eb5:4 ' +
+      'Eb5:4 D5:4 C5:4 B4:4 ' +
+      'R:8 G4:4 C5:4', gain: 0.32 },
+    bass: { inst: 'bass', notes:
+      'C2 G2 C2 G2 C2 G2 C2 G2 F2 C3 F2 C3 G2 D3 G2 B2 ' +
+      'C2 G2 C2 G2 Eb2 Bb2 Eb2 Bb2 F2 C3 G2 D3 C2 G2 C2 G2 ' +
+      'Eb2 Bb2 Eb2 Bb2 Ab2 Eb3 Ab2 Eb3 F2 C3 F2 C3 G2 D3 G2 D3 ' +
+      'Ab2 Eb3 Ab2 Eb3 G2 D3 G2 B2 C2 G2 G2 B2 C2 G2 C2:2' },
+    drums: 'K.srS.srK.srS.rr'
+  },
+  // Miraflores: la tarde de los reductos (Fa menor)
+  M_LIMA2: {
+    bpm: 116,
+    lead: { inst: 'bugle', notes:
+      'F4 Ab4 C5 F5:3 E5 F5 G5 Ab5 G5 F5 E5:4 ' +
+      'C5 Db5 C5 Bb4 Ab4:2 G4 Ab4 Bb4 C5 Db5 E5 F5:4 ' +
+      'Ab5:2 G5 F5 Eb5:2 Db5 C5 Db5:2 C5 Bb4 C5:4 ' +
+      'F5 G5 Ab5 Bb5 C6:2 Ab5 F5 G5 E5 C5 E5 F5:4' },
+    harm: { inst: 'fife', notes:
+      'Ab4 C5 F5 Ab5:3 G5 Ab5 Bb5 C6 Bb5 Ab5 G5:4 ' +
+      'Ab5 Bb5 Ab5 G5 F5:2 E5 F5 G5 Ab5 Bb5 G5 Ab5:4 ' +
+      'C6:2 Bb5 Ab5 G5:2 F5 Eb5 F5:2 Eb5 Db5 E5:4 ' +
+      'Ab5 Bb5 C6 Db6 E6:2 C6 Ab5 Bb5 G5 E5 G5 Ab5:4', gain: 0.2 },
+    bass: { inst: 'bass', notes:
+      'F2 C3 F2 C3 F2 C3 F2 C3 Db2 Ab2 Db2 Ab2 C2 G2 C2 G2 ' +
+      'F2 C3 F2 C3 Db2 Ab2 Db2 Ab2 Bb2 F3 C3 G2 F2 C3 F2 C3 ' +
+      'Ab2 Eb3 Ab2 Eb3 Db2 Ab2 Db2 Ab2 Eb2 Bb2 Eb2 Bb2 C2 G2 C2 G2 ' +
+      'Db2 Ab2 Db2 Ab2 Bb2 F3 Bb2 F3 C2 G2 C2 E2 F2 C3 F2:2' },
+    drums: 'K...S.s.K.s.S...'
+  },
   // Intermedio: marcha en Sol mayor
   M_INTER: {
     bpm: 118,

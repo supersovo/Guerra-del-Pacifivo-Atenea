@@ -296,7 +296,7 @@ function V_GetGlyph(ch, big, plain) {
     }
     return g;
   }
-  const isBig = style !== 'small';
+  const isBig = style === 'big' || style === 'title' || style === 'medium';
   const cache = isBig ? V_fontCache.big : V_fontCache.small;
   let g = cache.get(ch);
   if (g !== undefined) return g;
@@ -310,7 +310,7 @@ function V_GetGlyph(ch, big, plain) {
 
 function V_SpaceWidth(style) {
   if (V_UseHR()) return FONT_STYLES[style].space;
-  return style === 'small' ? 4 : style === 'title' ? 21 : 7;
+  return style === 'small' || style === 'note' ? 4 : style === 'title' ? 21 : 7;
 }
 
 // Con la fuente clásica, el estilo de portada es la grande ampliada x3.

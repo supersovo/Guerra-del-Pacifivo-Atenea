@@ -3,8 +3,9 @@
 // -----------------------------------------------------------------------------
 // STBAR     panel de cuero con remaches de bronce (320x32)
 // TITLEPIC  pantalla de título (428x200, se recorta en 4:3)
-// WIMAP     carta del teatro de operaciones de Tarapacá y Arica (428x200)
-// FINALPIC  el Morro de Arica al alba con la bandera chilena
+// WIMAP     carta del teatro de operaciones de Tarapacá, Tacna y Arica (428x200)
+// WIMAP2    carta de la campaña de Lima: Chorrillos y Miraflores (428x200)
+// FINALPIC  el Morro Solar al atardecer, sobre el Pacífico, con la bandera chilena
 // M_STAR1/2 cursor del menú: la estrella solitaria
 // STOBJ0/1  medalla de objetivo pendiente / cumplido
 // =============================================================================
@@ -104,21 +105,25 @@ function GFX_BuildMenuGfx() {
   }
 }
 
-// --- Paisaje del Morro de Arica (título y final) --------------------------------------------------------
+// --- Paisaje de un morro sobre el mar: el de Arica al alba (título) y el
+// Morro Solar de Chorrillos al atardecer (final, opts.dusk) ---------------------------------------------
 function gfx_morroScene(w, h, seed, opts) {
   opts = opts || {};
   const t = tx_new(w, h);
   const horizon = Math.floor(h * 0.62);
-  // cielo del alba
+  // cielo del alba o del atardecer
+  const top = opts.dusk ? [40, 30, 70] : [22, 24, 60], mid = opts.dusk ? [150, 70, 90] : [120, 76, 120];
+  const low = opts.dusk ? [255, 140, 60] : [250, 160, 96];
   for (let y = 0; y < horizon; y++) {
     const u = y / horizon;
-    const c = u < 0.5 ? tx_mix([22, 24, 60], [120, 76, 120], u / 0.5) : tx_mix([120, 76, 120], [250, 160, 96], (u - 0.5) / 0.5);
+    const c = u < 0.5 ? tx_mix(top, mid, u / 0.5) : tx_mix(mid, low, (u - 0.5) / 0.5);
     for (let x = 0; x < w; x++) tx_put(t, x, y, c);
   }
-  // resplandor del sol (este = derecha)
+  // resplandor del sol: al alba por el este (derecha); al atardecer, sobre el mar (izquierda)
+  const sunX = opts.dusk ? 0.1 : 0.82;
   for (let y = 0; y < horizon; y++) for (let x = 0; x < w; x++) {
-    const d = Math.hypot((x - w * 0.82) / w, (y - horizon) / h * 1.6);
-    if (d < 0.5) tx_blend(t, x, y, [255, 214, 140], (0.5 - d) * 1.2);
+    const d = Math.hypot((x - w * sunX) / w, (y - horizon) / h * 1.6);
+    if (d < 0.5) tx_blend(t, x, y, opts.dusk ? [255, 190, 110] : [255, 214, 140], (0.5 - d) * 1.2);
   }
   // nubes bajas (camanchaca)
   for (let y = Math.floor(horizon * 0.55); y < horizon - 4; y++) for (let x = 0; x < w; x++) {
@@ -202,7 +207,7 @@ function GFX_BuildTitle() {
   const img = gfx_quantizeFull(t, 5);
   W_AddLump('TITLEPIC', img, 'image');
   // Final: el Morro con la bandera izada
-  const f = gfx_morroScene(w, h, 8201, { flag: true, ships: true, morroX: 0.42 });
+  const f = gfx_morroScene(w, h, 8201, { flag: true, ships: true, morroX: 0.42, dusk: true });
   W_AddLump('FINALPIC', gfx_quantizeFull(f, 5), 'image');
 }
 
@@ -225,8 +230,8 @@ const WIMAP_COAST = [[-17.75, -70.95], [-17.9, -70.72], [-18.02, -70.55], [-18.2
   [-18.62, -70.32], [-18.8, -70.3], [-19.0, -70.27], [-19.2, -70.25], [-19.4, -70.23], [-19.6, -70.22], [-19.8, -70.2],
   [-20.0, -70.17], [-20.21, -70.15], [-20.45, -70.13]];
 const WIMAP_PLACES = [
-  { name: 'TACNA', lat: -18.01, lon: -70.25, dx: 4, dy: -3 },
-  { name: 'ARICA', lat: -18.48, lon: -70.32, dx: 4, dy: -3, battle: 3 },
+  { name: 'TACNA', lat: -18.01, lon: -70.25, dx: 4, dy: -3, battle: 3 },
+  { name: 'ARICA', lat: -18.48, lon: -70.32, dx: 4, dy: -3, battle: 4 },
   { name: 'CAMARONES', lat: -19.0, lon: -70.24, dx: 4, dy: -3 },
   { name: 'PISAGUA', lat: -19.6, lon: -70.21, dx: 4, dy: -7, battle: 1 },
   { name: 'DOLORES', lat: -19.72, lon: -69.93, dx: 4, dy: -2, battle: 2 },
@@ -234,10 +239,55 @@ const WIMAP_PLACES = [
   { name: 'IQUIQUE', lat: -20.21, lon: -70.15, dx: 4, dy: -3 }
 ];
 
-function GFX_BuildCampaignMap() {
+// Carta de la campaña de Lima (enero de 1881).
+// La zona visible con el parte de operaciones es x 54-164 de la imagen: la
+// escala (367 px por grado en ambos ejes) deja Callao, Lima, Chorrillos y
+// Lurín dentro de ella.
+const WIMAP2_LABELS = [
+  ['OCÉANO', 58, 132, 'inksea'], ['PACÍFICO', 58, 142, 'inksea'],
+  ['VALLE DE LIMA', 126, 56, 'inkred'], ['río Rímac', 118, 16, 'inksea'], ['N', 64, 11, 'ink']
+];
+const WIMAP2_GEO = {
+  lat0: -11.95, lat1: -12.462, lon0: -77.271, lon1: -76.726,
+  x0: 12, y0: 6, x1: 212, y1: 194
+};
+function WIMAP2_Proj(lat, lon) {
+  const g = WIMAP2_GEO;
+  return [g.x0 + (lon - g.lon0) / (g.lon1 - g.lon0) * (g.x1 - g.x0), g.y0 + (lat - g.lat0) / (g.lat1 - g.lat0) * (g.y1 - g.y0)];
+}
+const WIMAP2_COAST = [[-11.95, -77.13], [-12.02, -77.14], [-12.05, -77.155], [-12.068, -77.17], [-12.075, -77.12],
+  [-12.09, -77.075], [-12.11, -77.05], [-12.125, -77.037], [-12.145, -77.028], [-12.165, -77.025], [-12.18, -77.03],
+  [-12.195, -77.037], [-12.205, -77.02], [-12.215, -76.99], [-12.235, -76.95], [-12.255, -76.91], [-12.28, -76.875],
+  [-12.33, -76.83], [-12.4, -76.78], [-12.462, -76.74]];
+const WIMAP2_PLACES = [
+  { name: 'LIMA', lat: -12.046, lon: -77.043, dx: 4, dy: -3 },
+  { name: 'CALLAO', lat: -12.06, lon: -77.14, dx: -6, dy: 8 },
+  { name: 'MIRAFLORES', lat: -12.12, lon: -77.03, dx: -58, dy: -3, battle: 6 },
+  { name: 'BARRANCO', lat: -12.145, lon: -77.02, dx: -50, dy: -2 },
+  { name: 'CHORRILLOS', lat: -12.17, lon: -77.02, dx: -58, dy: 2, battle: 5 },
+  { name: 'MORRO SOLAR', lat: -12.195, lon: -77.03, dx: -64, dy: 8 },
+  { name: 'SAN JUAN', lat: -12.16, lon: -76.97, dx: 5, dy: -3 },
+  { name: 'LURÍN', lat: -12.275, lon: -76.87, dx: -24, dy: -4 }
+];
+
+// Cartas de las dos campañas: la de Tarapacá, Tacna y Arica (acciones 1 a 4)
+// y la de Lima (5 y 6).
+const CAMPAIGN_MAPS = [
+  { lump: 'WIMAP', labels: WIMAP_LABELS, places: WIMAP_PLACES, proj: WIMAP_Proj, coast: WIMAP_COAST, seed: 8301, rose: [40, 30],
+    rails: [[[-18.48, -70.31], [-18.25, -70.28], [-18.01, -70.25]],
+      [[-19.6, -70.2], [-19.63, -70.12], [-19.68, -70.02], [-19.72, -69.93], [-19.85, -69.9]]], rivers: [] },
+  { lump: 'WIMAP2', labels: WIMAP2_LABELS, places: WIMAP2_PLACES, proj: WIMAP2_Proj, coast: WIMAP2_COAST, seed: 8302, rose: [66, 30],
+    rails: [[[-12.046, -77.043], [-12.055, -77.09], [-12.06, -77.14]],
+      [[-12.046, -77.043], [-12.09, -77.035], [-12.12, -77.03], [-12.145, -77.022], [-12.17, -77.02]]],
+    rivers: [[[-12.0, -76.87], [-12.02, -76.93], [-12.03, -76.99], [-12.04, -77.04], [-12.03, -77.09], [-12.035, -77.14]]] }
+];
+function CAMPAIGN_MapFor(battle) { return battle >= 5 ? CAMPAIGN_MAPS[1] : CAMPAIGN_MAPS[0]; }
+
+function GFX_BuildCampaignMap(spec) {
+  const WIMAP_PLACES = spec.places, WIMAP_COAST = spec.coast, WIMAP_Proj = spec.proj;
   const w = 428, h = 200;
   const t = tx_new(w, h);
-  const n = tx_fbm(w, h, 8301, 8, 4, 4, 0.55);
+  const n = tx_fbm(w, h, spec.seed, 8, 4, 4, 0.55);
   // pergamino
   for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
     const i = y * w + x;
@@ -275,7 +325,14 @@ function GFX_BuildCampaignMap() {
     const y = 14 + k * 8.2, x = 196 + ((k * 7) % 12);
     for (let d = 0; d < 6; d++) { tx_put(t, x - d, y + d, [110, 90, 80]); tx_put(t, x + d, y + d, [140, 120, 100]); }
   }
-  // ferrocarriles: Arica–Tacna y Pisagua–Hospicio–Dolores–Agua Santa
+  // ríos (tinta azul) y ferrocarriles (Arica–Tacna, Pisagua–Dolores; Lima–Callao, Lima–Chorrillos)
+  for (const pts of spec.rivers) {
+    for (let k = 0; k < pts.length - 1; k++) {
+      const a = WIMAP_Proj(pts[k][0], pts[k][1]), b = WIMAP_Proj(pts[k + 1][0], pts[k + 1][1]);
+      const len = Math.hypot(b[0] - a[0], b[1] - a[1]);
+      for (let s = 0; s <= len; s++) tx_put(t, a[0] + (b[0] - a[0]) * s / len, a[1] + (b[1] - a[1]) * s / len, [70, 100, 140]);
+    }
+  }
   const rail = function (pts) {
     for (let k = 0; k < pts.length - 1; k++) {
       const a = WIMAP_Proj(pts[k][0], pts[k][1]), b = WIMAP_Proj(pts[k + 1][0], pts[k + 1][1]);
@@ -287,8 +344,7 @@ function GFX_BuildCampaignMap() {
       }
     }
   };
-  rail([[-18.48, -70.31], [-18.25, -70.28], [-18.01, -70.25]]);
-  rail([[-19.6, -70.2], [-19.63, -70.12], [-19.68, -70.02], [-19.72, -69.93], [-19.85, -69.9]]);
+  for (const r of spec.rails) rail(r);
   // rótulos: los escribe WI_DrawMapLabels al dibujar la carta (letras nítidas)
   const ink = [60, 40, 26];
   for (const p of WIMAP_PLACES) {
@@ -296,18 +352,18 @@ function GFX_BuildCampaignMap() {
     tx_disc(t, q[0], q[1], 1.6, ink);
   }
   // rosa de los vientos
-  const rx = 40, ry = 30;
+  const rx = spec.rose[0], ry = spec.rose[1];
   for (let d = -8; d <= 8; d++) { tx_put(t, rx, ry + d, ink); tx_put(t, rx + d, ry, ink); }
   // marco
   tx_rect(t, 2, 2, w - 4, 1, [110, 80, 50]); tx_rect(t, 2, h - 3, w - 4, 1, [110, 80, 50]);
   tx_rect(t, 2, 2, 1, h - 4, [110, 80, 50]); tx_rect(t, w - 3, 2, 1, h - 4, [110, 80, 50]);
   tx_rect(t, 222, 8, 1, h - 16, [150, 120, 80]);
-  W_AddLump('WIMAP', gfx_quantizeFull(t, 4), 'image');
+  W_AddLump(spec.lump, gfx_quantizeFull(t, 4), 'image');
 }
 
 function GFX_BuildAll() {
   GFX_BuildStatusBar();
   GFX_BuildMenuGfx();
   GFX_BuildTitle();
-  GFX_BuildCampaignMap();
+  for (const spec of CAMPAIGN_MAPS) GFX_BuildCampaignMap(spec);
 }

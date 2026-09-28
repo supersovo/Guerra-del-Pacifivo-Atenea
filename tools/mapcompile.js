@@ -92,10 +92,11 @@ MapBuilder.prototype.fix = function (at, props) {
 
 MapBuilder.prototype.thing = function (type, x, y, angle, opts) {
   let options = MTF_EASY | MTF_NORMAL | MTF_HARD;
-  let tag = 0, hold = false;
+  let tag = 0, hold = false, goal = null;
   if (opts && typeof opts === 'object') {
     tag = this.tag(opts.tag || 0);
     hold = !!opts.hold;
+    if (opts.goal) goal = [Math.round(opts.goal[0]), Math.round(opts.goal[1])];
     opts = (opts.skill || '') + (opts.ambush ? 'A' : '');
     if (opts === '') opts = undefined;
   }
@@ -107,7 +108,9 @@ MapBuilder.prototype.thing = function (type, x, y, angle, opts) {
     if (opts.indexOf('A') >= 0) options |= MTF_AMBUSH;
     if (!(options & 7)) options |= 7;
   } else if (typeof opts === 'number') options = opts;
-  this.things.push({ type: type, x: Math.round(x), y: Math.round(y), angle: angle || 0, options: options, tag: tag, hold: hold });
+  const th = { type: type, x: Math.round(x), y: Math.round(y), angle: angle || 0, options: options, tag: tag, hold: hold };
+  if (goal) th.goal = goal;   // punto de destino de una tropa en marcha
+  this.things.push(th);
 };
 
 MapBuilder.prototype.message = function (tagname, text) {

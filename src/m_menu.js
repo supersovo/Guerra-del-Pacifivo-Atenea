@@ -34,12 +34,18 @@ const MainMenu = {
   }
 };
 
+const BATTLES = [
+  ['I.   Desembarco en Pisagua', '2 de noviembre de 1879 · Tarapacá'],
+  ['II.  Batalla de Dolores (San Francisco)', '19 de noviembre de 1879 · Pampa del Tamarugal'],
+  ['III. Batalla de Tacna (Alto de la Alianza)', '26 de mayo de 1880 · Batalla masiva'],
+  ['IV.  Asalto y toma del Morro de Arica', '7 de junio de 1880 · Arica'],
+  ['V.   Batalla de San Juan y Chorrillos', '13 de enero de 1881 · Batalla masiva'],
+  ['VI.  Batalla de Miraflores', '15 de enero de 1881 · Batalla masiva']
+];
 const BattleMenu = {
-  title: 'ACCIONES DE ARMAS', big: false, x: 40, y: 64, spacing: 26, prev: MainMenu, items: [
-    M_Item('I.   Desembarco en Pisagua', function () { pendingCampaign = false; pendingBattle = 1; M_SetupNextMenu(SkillMenu); }, { sub: '2 de noviembre de 1879 · Tarapacá' }),
-    M_Item('II.  Batalla de Dolores (San Francisco)', function () { pendingCampaign = false; pendingBattle = 2; M_SetupNextMenu(SkillMenu); }, { sub: '19 de noviembre de 1879 · Pampa del Tamarugal' }),
-    M_Item('III. Asalto y toma del Morro de Arica', function () { pendingCampaign = false; pendingBattle = 3; M_SetupNextMenu(SkillMenu); }, { sub: '7 de junio de 1880 · Arica' })
-  ]
+  title: 'ACCIONES DE ARMAS', big: false, x: 40, y: 38, spacing: 23, prev: MainMenu, items: BATTLES.map(function (b, i) {
+    return M_Item(b[0], function () { pendingCampaign = false; pendingBattle = i + 1; M_SetupNextMenu(SkillMenu); }, { sub: b[1] });
+  })
 };
 
 const SKILL_SUBS = ['Poca resistencia: para conocer el terreno', 'Para quien empieza su primera campaña',

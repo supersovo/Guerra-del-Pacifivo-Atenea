@@ -819,6 +819,12 @@ function TX_BuildTextures() {
   txg_sign('CARTSAL', 'SALITRE', 128, 32, WHITE_BOARD, [120, 30, 26], 2);
   txg_sign('CARTAGU', 'AGUA', 64, 32, BOARD, [30, 60, 120], 2);
   txg_sign('CARTBAT', 'BATERÍA', 128, 32, [150, 146, 136], INK, 2);
+  txg_sign('CARTTAC', 'TACNA', 128, 32, BOARD, INK, 2);
+  txg_sign('CARTCHO', 'CHORRILLOS', 128, 32, WHITE_BOARD, INK, 2);
+  txg_sign('CARTSJU', 'SAN JUAN', 128, 32, BOARD, INK, 2);
+  txg_sign('CARTMIR', 'MIRAFLORES', 128, 32, WHITE_BOARD, INK, 2);
+  txg_sign('CARTPAL', 'LA PALMA', 128, 32, BOARD, INK, 2);
+  txg_sign('CARTRED', 'REDUCTO', 128, 32, [150, 146, 136], INK, 2);
 
   // --- Fuego (casas incendiadas de Pisagua), animado ---
   for (let f = 0; f < 3; f++) {
@@ -954,6 +960,31 @@ function TX_BuildFlats() {
       if (n[y * 64 + x] > 0.64 && tx_hash(2032, x, y) < 0.35) tx_put(t, x, y, [120, 118, 70]);
     }
     tx_registerFlat('PAMPA1', t, 5);
+  }
+  // Valle de Lima: chacras sembradas (surcos norte-sur) y pastizal de los potreros.
+  {
+    const t = txf_sand(2033, [122, 96, 66], { pebbles: 0.03, pebbleColor: [92, 76, 58] });
+    const n = tx_fbm(64, 64, 2034, 8, 8, 3, 0.5);
+    for (let y = 0; y < 64; y++) for (let x = 0; x < 64; x++) {
+      const row = x % 8;
+      const i = y * 64 + x;
+      if (row >= 2 && row <= 5 && n[i] > 0.28) {
+        const leaf = tx_hash(2035, x, y);
+        tx_put(t, x, y, tx_scale(leaf < 0.5 ? [112, 138, 58] : [146, 164, 76], 0.8 + n[i] * 0.35));
+      } else if (row === 7) tx_put(t, x, y, tx_scale(tx_get(t, x, y), 0.78));
+    }
+    tx_registerFlat('CHACRA1', t, 4);
+  }
+  {
+    const t = txf_sand(2036, [150, 146, 84], { pebbles: 0.02, pebbleColor: [110, 100, 70] });
+    const n = tx_fbm(64, 64, 2037, 6, 6, 3, 0.5);
+    for (let y = 0; y < 64; y++) for (let x = 0; x < 64; x++) {
+      const h = tx_hash(2038, x, y);
+      const i = y * 64 + x;
+      if (h < 0.22) tx_put(t, x, y, tx_scale(n[i] > 0.5 ? [182, 176, 98] : [104, 124, 56], 0.85 + h));
+      else if (n[i] < 0.3) tx_put(t, x, y, tx_mix(tx_get(t, x, y), [122, 134, 64], 0.5));
+    }
+    tx_registerFlat('PASTO1', t, 4);
   }
   tx_registerFlat('ROCAF1', txf_voronoiStones(2040, 12, [150, 138, 122], [70, 62, 54], 0.3), 5);
   tx_registerFlat('ROCAF2', txf_voronoiStones(2041, 10, [150, 112, 84], [64, 46, 34], 0.3), 5);

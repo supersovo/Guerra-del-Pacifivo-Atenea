@@ -279,8 +279,7 @@ function EV_Voladura(line) {
 
 function T_Voladura(t) {
   if (--t.timer > 0) return;
-  const b = P_SpawnMobj(t.x, t.y, t.z, MT.EXPLOSION);
-  b.target = null;
+  P_Detonate(t.x, t.y, t.z, 140, FACTION_CHILE);   // el polvorín aliado arrasa a sus defensores
   P_RemoveThinker(t);
 }
 

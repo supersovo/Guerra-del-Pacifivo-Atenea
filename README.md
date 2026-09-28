@@ -10,7 +10,10 @@ ataques instantáneos y un WAD en memoria.
 DOOM es el modelo del **motor**; el juego es otro: batallas a campo abierto sobre
 la geografía real de cada acción de armas, con tropas propias y enemigas, oleadas,
 bombardeos y objetivos por fases. No hay ascensores, llaves ni misiones en
-interiores.
+interiores. Tacna, Chorrillos y Miraflores son **batallas masivas**: cientos de
+soldados de ambos bandos combaten a la vez, las columnas marchan en formación, las
+posiciones se defienden y los vencidos se retiran; las explosiones **despedazan**
+los cuerpos.
 
 Sobre esa base el motor agrega lo que se espera de un shooter actual: **alta
 resolución** automática (hasta cuatro veces la de DOOM, 1280×800 o más ancha en
@@ -25,12 +28,22 @@ con un leve aumento propio de cada arma.
 |---|-----------------|-------|-----------|
 | I | **Desembarco de Pisagua** | 2 de noviembre de 1879 | Tomar las trincheras de la playa, silenciar el Fuerte Sur, subir por la gran duna o el zigzag del ferrocarril al Alto del Hospicio, desalojar la estación e izar la bandera (teniente Torreblanca). |
 | II | **Batalla de Dolores (San Francisco)** | 19 de noviembre de 1879 | Defender la batería del mayor Salvo en el cerro San Francisco, rechazar a los Húsares de Junín y de Bolivia y capturar la artillería aliada en la pampa. |
-| III | **Asalto y toma del Morro de Arica** | 7 de junio de 1880 | Tomar los fuertes del Este y Ciudadela (cuyo polvorín estalla), evitar los polvorazos de Elmore, asaltar el Morro Gordo, coronar la cumbre y vencer la última resistencia. A las 7:45, la bandera. |
+| III | **Batalla de Tacna (Alto de la Alianza)** · masiva | 26 de mayo de 1880 | Con el Atacama en la reserva de Muñoz: contener el contraataque de los Colorados (con la carga de los Granaderos de Yávar), tomar las trincheras del centro aliado en la meseta del Intiorko, capturar la batería Krupp del ala derecha con la IV División y llegar al campamento del Alto. |
+| IV | **Asalto y toma del Morro de Arica** | 7 de junio de 1880 | Tomar los fuertes del Este y Ciudadela (cuyo polvorín estalla), evitar los polvorazos de Elmore, asaltar el Morro Gordo, coronar la cumbre y vencer la última resistencia. A las 7:45, la bandera. |
+| V | **Batalla de San Juan y Chorrillos** · masiva | 13 de enero de 1881 | Con la I División de Lynch: tomar el cerro Marcavilca, asaltar las baterías de Iglesias en el Morro Solar y limpiar el pueblo de Chorrillos, mientras Sotomayor y Lagos rompen la línea de San Juan y Santa Teresa. |
+| VI | **Batalla de Miraflores** · masiva | 15 de enero de 1881 | Rota la tregua a las 14:30: resistir el contraataque de Cáceres, tomar los reductos 1, 2 y 3 (defendidos por la Reserva de Lima) con el apoyo de la escuadra y entrar en Miraflores. |
 
-Antes de cada acción aparece el parte de operaciones sobre la carta de Tarapacá y
-Arica; al terminarla, el intermedio con bajas, pertrechos y tiempo. El menú
-**Historia** resume la campaña, y [docs/HISTORIA.md](docs/HISTORIA.md) detalla los
-hechos y las fuentes consultadas.
+Antes de cada acción aparece el parte de operaciones sobre la carta del teatro de
+operaciones (Tarapacá, Tacna y Arica, o la campaña de Lima); al terminarla, el
+intermedio con bajas, pertrechos y tiempo. El menú **Historia** resume la
+campaña, y [docs/HISTORIA.md](docs/HISTORIA.md) detalla los hechos y las fuentes
+consultadas.
+
+**Batallas masivas.** Arriba a la derecha se ven los efectivos en pie de cada
+bando y, si el objetivo es quebrar una posición, cuántos defensores faltan
+("Avance hacia…" indica que hay que llegar a ella: cada fase exige al jugador en
+el lugar). Los cuadros informativos son pequeños y breves (2 a 4 segundos) y no
+tapan la retícula.
 
 ### Armas del soldado chileno
 
@@ -42,11 +55,18 @@ hechos y las fuentes consultadas.
 
 ### Tropas
 
-Infantería de línea chilena (levita azul, pantalón rojo, kepí con cubrenuca) y
-baterías Krupp aliadas del jugador; Guardia Nacional peruana (dril blanco),
-infantería boliviana (bayeta gris con vivos verdes), infantería de línea peruana a
-la bayoneta, oficiales con revólver y sable, zapadores dinamiteros, húsares a
-caballo y piezas de artillería con su dotación.
+Infantería de línea chilena (levita azul, pantalón rojo, kepí con cubrenuca),
+Granaderos a caballo y baterías Krupp del lado del jugador; Guardia Nacional
+peruana (dril blanco), infantería boliviana (bayeta gris con vivos verdes), los
+**Colorados de Bolivia** (casaca roja, pantalón blanco, abarcas), la **Reserva de
+Lima** (civiles de levita y sombrero), infantería de línea peruana a la bayoneta,
+oficiales con revólver y sable, zapadores dinamiteros, húsares a caballo y piezas
+de artillería con su dotación.
+
+Quien muere por una explosión (granadas de artillería, dinamita, polvorazos,
+voladuras) salta en pedazos según su uniforme: cabeza, brazos y piernas vuelan,
+rebotan y quedan en el suelo junto al tronco; del jinete queda el caballo y del
+artillero, la pieza. También los caídos cercanos al impacto se despedazan.
 
 ## Cómo jugar
 
@@ -93,7 +113,7 @@ content/              contenido generado por código al iniciar
   foundry.js models.js sprites.js   modelos 3D de primitivas -> sprites de 8 rotaciones
   sounds.js music.js  efectos y música sintetizados
   gfx.js face.js historia.js        interfaz, rostro del soldado, textos históricos
-  maps/               terreno y los tres campos de batalla
+  maps/               terreno y los seis campos de batalla (e1m1 … e1m6)
 tools/                compilador de mapas y constructor de nodos BSP
 tests/                pruebas en Chromium sin interfaz (Playwright)
 docs/                 historia y arquitectura
@@ -107,7 +127,7 @@ recurso de DOOM. Detalles del motor en [docs/ARQUITECTURA.md](docs/ARQUITECTURA.
 Requieren Node.js y Playwright con Chromium:
 
 ```
-node tests/logic_test.js 1,2,3        # cumple los objetivos de cada mapa, iza la bandera y llega al intermedio
+node tests/logic_test.js 1,2,3,4,5,6  # cumple los objetivos de cada mapa, iza la bandera y llega al intermedio
 node tests/combat_test.js <salida> 2  # combate con teclado real: cinco armas, avance, carta
 node tests/aim_test.js <salida>       # mirada con el ratón, tiro a la retícula, miras y resolución
 node tests/game_shots.js <salida> 1 vistas.json   # capturas desde puntos de vista

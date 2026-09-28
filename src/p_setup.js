@@ -195,6 +195,7 @@ function P_SetupLevel(mapname, skill) {
   P_GroupLines();
   levelmessages = map.messages || {};
   R_movingSectors = [];
+  gibList = [];
   B_InitBattle(map);
   // Objetos del mapa.
   playerstarts = [];

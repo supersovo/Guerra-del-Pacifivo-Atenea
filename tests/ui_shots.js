@@ -31,12 +31,16 @@ try { playwright = require('playwright'); } catch (e) { playwright = require('/o
   await page.evaluate('M_SetupNextMenu(OptionsMenu)');
   await shot('opciones');
   await page.evaluate('menuPage = 0; M_SetupNextMenu(HistoryMenu)');
-  await shot('historia1');
-  await page.evaluate('menuPage = 3');
-  await shot('historia4');
+  const npages = await page.evaluate('HISTORY_PAGES.length');
+  for (let k = 0; k < npages; k++) {
+    await page.evaluate('menuPage = ' + k);
+    await shot('historia' + (k + 1), 300);
+  }
   await page.evaluate('M_ClearMenus(); G_DeferedInitNew(sk_medium, 3, true)');
   await shot('parte_ini', 900);
   await shot('parte', 6000);
+  await page.evaluate('WI_BriefingResponder({ type: ev_keydown }); D_StartTitle(); G_DeferedInitNew(sk_medium, 5, true)');
+  await shot('parte_lima', 6500);
   // Nivel, carta militar e intermedio.
   await page.evaluate('M_ClearMenus(); G_InitNew(sk_medium, 1)');
   await page.waitForTimeout(3500);   // el derretido de pantalla y unos segundos de vista
@@ -44,6 +48,15 @@ try { playwright = require('playwright'); } catch (e) { playwright = require('/o
   await shot('carta', 700);
   await page.evaluate('AM_Stop(); players[0].killcount = 23; players[0].itemcount = 3; G_ExitLevel()');
   await shot('intermedio', 4500);
+  // Batalla masiva: carta de Tacna e intermedio de la campaña de Lima.
+  await page.evaluate('D_StartTitle(); G_InitNew(sk_medium, 3)');
+  await page.waitForTimeout(3000);
+  await page.evaluate('players[0].cheats |= CF_GODMODE; AM_Start()');
+  await shot('carta_tacna', 700);
+  await page.evaluate('AM_Stop(); D_StartTitle(); G_InitNew(sk_medium, 5)');
+  await page.waitForTimeout(1500);
+  await page.evaluate('players[0].killcount = 140; G_ExitLevel()');
+  await shot('intermedio_lima', 4500);
   await page.evaluate('F_StartFinale()');
   await shot('final_texto', 5000);
   await page.evaluate('finalestage = 1; finalecount = 0');

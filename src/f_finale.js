@@ -2,7 +2,7 @@
 // f_finale.js — Epílogo de la campaña (f_finale.c)
 // -----------------------------------------------------------------------------
 // Texto que aparece letra a letra sobre un fondo de arena (como el final de
-// los episodios de DOOM) y luego la imagen del Morro con la bandera izada.
+// los episodios de DOOM) y luego el Morro Solar al atardecer con la bandera.
 // =============================================================================
 'use strict';
 
@@ -59,6 +59,6 @@ function F_Drawer() {
     return;
   }
   V_DrawFullImage(W_CacheLumpName('FINALPIC'));
-  V_DrawTextCentered(150, '7 de junio de 1880, 7:45 de la mañana', false);
+  V_DrawTextCentered(150, '17 de enero de 1881: el ejército chileno entra en Lima', false);
   V_DrawTextCentered(166, 'FIN', true, V_Translations.gold);
 }

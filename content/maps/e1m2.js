@@ -48,7 +48,7 @@ MAPDEFS.push({
     ],
     bombards: [
       // La artillería aliada bate la falda sur del cerro.
-      { zone: [-900, -300, 900, 1250], interval: [100, 200], damage: 100, safe: 360, stop: { objective: 3 } }
+      { zone: [-900, -300, 900, 1250], interval: [100, 200], damage: 100, safe: 360, side: 2, stop: { objective: 3 } }
     ]
   },
   build: function (B) {

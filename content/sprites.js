@@ -139,17 +139,37 @@ function SPR_Dinamitero() {
   SPR_Deaths('DINA', style, 'HIJKL', 'MNOPQ');
 }
 
-// --- Húsar a caballo -------------------------------------------------------------------------
-function SPR_Husar() {
-  for (let f = 0; f < 4; f++) SPR_Rot('HUSA', 'ABCD'[f], HUSAR_Build(f / 4, 'A'));
-  SPR_Rot('HUSA', 'E', HUSAR_Build(0.1, 'E'));
-  SPR_Rot('HUSA', 'F', HUSAR_Build(0.2, 'F'));
-  SPR_Rot('HUSA', 'G', HUSAR_Build(0.3, 'G'));
-  SPR_Rot('HUSA', 'H', HUSAR_Build(0.1, 'H'));
+// --- Caballería: húsares aliados y granaderos chilenos --------------------------------------
+function SPR_Cavalry(base, style) {
+  for (let f = 0; f < 4; f++) SPR_Rot(base, 'ABCD'[f], HUSAR_Build(f / 4, 'A', style));
+  SPR_Rot(base, 'E', HUSAR_Build(0.1, 'E', style));
+  SPR_Rot(base, 'F', HUSAR_Build(0.2, 'F', style));
+  SPR_Rot(base, 'G', HUSAR_Build(0.3, 'G', style));
+  SPR_Rot(base, 'H', HUSAR_Build(0.1, 'H', style));
   const view = { yaw: Math.PI + Math.PI / 3, elev: 0.24 };
   const ts = [0.12, 0.3, 0.5, 0.7, 0.88];
-  for (let k = 0; k < 5; k++) SPR_One('HUSA', 'IJKLM'[k], HUSAR_Death(ts[k], false), view);
-  SPR_One('HUSA', 'N', HUSAR_Death(1, true), view);
+  for (let k = 0; k < 5; k++) SPR_One(base, 'IJKLM'[k], HUSAR_Death(ts[k], false, style), view);
+  SPR_One(base, 'N', HUSAR_Death(1, true, style), view);
+  SPR_One(base, 'O', HUSAR_Death(1, true, style, true), view);   // caballo sin jinete (explosión)
+}
+function SPR_Husar() { SPR_Cavalry('HUSA', STYLE.HUSAR); }
+
+// --- Desmembramiento: partes sueltas por uniforme --------------------------------------------
+// GH (cabeza), GB (brazo), GP (pierna) + código del uniforme: cuadros A-D en el
+// aire (centrados), E en el suelo; GT: torso destrozado.
+const GIB_STYLES = { CL: 'CHILE', GU: 'GUARDIA', BO: 'BOLIVIA', PL: 'PERU_LINEA', ZA: 'ZAPADOR', OF: 'OFICIAL',
+  HU: 'HUSAR', AP: 'ARTILLERO_PE', AC: 'ARTILLERO_CL', CO: 'COLORADO', RE: 'RESERVA', GR: 'GRANADERO' };
+const GIB_VIEW = { yaw: Math.PI - 0.5, elev: 0.25 };
+const GIB_RESTVIEW = { yaw: Math.PI - 0.5, elev: 0.45 };
+function SPR_Gibs() {
+  for (const code in GIB_STYLES) {
+    const st = STYLE[GIB_STYLES[code]];
+    for (const part of ['H', 'B', 'P']) {
+      for (let f = 0; f < 4; f++) SPR_One('G' + part + code, 'ABCD'[f], GIB_Frame(st, part, f), GIB_VIEW, true);
+      SPR_One('G' + part + code, 'E', GIB_Frame(st, part, 4), GIB_RESTVIEW);
+    }
+    SPR_One('GT' + code, 'A', GIB_Part(st, 'T'), GIB_RESTVIEW);
+  }
 }
 
 // --- Piezas de artillería con su dotación (A-E vivos, F-J muerte del artillero) ----------
@@ -158,6 +178,7 @@ function SPR_Artilleria(base, kind, style) {
   const ts = [0.2, 0.45, 0.7, 0.9];
   for (let k = 0; k < 4; k++) SPR_Rot(base, 'FGHI'[k], ARTI_Death(kind, style, ts[k], false), 0.22);
   SPR_Rot(base, 'J', ARTI_Death(kind, style, 1, true), 0.22);
+  SPR_Rot(base, 'K', ARTI_Death(kind, style, 1, true, true), 0.22);   // pieza sin dotación (explosión)
 }
 
 // --- Proyectiles, efectos y barril -------------------------------------------------------------
@@ -240,6 +261,10 @@ async function SPR_BuildSprites(progressCb) {
     ['OFIC', 'oficialidad aliada (revólver y sable)', SPR_Oficial],
     ['DINA', 'zapadores dinamiteros', SPR_Dinamitero],
     ['HUSA', 'húsares de caballería', SPR_Husar],
+    ['COLO', 'Colorados de Bolivia (casaca roja)', function () { SPR_Infantry('COLO', STYLE.COLORADO); }],
+    ['RESE', 'Ejército de Reserva de Lima (levita y sombrero)', function () { SPR_Infantry('RESE', STYLE.RESERVA); }],
+    ['GRAN', 'Granaderos a Caballo', function () { SPR_Cavalry('GRAN', STYLE.GRANADERO); }],
+    ['GIBS', 'cuerpos desmembrados por las explosiones', SPR_Gibs],
     ['ARTI', 'artillería aliada con su dotación', function () { SPR_Artilleria('ARTI', 'liso', STYLE.ARTILLERO_PE); }],
     ['ARTC', 'batería Krupp chilena', function () { SPR_Artilleria('ARTC', 'krupp', STYLE.ARTILLERO_CL); }],
     ['FX', 'proyectiles, explosiones y humo', SPR_Effects],

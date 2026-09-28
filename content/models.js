@@ -70,6 +70,32 @@ const STYLE = {
     havelock: MAT(R_LINEN, 2), belts: MAT(R_WOOD, 12), crossbelts: MAT(R_LINEN, 3), boots: MAT(R_WOOD, 13),
     skin: MAT(R_SKIN, 4), hair: MAT(R_WOOD, 13), buttons: MAT(R_GOLD, 3, { spec: 1 }), pack: null, moustache: true, weapon: 'none'
   },
+  // Batallón Colorados de Bolivia (guardia del presidente): casaca roja corta
+  // con botones de bronce, pantalón blanco, kepí rojo con cubrenuca, abarcas.
+  COLORADO: {
+    tunic: MAT(R_RED, 5), trousers: MAT(R_LINEN, 3), cuffs: MAT(R_RED, 8), collar: MAT(R_RED, 8),
+    cap: 'kepi', capTop: MAT(R_RED, 5), capBand: MAT(R_RED, 8), visor: MAT(R_GRAY, 13, { spec: 0.6 }),
+    havelock: MAT(R_LINEN, 2), belts: MAT(R_WOOD, 11), crossbelts: MAT(R_LINEN, 3), boots: null, sandals: true,
+    skin: MAT(R_SKIN, 6), hair: MAT(R_GRAY, 14), buttons: MAT(R_GOLD, 3, { spec: 1 }),
+    pack: MAT(R_WOOD, 8), blanket: MAT(R_STONE, 8), moustache: true, weapon: 'rifle'
+  },
+  // Ejército de Reserva de Lima: ciudadanos en armas con levita oscura,
+  // pantalón claro y sombrero.
+  RESERVA: {
+    tunic: MAT(R_GRAY, 12), trousers: MAT(R_STONE, 4), cuffs: MAT(R_GRAY, 13), collar: MAT(R_LINEN, 1),
+    cap: 'hat', capTop: MAT(R_GRAY, 13), capBand: MAT(R_GRAY, 10), visor: null,
+    havelock: null, belts: MAT(R_WOOD, 11), crossbelts: MAT(R_WOOD, 10), boots: MAT(R_GRAY, 14, { spec: 0.6 }),
+    skin: MAT(R_SKIN, 4), hair: MAT(R_GRAY, 14), buttons: MAT(R_GRAY, 9),
+    pack: null, moustache: true, sideburns: true, weapon: 'rifle'
+  },
+  // Caballería chilena (Granaderos a Caballo), con los colores del ejército de línea.
+  GRANADERO: {
+    tunic: MAT(R_NAVY, 7), trousers: MAT(R_RED, 5), cuffs: MAT(R_RED, 5), collar: MAT(R_RED, 5),
+    cap: 'kepi', capTop: MAT(R_RED, 5), capBand: MAT(R_NAVY, 6), visor: MAT(R_GRAY, 13, { spec: 0.6 }),
+    havelock: null, belts: MAT(R_LINEN, 3), crossbelts: MAT(R_LINEN, 3), boots: MAT(R_GRAY, 14, { spec: 0.6 }),
+    skin: MAT(R_SKIN, 4), hair: MAT(R_WOOD, 13), buttons: MAT(R_GOLD, 3, { spec: 1 }),
+    pack: null, moustache: true, weapon: 'saber'
+  },
   HUSAR: {
     tunic: MAT(R_RED, 5), trousers: MAT(R_NAVY, 8), cuffs: MAT(R_GOLD, 3, { spec: 1 }), collar: MAT(R_GOLD, 3, { spec: 1 }),
     cap: 'shako', capTop: MAT(R_GRAY, 13), capBand: MAT(R_GOLD, 3, { spec: 1 }), visor: MAT(R_GRAY, 14, { spec: 0.6 }),
@@ -492,6 +518,97 @@ function HUM_Gibs(style, stage) {
   return SC_transform(s, M3_I(), [6 * spread, 0, 0]);
 }
 
+// --- Desmembramiento por explosiones -----------------------------------------------------------------------
+// Partes sueltas de un soldado, cada una centrada en su origen: cabeza con su
+// tocado ('H'), brazo con la manga del uniforme ('B') y pierna con el pantalón
+// y la bota u ojota ('P'), con el muñón ensangrentado; y el torso destrozado
+// que queda tendido en un charco ('T').
+function GIB_Part(style, part) {
+  const s = [];
+  if (part === 'H') {
+    const H = function (p) { return vadd(p, [-0.4, 0, -4.2]); };   // cuello -> centro de la cabeza
+    s.push(PR_ell([0, 0, 0], 4.1, 3.7, 4.8, null, style.skin));
+    s.push(PR_ell([3.9, 0, -0.3], 0.9, 0.75, 1.1, null, MAT(R_SKIN, style.skin.tone + 1)));
+    s.push(PR_ell([3.5, 1.5, 0.8], 0.45, 0.55, 0.3, null, MAT(R_GRAY, 14)));
+    s.push(PR_ell([3.5, -1.5, 0.8], 0.45, 0.55, 0.3, null, MAT(R_GRAY, 14)));
+    if (style.moustache) s.push(PR_ell([3.7, 0, -1.6], 0.7, 2.3, 0.6, null, style.hair));
+    if (style.beard) s.push(PR_ell([2.2, 0, -3.2], 2.2, 3.0, 1.8, null, style.hair));
+    if (style.sideburns) {
+      s.push(PR_ell([0.8, 3.4, -1.4], 1.2, 0.5, 2.2, null, style.hair));
+      s.push(PR_ell([0.8, -3.4, -1.4], 1.2, 0.5, 2.2, null, style.hair));
+    }
+    s.push(PR_ell([-1.0, 0, 2.0], 3.8, 3.6, 2.6, null, style.hair));
+    HUM_Cap(s, style, H, M3_I());
+    if (style.havelock) s.push(PR_box(H([-3.4, 0, 3.8]), 0.7, 3.9, 4.2, null, style.havelock));
+    s.push(PR_limb([-0.4, 0, -3.8], [-0.6, 0, -6.4], 2.1, style.skin));
+    s.push(PR_ell([-0.6, 0, -6.6], 2.2, 2.2, 0.7, null, M_BLOOD));
+    s.push(PR_ell([-0.6, 0, -6.2], 1.4, 1.4, 0.6, null, M_FLESH));
+  } else if (part === 'B') {
+    const sh = [-10, 0, 0.5], el = [0.5, 0, -1.2], hand = [9.5, 0, 0.4];
+    const wrist = vlerp(el, hand, 0.86);
+    s.push(PR_limb(sh, el, 2.15, style.tunic));
+    s.push(PR_limb(el, wrist, 1.9, style.tunic));
+    s.push(PR_limb(vlerp(el, hand, 0.72), wrist, 2.05, style.cuffs));
+    s.push(PR_ell(hand, 1.5, 1.4, 1.6, null, style.skin));
+    if (style.epaulettes) s.push(PR_ell(vadd(sh, [1.2, 0, 1.2]), 2.2, 1.9, 0.9, null, style.epaulettes));
+    s.push(PR_ell(sh, 2.4, 2.4, 2.4, null, M_FLESH));
+    s.push(PR_ell(vadd(sh, [-1.2, 0, 0]), 1.2, 2.0, 2.0, null, M_BLOOD));
+  } else if (part === 'P') {
+    const hip = [-12, 0, 0.5], kn = [1.0, 0, 1.2], ank = [11.5, 0, 0];
+    s.push(PR_limb(hip, kn, 2.9, style.trousers));
+    s.push(PR_limb(kn, vlerp(kn, ank, 0.55), 2.35, style.trousers));
+    s.push(PR_limb(vlerp(kn, ank, 0.5), ank, 2.25, style.gaiters || style.trousers));
+    const toe = vadd(ank, [1.4, 0, -6.2]);
+    if (style.sandals) {
+      s.push(PR_limb(ank, toe, 1.5, style.skin));
+      s.push(PR_boxAlong(vadd(ank, [-1.8, 0, 0.3]), vadd(toe, [-1.0, 0, 0.4]), 1.6, 0.35, MAT(R_WOOD, 10), [1, 0, 0]));
+    } else {
+      s.push(PR_limb(ank, toe, 1.75, style.boots || MAT(R_WOOD, 12)));
+    }
+    s.push(PR_ell(hip, 3.2, 3.2, 3.2, null, M_FLESH));
+    s.push(PR_ell(vadd(hip, [-1.4, 0, 0]), 1.4, 2.6, 2.6, null, M_BLOOD));
+  } else if (part === 'T') {
+    // torso tendido de espaldas, sin cabeza ni miembros
+    s.push(PR_ell([0, 0, 3.6], 9.2, 7.2, 4.4, null, style.tunic));
+    s.push(PR_ell([-8.5, 0, 3.0], 3.8, 6.2, 3.4, null, style.trousers));
+    if (style.belts) s.push(PR_ell([-5.2, 0, 3.8], 1.1, 7.4, 4.2, null, style.belts));
+    if (style.buttons) for (let k = 0; k < 4; k++) s.push(PR_ell([-3 + k * 2.4, 1.4, 7.9], 0.55, 0.55, 0.4, null, style.buttons));
+    if (style.sash) s.push(PR_ell([-4.8, 0, 3.9], 1.6, 7.6, 4.4, null, style.sash));
+    for (const st of [[9.4, 0, 3.9, 2.6], [6.8, 7.1, 3.4, 2.3], [6.8, -7.1, 3.4, 2.3], [-11.8, 3.4, 2.6, 2.6], [-11.8, -3.4, 2.6, 2.6]]) {
+      s.push(PR_ell([st[0], st[1], st[2]], st[3], st[3], st[3] * 0.8, null, M_FLESH));
+      s.push(PR_ell([st[0] + Math.sign(st[0]) * 0.8, st[1] * 1.08, st[2]], st[3] * 0.6, st[3] * 0.8, st[3] * 0.6, null, M_BLOOD));
+    }
+    const rng = M_SeededRNG(911);
+    for (let k = 0; k < 9; k++) {
+      const r = 1.2 + rng() * 1.8, a = rng() * Math.PI * 2, d = 12 + rng() * 14;
+      s.push(PR_ell([Math.cos(a) * d, Math.sin(a) * d, r * 0.5], r, r * (0.7 + rng() * 0.5), r * 0.5, null, k % 3 === 0 ? style.tunic : k & 1 ? M_BLOOD : M_FLESH));
+    }
+    for (const p of HUM_Pool(0, 0, 20, 14)) s.push(p);
+  }
+  return s;
+}
+
+// Cuadros de una parte: 0-3 girando en el aire (centrada), 4 tendida en el suelo.
+function GIB_Frame(style, part, frame) {
+  let s = GIB_Part(style, part);
+  if (frame < 4) {
+    const a = frame * Math.PI / 2;
+    const R = part === 'H' ? M3_mul(M3_rotY(a), M3_rotX(0.3)) : M3_mul(M3_rotX(a), M3_rotZ(0.5 + frame * 0.35));
+    return SC_transform(s, R, [0, 0, 0]);
+  }
+  // en reposo: la cabeza de costado, brazos y piernas tendidos de través
+  // (perpendiculares a la vista, para que no parezcan de pie en el sprite)
+  const R = part === 'H' ? M3_rotX(Math.PI / 2 * 0.85) : M3_rotZ(Math.PI / 2 + 0.75);   // + yaw de GIB_RESTVIEW ≈ de través
+  s = SC_transform(s, R, [0, 0, 0]);
+  let minz = Infinity;
+  for (const p of s) minz = Math.min(minz, p.c[2] - PR_boundRadius(p) * 0.45);
+  s = SC_transform(s, M3_I(), [0, 0, -minz]);
+  // charco bajo el muñón (cuello, hombro o cadera)
+  const stump = part === 'H' ? [-2, 0, 0] : M3_mulv(R, [part === 'B' ? -8 : -10, 0, 0]);
+  for (const p of HUM_Pool(stump[0], stump[1], part === 'H' ? 5 : 6, 4)) s.push(p);
+  return s;
+}
+
 // --- Caballo y húsar ----------------------------------------------------------------------------------------
 const M_HORSE = MAT(R_WOOD, 7, { k: 7 });
 const M_HORSED = MAT(R_WOOD, 12, { k: 5 });
@@ -545,9 +662,9 @@ function HORSE_Build(phase, opts) {
   return s;
 }
 
-function HUSAR_Build(phase, frame) {
+function HUSAR_Build(phase, frame, style) {
   const s = HORSE_Build(phase, {});
-  const style = STYLE.HUSAR;
+  style = style || STYLE.HUSAR;
   const a = phase * Math.PI * 2;
   const bob = Math.sin(a * 2) * 1.5;
   const pose = {
@@ -569,13 +686,15 @@ function HUSAR_Build(phase, frame) {
   return s;
 }
 
-function HUSAR_Death(t, final) {
+// norider: el caballo muerto sin su jinete (despedazado por una explosión).
+function HUSAR_Death(t, final, style, norider) {
+  style = style || STYLE.HUSAR;
   if (!final && t < 0.4) {
     // el caballo se encabrita con el jinete herido
     const k = t / 0.4;
     const R = M3_rotY(-0.22 - 0.3 * k);
     const pivot = [-16, 0, 0];
-    return SC_transform(HUSAR_Build(0.1, 'H'), R, vsub(pivot, M3_mulv(R, pivot)));
+    return SC_transform(HUSAR_Build(0.1, 'H', style), R, vsub(pivot, M3_mulv(R, pivot)));
   }
   const tt = final ? 1 : (t - 0.4) / 0.6;
   let s = HORSE_Build(0.1, { still: true, legs: tt > 0.3 ? 'folded' : null, noSaddle: false });
@@ -584,9 +703,11 @@ function HUSAR_Death(t, final) {
   for (const p of s) minz = Math.min(minz, p.c[2] - PR_boundRadius(p) * 0.5);
   s = SC_transform(s, M3_I(), [0, 0, -Math.min(0, minz) - (final ? 4 : 0)]);
   // jinete despedido de la montura
-  let rider = HUM_Fallen(STYLE.HUSAR, Math.min(1, 0.35 + tt * 0.7), final);
-  rider = SC_transform(rider, M3_rotZ(0.4), [-18, -24 * tt - 8, 30 * (1 - tt) * (1 - tt)]);
-  for (const p of rider) s.push(p);
+  if (!norider) {
+    let rider = HUM_Fallen(style, Math.min(1, 0.35 + tt * 0.7), final);
+    rider = SC_transform(rider, M3_rotZ(0.4), [-18, -24 * tt - 8, 30 * (1 - tt) * (1 - tt)]);
+    for (const p of rider) s.push(p);
+  }
   if (final) for (const p of HUM_Pool(4, 4, 18, 10)) s.push(p);
   return s;
 }
@@ -658,8 +779,13 @@ function ARTI_Build(kind, style, frame) {
   return s;
 }
 
-function ARTI_Death(kind, style, t, final) {
+// nocrew: la pieza sola, con la sangre del artillero despedazado.
+function ARTI_Death(kind, style, t, final, nocrew) {
   const s = CANNON_Build(kind, 0, {});
+  if (nocrew) {
+    for (const p of HUM_Pool(-16, -22, 16, 11)) s.push(p);
+    return s;
+  }
   let g = HUM_Fallen(style, t, final);
   g = SC_transform(g, M3_rotZ(1.2), [-16, -22, 0]);
   for (const p of g) s.push(p);

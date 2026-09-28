@@ -36,6 +36,7 @@ function PIT_CheckLine(ld) {
 }
 
 function PIT_CheckThing(thing) {
+  if (tmthing.flags & MF_GIB) return true;   // los restos vuelan entre los vivos
   if (!(thing.flags & (MF_SOLID | MF_SPECIAL | MF_SHOOTABLE))) return true;
   const blockdist = thing.radius + tmthing.radius;
   if (Math.abs(thing.x - tmx) >= blockdist || Math.abs(thing.y - tmy) >= blockdist) return true;
@@ -369,18 +370,31 @@ function P_UseLines(player) {
 }
 
 // --- Explosiones ------------------------------------------------------------------------------
-let bombsource = null, bombspot = null, bombdamage = 0;
+let bombsource = null, bombspot = null, bombdamage = 0, bombspare = 0;
+
+// Explosión en curso (extensión Atenea): P_KillMobj la consulta para que quien
+// muere por la onda expansiva salte en pedazos (P_Dismember) en vez de caer.
+let P_blastSpot = null, P_blastDist = 0;
 
 function PIT_RadiusAttack(thing) {
-  if (!(thing.flags & MF_SHOOTABLE)) return true;
-  if (bombsource && thing !== bombsource && B_SameFaction(thing, bombsource)) return true;
   const dx = Math.abs(thing.x - bombspot.x);
   const dy = Math.abs(thing.y - bombspot.y);
   let dist = dx > dy ? dx : dy;
   dist -= thing.radius;
   if (dist < 0) dist = 0;
+  if (!(thing.flags & MF_SHOOTABLE)) {
+    // Los caídos cerca del impacto también quedan despedazados.
+    if ((thing.flags & MF_CORPSE) && thing.info.gib && !thing.gibbed && !thing.player &&
+        dist < bombdamage * 0.45 && P_CheckSight(thing, bombspot)) P_Dismember(thing, bombspot, dist);
+    return true;
+  }
+  if (bombsource && thing !== bombsource && B_SameFaction(thing, bombsource)) return true;
+  if (bombspare && B_FactionOf(thing) === bombspare) return true;
   if (dist >= bombdamage) return true;
-  if (P_CheckSight(thing, bombspot)) P_DamageMobj(thing, bombspot, bombsource, Math.floor(bombdamage - dist));
+  if (P_CheckSight(thing, bombspot)) {
+    P_blastDist = dist;
+    P_DamageMobj(thing, bombspot, bombsource, Math.floor(bombdamage - dist));
+  }
   return true;
 }
 
@@ -393,7 +407,25 @@ function P_RadiusAttack(spot, source, damage) {
   bombspot = spot;
   bombsource = source;
   bombdamage = damage;
+  const prev = P_blastSpot;
+  P_blastSpot = spot;
   for (let y = yl; y <= yh; y++) for (let x = xl; x <= xh; x++) P_BlockThingsIterator(x, y, PIT_RadiusAttack);
+  P_blastSpot = prev;
+}
+
+// Explosión inmediata en un punto (granadas de artillería, voladuras,
+// polvorazos): efecto, estruendo y daño en el mismo tic. spare: bando que no
+// sufre daño (el que dispara); 0 = alcanza a todos.
+function P_Detonate(x, y, z, damage, spare, type) {
+  const b = P_SpawnMobj(x, y, z, type === undefined ? MT.EXPLOSION : type);
+  b.target = null;
+  S_StartSound(b, 'explod');
+  const pl = players[0] && players[0].mo;
+  if (pl && P_AproxDistance(pl.x - x, pl.y - y) < 480) P_ShakeScreen(6);
+  bombspare = spare || 0;
+  P_RadiusAttack(b, null, damage);
+  bombspare = 0;
+  return b;
 }
 
 // --- Cambios de altura de sectores (puertas que aplastan, etc.) --------------------------

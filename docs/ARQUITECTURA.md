@@ -61,7 +61,9 @@ módulos ES) para que el juego funcione abriendo `index.html` desde el disco.
   atados a una línea que el jugador no cruzó, llegan cuando caen los defensores
   (nunca queda bloqueado).
 - **Bombardeos**: zonas batidas por la escuadra o la artillería; cada granada
-  silba y estalla, con una zona segura alrededor del jugador.
+  silba y estalla (`P_Detonate`: efecto, estruendo y daño en el mismo tic), con
+  una zona segura alrededor del jugador; `side` indica el bando que dispara, cuyas
+  tropas no sufren daño. Pueden empezar a una hora dada (`trigger.time`).
 - **Objetivos**: eliminar las unidades de una etiqueta (incluidas las oleadas
   pendientes) o llegar a una línea; pueden exigir orden (`after`). Se muestran como
   medallas en la barra de estado y en la carta.
@@ -69,6 +71,49 @@ módulos ES) para que el juego funcione abriendo `index.html` desde el disco.
   bandera (exige los objetivos y termina la misión), `950` mensaje histórico, `951`
   objetivo alcanzado, `952` disparar un evento. Minas (`MINA`) invisibles con
   aviso de "clic".
+
+### Batallas masivas (`massive: true`)
+
+Tacna, Chorrillos y Miraflores reúnen de 250 a 350 soldados; la simulación cuesta
+0,2 a 0,5 ms por tic y el cuadro, de 8 a 20 ms a 1496×800.
+
+- **Columnas en marcha** (`goal`): una tropa con destino marcha hacia él
+  (`B_March`, paso recto de 8 rumbos con `B_WalkToward` y la búsqueda de DOOM si
+  el camino está tapado), mira adelante cada medio segundo y combate por el
+  camino; mientras el enemigo está a más de 560 unidades sigue avanzando. Al
+  llegar toma posición (`home`). Las oleadas llevan `goal` (la formación se
+  traslada entera desde el centro de sus puntos de aparición) o `advance`; las
+  cosas del mapa, `goal` (`TR_Rank`/`TR_Ranks` con `advance`).
+- **Posiciones** (`hold`): quien defiende se aleja poco de su puesto para
+  combatir (112 unidades la infantería, 320 la de arma blanca) y vuelve a él
+  cuando no hay enemigos a la vista (`B_KeepFormation`).
+- **Órdenes** (`orders` en los eventos): `{ tag, to | by, spread, flee }` pone en
+  marcha a tropas ya desplegadas: lanzar la reserva, envolver un ala o, con
+  `flee`, el desbande general.
+- **Objetivos por quiebre**: `percent` da la posición por tomada con esa fracción
+  de bajas; `rout` hace que los sobrevivientes se retiren hacia un punto y dejen
+  el campo; `near: [x, y, r]` exige al jugador en la posición (el indicador dice
+  "Avance hacia…"): la IA puede ganar terreno, pero cada fase se decide en el
+  lugar.
+- **Reparto del fuego**: los enemigos eligen al jugador mucho menos que en las
+  acciones pequeñas; el fuego entre tropas de la IA hiere al 40 % y las piezas de
+  artillería recargan de 8 a 18 s, de modo que la batalla dura y el tiro del
+  jugador decide.
+- **Indicador de fuerzas** arriba a la derecha (`HU_DrawForces`): efectivos en pie
+  de cada bando y defensores que faltan por abatir.
+
+### Desmembramiento (`p_mobj.js`, `p_map.js`, `models.js`)
+
+`P_RadiusAttack` marca la explosión en curso (`P_blastSpot`); si alguien con
+`info.gib` muere por ella, `P_KillMobj` llama a `P_Dismember` en vez de la
+animación de caída: cabeza, brazos y piernas (sprites `GH`, `GB`, `GP` + el código
+del uniforme, cuadros A-D en el aire y E en el suelo) salen despedidos desde el
+punto del impacto con fuerza según la distancia, dan vueltas, gotean sangre
+(`A_GibFly`), rebotan en el suelo y contra los muros (`MF_GIB`, que además
+atraviesa a los vivos) y quedan tendidos; en el lugar queda el tronco (`GT`,
+mismo mobj con `spriteOverride`). Del jinete queda el caballo muerto y del
+artillero la pieza sola (`gibstate`). Los caídos cercanos al impacto también se
+despedazan. Se conservan a lo sumo 256 restos (los más viejos desaparecen).
 
 ### Terreno sin interiores (`tools/mapcompile.js`, `content/maps/terrain.js`)
 
@@ -82,8 +127,11 @@ y `NODES` en el arranque. Sobre eso, `terrain.js` ofrece:
   rampas (la gran duna, el zigzag).
 - **Cerros radiales**: curvas de nivel con los mismos ángulos y radio
   estrictamente decreciente, de modo que nunca se cruzan; así se modelan el cerro
-  San Francisco (con la terraza de Salvo) y el Morro (mesa con caras a pique y
-  falda oriental suave).
+  San Francisco (con la terraza de Salvo), el Morro de Arica (mesa con caras a
+  pique y falda oriental suave), el Morro Solar y el cerro Marcavilca.
+- **Obras de campaña**: trincheras con parapeto (con `depth: 8` la tropa sale por
+  encima para contraatacar) y reductos de tierra con la gola abierta
+  (`TR_Redoubt`); tapias de adobe de las chacras de Lima.
 - **Anillos de horizonte**: sectores de techo-cielo muy bajo en el borde del mapa;
   bloquean el paso sin muro visible y el panorama del cielo continúa el terreno.
 - **Edificios como azoteas**: el piso del sector es el techo plano de la casa y sus
@@ -155,7 +203,9 @@ resolución de DOOM.
 ## Pruebas
 
 Las pruebas de `tests/` corren el juego real en Chromium sin interfaz: arranque y
-capturas, lógica completa de objetivos de los tres mapas (hasta izar la bandera y
-llegar al intermedio), combate con entrada de teclado, puntería (mirada con el
-ratón, tiro a la retícula, miras), interfaz, hojas de contacto de sprites y el
-renderizador aislado.
+capturas, lógica completa de objetivos de los seis mapas (hasta izar la bandera y
+llegar al intermedio, llevando al jugador a cada posición de las batallas
+masivas), combate con entrada de teclado, puntería (mirada con el ratón, tiro a la
+retícula, miras), interfaz (con las dos cartas de campaña), hojas de contacto de
+sprites (incluidos Colorados, Reserva, Granaderos y restos) y el renderizador
+aislado.

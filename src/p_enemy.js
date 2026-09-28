@@ -109,10 +109,15 @@ function P_TryWalk(actor) {
 
 function P_NewChaseDir(actor) {
   if (!actor.target) return;
+  P_NewChaseDirTo(actor, actor.target.x, actor.target.y);
+}
+
+// Elige la dirección de marcha hacia un punto (el blanco o el destino de la columna).
+function P_NewChaseDirTo(actor, tx, ty) {
   const olddir = actor.movedir;
   const turnaround = opposite[olddir];
-  const deltax = actor.target.x - actor.x;
-  const deltay = actor.target.y - actor.y;
+  const deltax = tx - actor.x;
+  const deltay = ty - actor.y;
   const d = [0, DI_NODIR, DI_NODIR];
   if (deltax > 10) d[1] = DI_EAST;
   else if (deltax < -10) d[1] = DI_WEST;
@@ -173,7 +178,11 @@ function A_Look(actor) {
       if (P_CheckSight(actor, actor.target)) see = true;
     } else see = true;
   }
-  if (!see && !P_LookForTargets(actor, false)) return;
+  if (!see && !P_LookForTargets(actor, false)) {
+    // Sin enemigos a la vista: la columna sigue su marcha, o vuelve a su puesto.
+    if (B_WantsToMove(actor)) P_SetMobjState(actor, actor.info.seestate);
+    return;
+  }
   if (actor.info.seesound) {
     let sound = actor.info.seesound;
     if (sound === 'posit') sound = 'posit' + (1 + P_Random() % 3);
@@ -194,7 +203,22 @@ function A_Chase(actor) {
     if (delta > 0) actor.angle = (actor.angle - ANG90 / 2) >>> 0;
     else if (delta < 0) actor.angle = (actor.angle + ANG90 / 2) >>> 0;
   }
+  if (actor.fleeing) {   // en retirada: no combate
+    actor.target = null;
+    B_March(actor);
+    return;
+  }
   if (!actor.target || actor.target.removed || !(actor.target.flags & MF_SHOOTABLE)) {
+    actor.target = null;
+    if (B_WantsToMove(actor)) {
+      // En marcha: mira adelante de vez en cuando y sigue hacia su destino.
+      if (--actor.retarget <= 0) {
+        actor.retarget = 12 + (P_Random() & 15);
+        if (P_LookForTargets(actor, false)) return;
+      }
+      B_March(actor);
+      return;
+    }
     if (P_LookForTargets(actor, true)) return;
     P_SetMobjState(actor, actor.info.spawnstate);
     return;
@@ -209,7 +233,7 @@ function A_Chase(actor) {
   }
   if (actor.flags & MF_JUSTATTACKED) {
     actor.flags &= ~MF_JUSTATTACKED;
-    if (gameskill !== sk_nightmare) P_NewChaseDir(actor);
+    if (gameskill !== sk_nightmare && !B_KeepFormation(actor)) P_NewChaseDir(actor);
     return;
   }
   if (actor.info.meleestate !== S_NULL && P_CheckMeleeRange(actor)) {
@@ -226,6 +250,7 @@ function A_Chase(actor) {
       }
     }
   }
+  if (B_KeepFormation(actor)) return;
   if (--actor.movecount < 0 || !P_Move(actor)) P_NewChaseDir(actor);
   if (actor.info.activesound && P_Random() < 3) S_StartSound(actor, actor.info.activesound);
 }
@@ -250,8 +275,11 @@ function A_TurretChase(actor) {
   const step = ANG45 / 4;
   if (Math.abs(delta) <= step) actor.angle = want;
   else actor.angle = (actor.angle + (delta > 0 ? step : -step)) >>> 0;
-  if (Math.abs(delta) < ANG45 && P_CheckMissileRange(actor)) {
+  if (Math.abs(delta) < ANG45 && leveltime >= (actor.reloadUntil || 0) && P_CheckMissileRange(actor)) {
     P_SetMobjState(actor, actor.info.missilestate);
+    // En las batallas masivas la pieza tarda en recargar y volver a apuntar
+    // (8 a 18 s): el fuego de artillería no barre formaciones enteras.
+    if (battle && battle.massive) actor.reloadUntil = leveltime + (8 + (P_Random() % 11)) * TICRATE;
   }
 }
 
@@ -300,7 +328,7 @@ function A_SaberAttack(actor) {
   if (!actor.target) return;
   A_FaceTarget(actor);
   if (P_CheckMeleeRange(actor)) {
-    const damage = ((P_Random() % 8) + 1) * (actor.type === MT.HUSAR ? 4 : 3);
+    const damage = ((P_Random() % 8) + 1) * (actor.type === MT.HUSAR || actor.type === MT.GRANADERO ? 4 : 3);
     S_StartSound(actor, 'saber');
     P_DamageMobj(actor.target, actor, actor, damage);
   }
@@ -366,10 +394,6 @@ function A_Explode(thingy) {
   P_RadiusAttack(thingy, thingy.target, 128);
 }
 
-function A_BigExplode(thingy) {
-  S_StartSound(thingy, 'explod');
-  P_RadiusAttack(thingy, thingy.target, 160);
-}
 
 function A_PlayerScream(mo) {
   let sound = 'pldeth';
@@ -387,6 +411,7 @@ function T_MineThink(mine) {
     mine.mineArmed = false;
     const fx = P_SpawnMobj(mine.x, mine.y, mine.subsector.sector.floorheight, MT.MINAFX);
     fx.target = null;
+    A_MineClick(fx);   // la acción del estado inicial no corre al aparecer
     P_RemoveMobj(mine);
   }
 }
@@ -397,11 +422,5 @@ function A_MineClick(fx) {
 }
 
 function A_MineDetonate(fx) {
-  const b = P_SpawnMobj(fx.x, fx.y, fx.z + 8, MT.MINABOOM);
-  b.target = null;
-}
-
-function A_MineExplode(b) {
-  S_StartSound(b, 'explod');
-  P_RadiusAttack(b, null, 150);
+  P_Detonate(fx.x, fx.y, fx.z + 8, 150, 0, MT.MINABOOM);
 }
