@@ -21,6 +21,14 @@ function W_AddLump(name, data, kind) {
   return num;
 }
 
+// Lump diferido: se construye la primera vez que se consulta. Así el arranque
+// no paga recursos caros que quizá tarden en usarse (los retratos del soldado).
+function W_AddLazyLump(name, build, kind) {
+  const num = W_AddLump(name, null, kind);
+  lumpinfo[num].build = build;
+  return num;
+}
+
 function W_AddMarker(name) {
   return W_AddLump(name, null, 'marker');
 }
@@ -38,7 +46,13 @@ function W_GetNumForName(name) {
 
 function W_CacheLumpNum(num) {
   if (num < 0 || num >= lumpinfo.length) throw new Error('W_CacheLumpNum: ' + num + ' >= numlumps');
-  return lumpinfo[num].data;
+  const info = lumpinfo[num];
+  if (info.build) {
+    const build = info.build;
+    info.build = null;
+    info.data = build();
+  }
+  return info.data;
 }
 
 function W_CacheLumpName(name) {

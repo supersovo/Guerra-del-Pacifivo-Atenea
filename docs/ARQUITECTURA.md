@@ -25,6 +25,8 @@ módulos ES) para que el juego funcione abriendo `index.html` desde el disco.
 | `p_spec.js`, `p_doors.js`, `p_floor.js`, `p_lights.js`, `p_switch.js` | homónimos | especiales de líneas y sectores |
 | `st_stuff.js`, `hu_stuff.js`, `am_map.js`, `m_menu.js`, `wi_stuff.js`, `f_finale.js`, `f_wipe.js`, `s_sound.js` | homónimos | barra de estado, mensajes, automapa, menús, intermedio, final, transición, sonido |
 | `p_battle.js` | — | **director de batalla** (extensión de Atenea) |
+| `s_voice.js` | — | voces de los soldados con el acento de su país (Web Speech API) |
+| `s_march.js` | — | marchas del jugador: lector MIDI, banda sintetizada, audio, IndexedDB |
 | `tools/mapcompile.js`, `tools/nodebuild.js` | editores y `doombsp` | compilador de mapas y constructor de nodos |
 
 ## Lo que se conserva de DOOM
@@ -189,10 +191,68 @@ métricas se ajustan a las de la fuente clásica para no alterar la diagramació
 Los rótulos que antes venían pintados en las imágenes (barra de estado, portada,
 carta de campaña) se escriben al dibujar.
 
+### Voces, marchas y retrato (`s_voice.js`, `s_march.js`, `sounds.js`, `face.js`)
+
+**Gritos.** Los quejidos y estertores de `content/sounds.js` salen de un
+sintetizador de formantes (`snd_scream`):
+
+- un pulso glotal de Rosenberg con su derivada;
+- *jitter* y *shimmer* (irregularidad de período y de amplitud);
+- aspiración;
+- cinco resonadores que siguen una trayectoria de vocales;
+- aspereza subarmónica, un *fry* final y un ataque en "h" o "g".
+
+Al final pasa por una saturación suave. Hay tres variantes de muerte por bando,
+y la de cada caído se elige al azar.
+
+**Frases.** `s_voice.js` agrega frases dichas con la síntesis de voz del
+navegador. Para cada acento (`info.voice`: `pe`, `bo` o `cl`) elige la voz más
+cercana: es-PE, es-BO o es-CL; si no hay, otra voz latinoamericana. Prefiere las
+voces masculinas, y cada soldado recibe su propio tono y velocidad según su
+número de serie. Las reglas del grito:
+
+- alcance, pausa mínima y probabilidad distintos para avistar, ser herido y caer;
+- una sola frase a la vez: la muerte de alguien cercano corta un grito de carga;
+- quien cae por el fuego del jugador grita siempre, hasta 1,6 veces más lejos;
+- el azar sale de `M_Random`, la tabla de la interfaz, así que las voces no
+  alteran la simulación ni la reproducibilidad de `P_Random`;
+- el subtítulo se dibuja en `hu_stuff.js`.
+
+**Marchas.** `s_march.js` implementa un lector de MIDI estándar:
+
+- acepta SMF 0, 1 y 2 y RIFF RMID, con estado continuo, mapa de tempos y
+  división SMPTE;
+- convierte las notas a segundos y les asigna instrumento de la banda según el
+  programa General MIDI y el registro: corneta, pífano, clarinete, bombardino o
+  tuba;
+- manda el canal 10 a caja, bombo, platillos y timbales.
+
+`MUS_Play` consulta primero la ranura del jugador (`MARCH_TryPlay`). Las
+partituras se programan con 2 s de anticipación, pasan por un compresor y
+vuelven a empezar tras un respiro. Si la pestaña estuvo dormida, saltan al punto
+actual. Los audios se decodifican con `decodeAudioData` y se repiten con un
+`AudioBufferSourceNode`. Los archivos se guardan en IndexedDB (base
+`atenea1879`) y las asignaciones en `localStorage`. Se cargan desde el menú o
+soltándolos sobre la ventana.
+
+**Retrato.** `content/face.js` pinta el rostro por capas con supermuestreo 2×:
+
+- levita, cubrenuca, cuello, orejas;
+- cabeza iluminada con barba de días;
+- ojos, cejas, bigote y boca según la expresión;
+- heridas por nivel de dolor, venda y kepí.
+
+El resultado es un patch de alta densidad de 128×120 texeles para el marco de
+32×30 de la barra de estado, con tramado de Bayer hacia la paleta. Los 42
+retratos se registran como **lumps diferidos** (`W_AddLazyLump`, que construye
+el lump la primera vez que se consulta). `FACE_WarmStep` pinta uno por cuadro
+fuera del combate, así que el arranque no paga el medio segundo que cuestan.
+
 ### Contenido procedural
 
 Nada viene de archivos externos: la paleta y el `COLORMAP`, las fuentes, las
-texturas, los cielos, la interfaz, los sonidos y la música se generan al iniciar.
+texturas, los cielos, la interfaz, los sonidos y la música se generan al iniciar
+(las marchas que el jugador cargue son opcionales).
 Los sprites salen de una **fundición**: cada personaje es un modelo de primitivas
 (elipsoides, cajas, cilindros) con uniformes históricos, que se rasteriza con
 z-buffer desde 8 ángulos (como los modelos de arcilla fotografiados de DOOM) y en
@@ -207,5 +267,9 @@ capturas, lógica completa de objetivos de los seis mapas (hasta izar la bandera
 llegar al intermedio, llevando al jugador a cada posición de las batallas
 masivas), combate con entrada de teclado, puntería (mirada con el ratón, tiro a la
 retícula, miras), interfaz (con las dos cartas de campaña), hojas de contacto de
-sprites (incluidos Colorados, Reserva, Granaderos y restos) y el renderizador
-aislado.
+sprites (incluidos Colorados, Reserva, Granaderos y restos), el renderizador
+aislado y el sonido. La prueba de sonido cubre las marchas en MIDI y en audio
+cargadas con el selector de archivos real, el menú, el guardado en IndexedDB y
+el render fuera de línea de la banda. También comprueba las voces, con una
+síntesis de voz simulada porque Chromium sin interfaz no trae voces, y el
+retrato diferido de la barra de estado.

@@ -83,8 +83,7 @@ const OptionsMenu = {
     M_Toggle('Apuntar con el ratón', function () { return defaults.mouseLook; }, function (v) { defaults.mouseLook = v; }),
     M_Toggle('Invertir el eje vertical', function () { return defaults.mouseInvertY; }, function (v) { defaults.mouseInvertY = v; }),
     M_Toggle('Retícula en el centro', function () { return defaults.crosshair; }, function (v) { defaults.crosshair = v; }),
-    M_Slider('Volumen de efectos', function () { return defaults.sfxVolume; }, function (v) { defaults.sfxVolume = v; I_SetSfxVolume(v); }, 15),
-    M_Slider('Volumen de música', function () { return defaults.musicVolume; }, function (v) { defaults.musicVolume = v; I_SetMusicVolume(v); }, 15),
+    M_Item('Sonido, voces y marchas...', function () { M_SetupNextMenu(SoundMenu); }),
     M_Item('Resolución', null, { kind: 'cycle', values: ['automática', '320x200', '640x400', '960x600', '1280x800'],
       get: function () { return clamp(defaults.resolution | 0, 0, 4); }, set: function (i) { defaults.resolution = i; I_needResize = true; } }),
     M_Toggle('Pantalla panorámica', function () { return defaults.widescreen; }, function (v) { defaults.widescreen = v; I_needResize = true; }),
@@ -96,6 +95,52 @@ const OptionsMenu = {
     M_Item('Controles táctiles', null, { kind: 'cycle', values: ['automático', 'sí', 'no'], get: function () { return [2, 1, 0].indexOf(defaults.touchControls); }, set: function (i) { defaults.touchControls = [2, 1, 0][i]; } }),
     M_Item('Pantalla completa', function () { I_ToggleFullscreen(); })
   ]
+};
+
+// Sonido: volúmenes, voces de los soldados (s_voice.js) y marchas en MIDI.
+const SoundMenu = {
+  title: 'SONIDO', big: false, x: 40, y: 48, spacing: 16, prev: OptionsMenu, items: [
+    M_Slider('Volumen de efectos', function () { return defaults.sfxVolume; }, function (v) { defaults.sfxVolume = v; I_SetSfxVolume(v); }, 15),
+    M_Slider('Volumen de música', function () { return defaults.musicVolume; }, function (v) { defaults.musicVolume = v; I_SetMusicVolume(v); }, 15),
+    M_Toggle('Voces de los soldados', function () { return defaults.voices; }, function (v) { defaults.voices = v; if (!v) VOICE_StopAll(); }),
+    M_Toggle('Subtítulos de las voces', function () { return defaults.voiceSubtitles; }, function (v) { defaults.voiceSubtitles = v; }),
+    M_Item('Probar las voces', function () {
+      if (!VOICE_Test()) { M_StartMessage('Este navegador no tiene voz sintética.\nSe verán solo los subtítulos.\n\n(Presione una tecla)', null, false); return; }
+      const d = VOICE_Describe();
+      const line = function (acc, txt) {
+        if (!d[acc]) return txt + ': sin voz en español';
+        const v = d[acc].replace(/^Microsoft |^Google /, '').replace(/ Online \(Natural\)/, '').replace(/ - [^()]+\([^)]*\)/, '');
+        return txt + ': ' + MARCH_Fit(v, 200);
+      };
+      M_StartMessage(line('pe', 'Peruano') + '\n' + line('bo', 'Boliviano') + '\n' + line('cl', 'Chileno') +
+        '\n\nMicrosoft Edge trae voces de los tres países.\n(Presione una tecla)', null, false);
+    }),
+    M_Item('Marchas militares...', function () { M_SetupNextMenu(MarchMenu); })
+  ]
+};
+
+// Marchas militares: el jugador carga sus archivos MIDI o de audio (s_march.js)
+// y elige qué suena en cada momento de la campaña.
+const MarchMenu = {
+  title: 'MARCHAS MILITARES', big: false, x: 34, y: 36, spacing: 12, valueX: 156, prev: SoundMenu, items: [],
+  footer: function () { return MARCH_Footer(); },
+  leave: function () { MARCH_EndPreview(); },
+  build: function () {
+    const values = MARCH_MenuValues();
+    const items = [M_Item('Cargar marchas (MIDI o audio)...', function () { MARCH_PickFiles(); })];
+    for (const s of MARCH_SLOTS) {
+      const slot = s[0];
+      items.push(M_Item(s[1], null, { kind: 'cycle', values: values,
+        get: function () { return MARCH_SlotIndex(slot); },
+        set: function (i) { MARCH_SetSlot(slot, i); } }));
+    }
+    items.push(M_Item('Quitar las marchas cargadas', function () {
+      if (!MARCH_list.length) return;
+      M_StartMessage('¿Quitar las marchas cargadas y volver\na la música del juego?\n\n(S/N)', function (yes) { if (yes) MARCH_RemoveAll(); }, true);
+    }));
+    this.items = items;
+    if (itemOn >= items.length) itemOn = 0;
+  }
 };
 
 const ControlsMenu = { title: 'CONTROLES', page: true, prev: MainMenu, pages: [[
@@ -139,6 +184,18 @@ const CreditsMenu = { title: 'CRÉDITOS', page: true, prev: MainMenu, pages: [[
   'Referencias históricas: ver docs/HISTORIA.md.',
   'Homenaje a los combatientes de Chile, Perú y',
   'Bolivia que cayeron en la Guerra del Pacífico.'
+], [
+  '#Marchas militares',
+  'El Himno de Yungay, Adiós al Séptimo de Línea y',
+  'Los Viejos Estandartes se cargan desde archivos',
+  'propios (MIDI o audio): Opciones > Sonido, voces',
+  'y marchas > Marchas militares, o soltándolos',
+  'sobre la ventana. La banda del juego toca los MIDI.',
+  '',
+  '#Voces',
+  'Los gritos usan la voz sintética del navegador,',
+  'con el acento de cada país. Microsoft Edge trae',
+  'voces naturales de Perú, Bolivia y Chile.'
 ]] };
 
 // --- Mensajes emergentes -----------------------------------------------------------------------------
@@ -157,10 +214,11 @@ function M_QuitBattle() {
 
 // --- Navegación -------------------------------------------------------------------------------------------
 function M_SetupNextMenu(menu) {
+  if (currentMenu && currentMenu !== menu && currentMenu.leave) currentMenu.leave();
   currentMenu = menu;
-  if (menu.build) menu.build();
   itemOn = 0;
   menuPage = 0;
+  if (menu.build) menu.build();
 }
 
 function M_StartControlPanel() {
@@ -174,6 +232,7 @@ function M_StartControlPanel() {
 function M_ClearMenus() {
   menuactive = false;
   messageToPrint = null;
+  if (currentMenu && currentMenu.leave) currentMenu.leave();
   M_SaveDefaults();
 }
 
@@ -307,7 +366,7 @@ function M_Ticker() {
 
 function M_Drawer() {
   if (messageToPrint) {
-    V_DimScreen(16);
+    V_DimScreen(gamestate === GS_LEVEL ? 16 : 28);
     const lines = messageToPrint.split('\n');
     let y = 100 - lines.length * 6;
     for (const l of lines) { V_DrawTextCentered(y, l, false); y += 12; }
@@ -343,7 +402,7 @@ function M_Drawer() {
     V_DrawText(m.x, y, it.text, m.big, tr);
     if (it.sub) V_DrawText(m.x + 10, y + 11, it.sub, false, V_Translations.sand);
     if (it.kind === 'toggle') V_DrawText(262, y, it.get() ? 'Sí' : 'No', false, tr || V_Translations.sand);
-    else if (it.kind === 'cycle') V_DrawText(236, y, it.values[it.get()], false, tr || V_Translations.sand);
+    else if (it.kind === 'cycle') V_DrawText(m.valueX || 236, y, String(it.values[it.get()] || ''), false, tr || V_Translations.sand);
     else if (it.kind === 'slider') {
       const v = it.get();
       for (let k = 0; k <= it.max; k++) V_FillRect(232 + k * 4, y + 1, 3, 6, k <= v ? C(R_GOLD, 3) : C(R_GRAY, 6));
@@ -354,4 +413,5 @@ function M_Drawer() {
     }
   }
   if (m === MainMenu) V_DrawTextCentered(188, ENGINE_NAME + ' ' + ENGINE_VERSION, false, V_Translations.sand);
+  else if (m.footer) V_DrawTextCentered(188, m.footer(), false, V_Translations.sand);
 }

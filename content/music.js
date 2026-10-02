@@ -209,25 +209,31 @@ let MUS_noiseBuf = null;
 
 function MUS_Stop() {
   if (!MUS_state) return;
-  clearInterval(MUS_state.timer);
+  const st = MUS_state;
+  clearInterval(st.timer);
   try {
-    MUS_state.gain.gain.setTargetAtTime(0, I_audioCtx.currentTime, 0.05);
-    const g = MUS_state.gain;
-    setTimeout(function () { try { g.disconnect(); } catch (e) { /* nada */ } }, 400);
+    st.gain.gain.setTargetAtTime(0, I_audioCtx.currentTime, 0.05);
+    setTimeout(function () {
+      if (st.stop) st.stop();
+      try { st.gain.disconnect(); } catch (e) { /* nada */ }
+    }, 400);
   } catch (e) { /* nada */ }
   MUS_state = null;
 }
 
 function MUS_Play(name, loop) {
   MUS_Stop();
-  const song = MUS_SONGS[name];
-  if (!song || !I_audioCtx) return;
+  if (!I_audioCtx) return;
   const ctx = I_audioCtx;
   if (!MUS_noiseBuf) {
     MUS_noiseBuf = ctx.createBuffer(1, Math.floor(ctx.sampleRate * 0.4), ctx.sampleRate);
     const d = MUS_noiseBuf.getChannelData(0);
     for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
   }
+  // Marcha cargada por el jugador para esta ranura (s_march.js)
+  if (typeof MARCH_TryPlay === 'function' && MARCH_TryPlay(name, loop !== false)) return;
+  const song = MUS_SONGS[name];
+  if (!song) return;
   const voices = [];
   let loopLen = 0;
   for (const key of ['lead', 'harm', 'bass']) {
@@ -275,29 +281,32 @@ function MUS_ScheduleLoop(st, voices, t0) {
   }
 }
 
+// Timbres: corneta (bugle), pífano (fife) y bajo (bass) para las melodías del
+// juego; las marchas en MIDI suman bombardino (horn), clarinete (reed) y tuba.
 function MUS_Note(dest, inst, f, t, dur, vgain) {
   const ctx = I_audioCtx;
   if (!f) return;
   const g = ctx.createGain();
-  const peak = (inst === 'bass' ? 0.32 : inst === 'fife' ? 0.14 : 0.16) * (vgain || 1);
+  const peak = (inst === 'bass' || inst === 'tuba' ? 0.32 : inst === 'fife' ? 0.14 : inst === 'reed' ? 0.11 : 0.16) * (vgain || 1);
   g.gain.setValueAtTime(0, t);
   if (inst === 'bass') {
     g.gain.linearRampToValueAtTime(peak, t + 0.01);
     g.gain.exponentialRampToValueAtTime(peak * 0.25, t + Math.max(0.05, dur * 0.9));
     g.gain.linearRampToValueAtTime(0, t + dur);
   } else {
-    g.gain.linearRampToValueAtTime(peak, t + 0.02);
-    g.gain.setValueAtTime(peak * 0.85, t + Math.max(0.03, dur - 0.05));
+    const att = inst === 'horn' || inst === 'tuba' ? 0.035 : 0.02;
+    g.gain.linearRampToValueAtTime(peak, t + att);
+    g.gain.setValueAtTime(peak * 0.85, t + Math.max(att + 0.01, dur - 0.05));
     g.gain.linearRampToValueAtTime(0, t + dur);
   }
   const o = ctx.createOscillator();
   o.frequency.value = f;
-  if (inst === 'bugle') {
-    o.type = 'sawtooth';
+  if (inst === 'bugle' || inst === 'horn' || inst === 'tuba' || inst === 'reed') {
+    o.type = inst === 'reed' ? 'square' : 'sawtooth';
     const flt = ctx.createBiquadFilter();
     flt.type = 'lowpass';
-    flt.frequency.value = f * 4;
-    flt.Q.value = 1.2;
+    flt.frequency.value = f * (inst === 'bugle' ? 4 : inst === 'horn' ? 2.6 : inst === 'reed' ? 3 : 2);
+    flt.Q.value = inst === 'bugle' ? 1.2 : 0.7;
     o.connect(flt); flt.connect(g);
   } else if (inst === 'fife') {
     o.type = 'triangle';
@@ -332,15 +341,34 @@ function MUS_Snare(dest, t, vol) {
   src.stop(t + 0.15);
 }
 
-function MUS_Kick(dest, t) {
+// Bombo; con otra frecuencia inicial sirve de timbal o tom.
+function MUS_Kick(dest, t, vol, f0) {
   const ctx = I_audioCtx;
   const o = ctx.createOscillator();
-  o.frequency.setValueAtTime(110, t);
-  o.frequency.exponentialRampToValueAtTime(42, t + 0.12);
+  f0 = f0 || 110;
+  o.frequency.setValueAtTime(f0, t);
+  o.frequency.exponentialRampToValueAtTime(f0 * 0.38, t + 0.12);
   const g = ctx.createGain();
-  g.gain.setValueAtTime(0.5, t);
+  g.gain.setValueAtTime(vol || 0.5, t);
   g.gain.exponentialRampToValueAtTime(0.001, t + 0.3);
   o.connect(g); g.connect(dest);
   o.start(t);
   o.stop(t + 0.32);
+}
+
+// Platillos: ruido agudo con caída larga (choque) o corta (charles).
+function MUS_Cymbal(dest, t, vol, len) {
+  const ctx = I_audioCtx;
+  const src = ctx.createBufferSource();
+  src.buffer = MUS_noiseBuf;
+  src.loop = true;
+  const f = ctx.createBiquadFilter();
+  f.type = 'highpass';
+  f.frequency.value = 5200;
+  const g = ctx.createGain();
+  g.gain.setValueAtTime(vol, t);
+  g.gain.exponentialRampToValueAtTime(0.001, t + len);
+  src.connect(f); f.connect(g); g.connect(dest);
+  src.start(t);
+  src.stop(t + len + 0.05);
 }

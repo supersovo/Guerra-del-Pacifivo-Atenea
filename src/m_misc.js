@@ -48,7 +48,9 @@ const defaults = {
   mouseInvertY: 0,
   mouseMove: 0,          // 1 = el eje Y del ratón mueve adelante/atrás (clásico, sin mirar)
   touchControls: 2,      // 0 = no, 1 = sí, 2 = automático
-  crosshair: 1
+  crosshair: 1,
+  voices: 1,             // frases de los soldados con la voz del navegador (s_voice.js)
+  voiceSubtitles: 1      // subtítulo breve con la frase gritada
 };
 
 // Claves cuyo valor guardado por una versión anterior se descarta (cambió su

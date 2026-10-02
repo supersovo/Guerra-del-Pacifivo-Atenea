@@ -89,6 +89,8 @@ async function D_DoomMain() {
   D_Boot('I_Init: teclado, ratón, pantalla táctil y mando.');
   I_InitInput(canvas);
   S_Init();
+  VOICE_Init();
+  MARCH_Init().catch(function (e) { console.warn('Marchas: ' + e.message); });   // asíncrono
   HU_Init();
   D_Boot('D_CheckNetGame: partida individual.');
   D_Boot('Listo. ¡Adelante, soldado!');
@@ -221,6 +223,7 @@ function D_Frame(now) {
   D_Display();
   I_FinishUpdate();
   if (gamestate === GS_LEVEL && !menuactive && !paused && !automapactive) D_AdaptResolution(performance.now() - t0);
+  else FACE_WarmStep();   // retratos del soldado, uno por cuadro fuera del combate
 }
 
 function D_DoomLoop() {

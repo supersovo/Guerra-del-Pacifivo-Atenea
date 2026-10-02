@@ -301,6 +301,7 @@ function G_DeferedInitNew(skill, map, campaign) {
 
 function G_DoLoadLevel() {
   exitTimer = 0;
+  VOICE_StopAll();
   if (wipegamestate === GS_LEVEL) wipegamestate = -1;
   gamestate = GS_LEVEL;
   if (playeringame[0] && players[0].playerstate === PST_DEAD) players[0].playerstate = PST_REBORN;

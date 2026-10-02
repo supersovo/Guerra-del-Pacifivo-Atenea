@@ -188,6 +188,7 @@ function A_Look(actor) {
     if (sound === 'posit') sound = 'posit' + (1 + P_Random() % 3);
     S_StartSound(actor, sound);
   }
+  VOICE_Event(actor, 'sight');
   P_SetMobjState(actor, actor.info.seestate);
 }
 
@@ -374,8 +375,9 @@ function A_ShellTrail(actor) {
 function A_Scream(actor) {
   let sound = actor.info.deathsound;
   if (!sound) return;
-  if (sound === 'podth') sound = 'podth' + (1 + P_Random() % 3);
+  if (sound === 'podth' || sound === 'bodth' || sound === 'chdth') sound += 1 + M_Random() % 3;
   S_StartSound(actor, sound);
+  VOICE_Event(actor, 'death');   // y, si está cerca, la frase con su acento
 }
 
 function A_XScream(actor) {
@@ -383,7 +385,10 @@ function A_XScream(actor) {
 }
 
 function A_Pain(actor) {
-  if (actor.info.painsound) S_StartSound(actor, actor.info.painsound);
+  let sound = actor.info.painsound;
+  if (sound === 'popain') sound = 'popan' + (1 + M_Random() % 2);
+  if (sound) S_StartSound(actor, sound);
+  VOICE_Event(actor, 'pain');
 }
 
 function A_Fall(actor) {

@@ -100,6 +100,7 @@ function A_AllyLook(actor) {
   actor.threshold = 0;
   if (P_LookForTargets(actor, true)) {
     actor.following = false;
+    VOICE_Event(actor, 'sight');
     P_SetMobjState(actor, actor.info.seestate);
     return;
   }

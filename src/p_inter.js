@@ -190,6 +190,7 @@ function P_TouchSpecialThing(special, toucher) {
 
 function P_KillMobj(source, target) {
   if (target.type === MT.BARRIL) target.target = source; // la explosión se atribuye a quien disparó
+  target.killer = source || null;                        // solo para la interfaz (voces)
   target.flags &= ~(MF_SHOOTABLE | MF_FLOAT | MF_SKULLFLY);
   target.flags &= ~MF_NOGRAVITY;
   target.flags |= MF_CORPSE | MF_DROPOFF;
@@ -208,6 +209,7 @@ function P_KillMobj(source, target) {
   if (P_blastSpot && target.info.gib && !target.player) {
     // Muerto por una explosión: salta en pedazos, sin animación de caída.
     P_Dismember(target, P_blastSpot, P_blastDist);
+    VOICE_Event(target, 'death');
   } else {
     if (target.health < -target.info.spawnhealth && target.info.xdeathstate !== S_NULL) {
       P_SetMobjState(target, target.info.xdeathstate);

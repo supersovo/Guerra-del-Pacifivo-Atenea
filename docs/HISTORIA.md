@@ -193,6 +193,41 @@ El **corvo** es el cuchillo curvo que llevaban los mineros de Atacama y que qued
 asociado al soldado chileno. El **escapulario de la Virgen del Carmen**, patrona del
 Ejército de Chile, aparece como objeto de moral.
 
+## Música y voces
+
+Las bandas de los regimientos acompañaron a las tropas en las campañas, y tres
+marchas quedaron unidas a la memoria del Ejército de Chile:
+
+- El **Himno de Yungay** (*Canción de Yungay*) tiene música de José Zapiola
+  (1802–1885) y letra de Ramón Rengifo. Se compuso en 1839 para celebrar la
+  victoria de Yungay y fue casi un segundo himno nacional hasta mediados del
+  siglo XX. Es de **dominio público**.
+- **Adiós al Séptimo de Línea** toma su nombre del regimiento que partió a la
+  guerra en 1879. La melodía es del siglo XIX y se atribuye a Luis Mancilla
+  (1845–1915) y Gumersindo Ipinza. La versión cantada que se conoce hoy, con
+  letra y arreglo de José Goles (1917–1993), tiene **derechos vigentes**. La
+  novela homónima de Jorge Inostrosa, de mediados del siglo XX, es posterior.
+- **Los Viejos Estandartes** es de 1966, con letra de Jorge Inostrosa y música
+  de Guillermo Bascuñán. La difundió el conjunto Los Cuatro Cuartos y hoy es el
+  himno del Ejército de Chile. Tiene **derechos vigentes**.
+
+El juego no trae estas marchas. Desde el entorno donde se desarrolló no fue
+posible descargar partituras ni archivos MIDI, y dos de las tres tienen derechos
+de autor. En su lugar, el juego permite cargar los archivos que el jugador tenga
+(menú *Marchas militares*). Los MIDI los interpreta la banda sintetizada; los
+audios suenan tal cual.
+
+Las **voces** usan expresiones coloquiales de cada país, elegidas para que el
+jugador reconozca de oído el origen de cada soldado:
+
+- peruanas: *asu mare*, de "a su madre"; *chucha*, *a la chucha*;
+- bolivianas: *chuta*; *jilata*, "hermano" en aimara; *Tata Dios*;
+  *jallalla*, "¡viva!" en aimara y quechua;
+- chilenas: *a la chucha*, *puchas*, *por la cresta*.
+
+Son giros actuales: el habla de los soldados de 1879 no está documentada con ese
+detalle.
+
 ## Licencias del juego
 
 - **Escala**: las distancias y alturas están comprimidas (el farellón de Pisagua o
@@ -210,6 +245,9 @@ Ejército de Chile, aparece como objeto de moral.
 - **Explosiones**: los cuerpos alcanzados por granadas, dinamita o minas se
   despedazan. Es una representación del poder destructivo de la artillería de la
   época, no un trato irrespetuoso de los caídos de ningún bando.
+- **Gritos**: peruanos, bolivianos y chilenos mueren gritando con su acento y sus
+  modismos. Es un recurso para distinguir a los bandos en el fragor del combate,
+  con el mismo respeto por los tres.
 
 ## Fuentes consultadas
 
@@ -256,3 +294,12 @@ Ejército de Chile, aparece como objeto de moral.
 - BioBioChile — [La verdad sobre la "chupilca del diablo"](https://www.biobiochile.cl/noticias/sociedad/curiosidades/2017/09/17/mito-o-realidad-la-verdad-sobre-la-popular-e-historica-bebida-chupilca-del-diablo.shtml)
 - Guioteca — [El corvo, el arma más representativa del Ejército de Chile](https://www.guioteca.com/mitos-y-enigmas/el-corvo-la-historia-del-arma-mas-representativa-del-ejercito-de-chile/)
 - Wikipedia — [Virgen del Carmen de Chile](https://es.wikipedia.org/wiki/Virgen_del_Carmen_de_Chile)
+- Wikipedia — [Himno de Yungay](https://es.wikipedia.org/wiki/Himno_de_Yungay)
+- Wikisource — [Himno de Yungay (letra)](https://es.wikisource.org/wiki/Himno_de_Yungay)
+- Memoria Chilena — [José Zapiola (1802-1885)](https://www.memoriachilena.gob.cl/602/w3-printer-100659.html)
+- Wikipedia — [Adiós al Séptimo de Línea (marcha)](https://es.wikipedia.org/wiki/Adi%C3%B3s_al_S%C3%A9ptimo_de_L%C3%ADnea_%28marcha%29)
+- MusicaPopular.cl — [José Goles](https://www.musicapopular.cl/artista/jose-goles/)
+- Wikipedia — [Los Viejos Estandartes](https://en.wikipedia.org/wiki/Los_Viejos_Estandartes)
+- Wikipedia — [Jorge Inostrosa Cuevas](https://en.wikipedia.org/wiki/Jorge_Inostrosa_Cuevas)
+- Novena Digital — [De Los Cuatro Cuartos al himno oficial del Ejército de Chile](https://novenadigital.cl/de-los-cuatro-cuartos-al-himno-oficial-del-ejercito-de-chile-la-historia-detras-de-los-viejos-estandartes/)
+- Ejército de Chile — [Himno del Ejército](https://www.ejercito.cl/nuestro-compromiso/himno-del-ejercito)

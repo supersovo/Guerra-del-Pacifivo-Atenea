@@ -294,13 +294,13 @@ MI_Def('CHILENO', {
   doomednum: 4001, spawnstate: 'S_CHIL_STND', spawnhealth: 45, seestate: 'S_CHIL_RUN1', painstate: 'S_CHIL_PAIN1',
   painchance: 180, painsound: 'plpain', missilestate: 'S_CHIL_ATK1', deathstate: 'S_CHIL_DIE1',
   xdeathstate: 'S_CHIL_XDIE1', deathsound: 'chdth', speed: 8, radius: 16, height: 56, mass: 100,
-  flags: MF_SOLID | MF_SHOOTABLE, title: 'Infante chileno', faction: 1, gib: 'CL'
+  flags: MF_SOLID | MF_SHOOTABLE, title: 'Infante chileno', faction: 1, voice: 'cl', gib: 'CL'
 });
 MI_Def('ARTILLERO_CL', {
   doomednum: 4002, spawnstate: 'S_ARTC_STND', spawnhealth: 120, seestate: 'S_ARTC_SEE', painstate: 'S_ARTC_PAIN1',
   painchance: 60, painsound: 'plpain', missilestate: 'S_ARTC_ATK1', deathstate: 'S_ARTC_DIE1', deathsound: 'chdth',
   speed: 0, radius: 32, height: 48, mass: 10000000, reactiontime: 12, sightdist: 3600,
-  flags: MF_SOLID | MF_SHOOTABLE | MF_TURRET, title: 'Batería Krupp chilena', faction: 1, gib: 'AC', gibkind: 'crew', gibstate: 'S_ARTC_GIB'
+  flags: MF_SOLID | MF_SHOOTABLE | MF_TURRET, title: 'Batería Krupp chilena', faction: 1, voice: 'cl', gib: 'AC', gibkind: 'crew', gibstate: 'S_ARTC_GIB'
 });
 
 MI_Def('GUARDIA', {
@@ -308,69 +308,69 @@ MI_Def('GUARDIA', {
   attacksound: 'rifle2', painstate: 'S_GUAR_PAIN1', painchance: 200, painsound: 'popain', missilestate: 'S_GUAR_ATK1',
   deathstate: 'S_GUAR_DIE1', xdeathstate: 'S_GUAR_XDIE1', deathsound: 'podth', speed: 8, radius: 20, height: 56,
   mass: 100, activesound: 'posact', flags: MF_SOLID | MF_SHOOTABLE | MF_COUNTKILL, dropitem: 'CARTUCHOS',
-  title: 'Guardia Nacional (Perú)', faction: 2, gib: 'GU'
+  title: 'Guardia Nacional (Perú)', faction: 2, voice: 'pe', gib: 'GU'
 });
 MI_Def('BOLIVIANO', {
   doomednum: 9, spawnstate: 'S_BOLI_STND', spawnhealth: 30, seestate: 'S_BOLI_RUN1', seesound: 'posit',
   painstate: 'S_BOLI_PAIN1', painchance: 170, painsound: 'popain', missilestate: 'S_BOLI_ATK1',
-  deathstate: 'S_BOLI_DIE1', xdeathstate: 'S_BOLI_XDIE1', deathsound: 'podth', speed: 8, radius: 20, height: 56,
+  deathstate: 'S_BOLI_DIE1', xdeathstate: 'S_BOLI_XDIE1', deathsound: 'bodth', speed: 8, radius: 20, height: 56,
   mass: 100, activesound: 'posact', flags: MF_SOLID | MF_SHOOTABLE | MF_COUNTKILL, dropitem: 'CARTUCHOS',
-  title: 'Infante boliviano', faction: 2, gib: 'BO'
+  title: 'Infante boliviano', faction: 2, voice: 'bo', gib: 'BO'
 });
 MI_Def('BAYONETA', {
   doomednum: 3002, spawnstate: 'S_BAYO_STND', spawnhealth: 80, seestate: 'S_BAYO_RUN1', seesound: 'sgtsit',
   attacksound: 'sgtatk', painstate: 'S_BAYO_PAIN1', painchance: 170, painsound: 'popain', meleestate: 'S_BAYO_ATK1',
   deathstate: 'S_BAYO_DIE1', xdeathstate: 'S_BAYO_XDIE1', deathsound: 'sgtdth', speed: 11, radius: 22, height: 56,
-  mass: 300, activesound: 'posact', flags: MF_SOLID | MF_SHOOTABLE | MF_COUNTKILL, title: 'Infante con bayoneta', faction: 2, gib: 'PL'
+  mass: 300, activesound: 'posact', flags: MF_SOLID | MF_SHOOTABLE | MF_COUNTKILL, title: 'Infante con bayoneta', faction: 2, voice: 'pe', gib: 'PL'
 });
 MI_Def('HUSAR', {
   doomednum: 3005, spawnstate: 'S_HUSA_STND', spawnhealth: 150, seestate: 'S_HUSA_RUN1', seesound: 'horse',
   attacksound: 'saber', painstate: 'S_HUSA_PAIN1', painchance: 90, painsound: 'hpain', meleestate: 'S_HUSA_ATK1',
   deathstate: 'S_HUSA_DIE1', deathsound: 'hdeath', speed: 15, radius: 30, height: 88, mass: 700,
-  activesound: 'hooves', flags: MF_SOLID | MF_SHOOTABLE | MF_COUNTKILL, title: 'Húsar de caballería', faction: 2, gib: 'HU', gibkind: 'rider', gibstate: 'S_HUSA_GIB'
+  activesound: 'hooves', flags: MF_SOLID | MF_SHOOTABLE | MF_COUNTKILL, title: 'Húsar de caballería', faction: 2, voice: 'pe', gib: 'HU', gibkind: 'rider', gibstate: 'S_HUSA_GIB'
 });
 MI_Def('ARTILLERO', {
   doomednum: 3006, spawnstate: 'S_ARTI_STND', spawnhealth: 70, seestate: 'S_ARTI_SEE', seesound: 'posit',
   painstate: 'S_ARTI_PAIN1', painchance: 100, painsound: 'popain', missilestate: 'S_ARTI_ATK1',
   deathstate: 'S_ARTI_DIE1', deathsound: 'podth', speed: 0, radius: 32, height: 48, mass: 10000000,
   reactiontime: 20, sightdist: 3600, flags: MF_SOLID | MF_SHOOTABLE | MF_COUNTKILL | MF_TURRET,
-  title: 'Pieza de artillería', faction: 2, gib: 'AP', gibkind: 'crew', gibstate: 'S_ARTI_GIB'
+  title: 'Pieza de artillería', faction: 2, voice: 'pe', gib: 'AP', gibkind: 'crew', gibstate: 'S_ARTI_GIB'
 });
 MI_Def('DINAMITERO', {
   doomednum: 3001, spawnstate: 'S_DINA_STND', spawnhealth: 60, seestate: 'S_DINA_RUN1', seesound: 'posit',
   painstate: 'S_DINA_PAIN1', painchance: 200, painsound: 'popain', missilestate: 'S_DINA_ATK1',
   deathstate: 'S_DINA_DIE1', xdeathstate: 'S_DINA_XDIE1', deathsound: 'podth', speed: 8, radius: 20, height: 56,
   mass: 100, activesound: 'posact', flags: MF_SOLID | MF_SHOOTABLE | MF_COUNTKILL, dropitem: 'DINAMITA1',
-  title: 'Zapador dinamitero', faction: 2, gib: 'ZA'
+  title: 'Zapador dinamitero', faction: 2, voice: 'pe', gib: 'ZA'
 });
 MI_Def('OFICIAL', {
   doomednum: 3003, spawnstate: 'S_OFIC_STND', spawnhealth: 220, seestate: 'S_OFIC_RUN1', seesound: 'ofsit',
   attacksound: 'saber', painstate: 'S_OFIC_PAIN1', painchance: 60, painsound: 'popain', meleestate: 'S_OFIC_MELEE1',
   missilestate: 'S_OFIC_ATK1', deathstate: 'S_OFIC_DIE1', deathsound: 'ofdth', speed: 9, radius: 20, height: 60,
   mass: 250, activesound: 'posact', flags: MF_SOLID | MF_SHOOTABLE | MF_COUNTKILL, dropitem: 'CAJA_REV',
-  title: 'Oficial', faction: 2, gib: 'OF'
+  title: 'Oficial', faction: 2, voice: 'pe', gib: 'OF'
 });
 
 // Tropas de las batallas de Tacna y de Lima
 MI_Def('COLORADO', {
   doomednum: 3007, spawnstate: 'S_COLO_STND', spawnhealth: 40, seestate: 'S_COLO_RUN1', seesound: 'posit',
   painstate: 'S_COLO_PAIN1', painchance: 140, painsound: 'popain', missilestate: 'S_COLO_ATK1',
-  deathstate: 'S_COLO_DIE1', xdeathstate: 'S_COLO_XDIE1', deathsound: 'podth', speed: 9, radius: 20, height: 56,
+  deathstate: 'S_COLO_DIE1', xdeathstate: 'S_COLO_XDIE1', deathsound: 'bodth', speed: 9, radius: 20, height: 56,
   mass: 100, activesound: 'posact', flags: MF_SOLID | MF_SHOOTABLE | MF_COUNTKILL, dropitem: 'CARTUCHOS',
-  title: 'Colorados de Bolivia', faction: 2, gib: 'CO'
+  title: 'Colorados de Bolivia', faction: 2, voice: 'bo', gib: 'CO'
 });
 MI_Def('RESERVA', {
   doomednum: 3008, spawnstate: 'S_RESE_STND', spawnhealth: 20, seestate: 'S_RESE_RUN1', seesound: 'posit',
   painstate: 'S_RESE_PAIN1', painchance: 210, painsound: 'popain', missilestate: 'S_RESE_ATK1',
   deathstate: 'S_RESE_DIE1', xdeathstate: 'S_RESE_XDIE1', deathsound: 'podth', speed: 7, radius: 20, height: 56,
   mass: 100, activesound: 'posact', flags: MF_SOLID | MF_SHOOTABLE | MF_COUNTKILL, dropitem: 'CARTUCHOS',
-  title: 'Reserva de Lima', faction: 2, gib: 'RE'
+  title: 'Reserva de Lima', faction: 2, voice: 'pe', gib: 'RE'
 });
 MI_Def('GRANADERO', {
   doomednum: 4003, spawnstate: 'S_GRAN_STND', spawnhealth: 150, seestate: 'S_GRAN_RUN1', seesound: 'horse',
   attacksound: 'saber', painstate: 'S_GRAN_PAIN1', painchance: 90, painsound: 'hpain', meleestate: 'S_GRAN_ATK1',
   deathstate: 'S_GRAN_DIE1', deathsound: 'hdeath', speed: 15, radius: 30, height: 88, mass: 700,
-  activesound: 'hooves', flags: MF_SOLID | MF_SHOOTABLE, title: 'Granadero a caballo', faction: 1, gib: 'GR', gibkind: 'rider', gibstate: 'S_GRAN_GIB'
+  activesound: 'hooves', flags: MF_SOLID | MF_SHOOTABLE, title: 'Granadero a caballo', faction: 1, voice: 'cl', gib: 'GR', gibkind: 'rider', gibstate: 'S_GRAN_GIB'
 });
 
 // Partes de un cuerpo desmembrado por una explosión.

@@ -17,6 +17,7 @@ const HU_MSGFONT = 'note';              // letra de avisos: más chica que la de
 let hu_lines = [];          // [{ text, tics }]
 let hu_big = null;          // cuadro visible: { lines, tics, total, w, h }
 let hu_queue = [];          // cuadros en espera
+let hu_voice = null;        // subtítulo de la frase que grita un soldado: { text, acc, tics }
 
 function HU_Init() {}
 
@@ -24,6 +25,12 @@ function HU_Start() {
   hu_lines = [];
   hu_big = null;
   hu_queue = [];
+  hu_voice = null;
+}
+
+// Subtítulo breve (1,6 s) de lo que grita un soldado, sobre la barra de estado.
+function HU_VoiceSubtitle(text, acc, near) {
+  hu_voice = { text: '—' + text, acc: acc, tics: Math.round(1.6 * TICRATE), near: near };
 }
 
 function HU_PlayerMessage(player, text) {
@@ -84,6 +91,7 @@ function HU_Ticker() {
   for (let i = hu_lines.length - 1; i >= 0; i--) {
     if (--hu_lines[i].tics <= 0) hu_lines.splice(i, 1);
   }
+  if (hu_voice && --hu_voice.tics <= 0) hu_voice = null;
   if (hu_big && --hu_big.tics <= 0) {
     hu_big = hu_queue.length ? hu_queue.shift() : null;
     // con más avisos en espera, cada uno se muestra menos tiempo
@@ -102,6 +110,11 @@ function HU_Drawer() {
     y += V_LineHeight(HU_MSGFONT);
   }
   if (battle && battle.massive) HU_DrawForces();
+  if (hu_voice) {
+    // chilenos en dorado, peruanos y bolivianos en arena
+    const y = (defaults.screenblocks === 10 ? 168 : 200) - V_LineHeight(HU_MSGFONT) - 14;
+    V_DrawTextCentered(y, hu_voice.text, HU_MSGFONT, hu_voice.acc === 'cl' ? V_Translations.gold : V_Translations.sand);
+  }
   if (hu_big) HU_DrawBanner(hu_big);
 }
 

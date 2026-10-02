@@ -68,7 +68,8 @@ function V_DrawPatch(x, y, patch, translation, flip) {
   const S = SCALE;
   const fb = screens[0];
   const W = SCREENWIDTH, H = SCREENHEIGHT;
-  const px0 = UIOFS + x * S, py0 = y * S;
+  // a píxel entero: un texto centrado de ancho impar cae en medio píxel lógico
+  const px0 = Math.round(UIOFS + x * S), py0 = Math.round(y * S);
   for (let c = 0; c < patch.width; c++) {
     const col = patch.columns[flip ? patch.width - 1 - c : c];
     const sx = px0 + c * S;

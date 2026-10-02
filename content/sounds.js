@@ -209,6 +209,95 @@ function snd_voice(opts) {
   return snd_normalize(out, 0.9);
 }
 
+// --- Gritos humanos: síntesis de formantes en cascada ------------------------------------------------------
+// Fuente glótica (pulso de Rosenberg derivado, con jitter, shimmer y
+// aspiración ligada a la apertura de la glotis), cinco resonadores en cascada
+// cuyos formantes transitan entre vocales, contorno de tono con subida,
+// vibrato y caída, ronquera (subarmónico), estertor final ("fry") y ataque
+// aspirado o glotal. Al gritar, el primer formante sube.
+const SND_FORM = {
+  a: [[760, 110], [1150, 120], [2450, 160], [3400, 220], [3950, 260]],
+  e: [[560, 90], [1800, 120], [2500, 160], [3400, 220], [3950, 260]],
+  i: [[340, 80], [2150, 120], [2950, 170], [3500, 220], [4000, 260]],
+  o: [[600, 100], [900, 110], [2400, 160], [3400, 220], [3950, 260]],
+  u: [[380, 90], [850, 110], [2250, 160], [3400, 220], [3950, 260]]
+};
+function snd_track(pts, u) {
+  if (u <= pts[0][0]) return pts[0][1];
+  for (let k = 0; k < pts.length - 1; k++) {
+    const a = pts[k], b = pts[k + 1];
+    if (u <= b[0]) return { a: a[1], b: b[1], t: (u - a[0]) / Math.max(1e-6, b[0] - a[0]) };
+  }
+  return pts[pts.length - 1][1];
+}
+function snd_scream(o) {
+  const N = Math.floor(o.len * SND_RATE);
+  const out = new Float32Array(N);
+  const r = snd_rng(o.seed || 9);
+  const res = [];
+  for (let k = 0; k < 5; k++) res.push({ A: 0, B: 0, C: 0, y1: 0, y2: 0 });
+  const vib = o.vib === undefined ? 0.025 : o.vib, vibRate = o.vibRate || 5.5;
+  const jit = o.jitter === undefined ? 0.012 : o.jitter, shimAmt = o.shimmer === undefined ? 0.12 : o.shimmer;
+  const breath = o.breath === undefined ? 0.1 : o.breath, rough = o.rough || 0, fry = o.fry || 0;
+  const onset = o.onset || null, onLen = onset === 'h' ? 0.07 : 0;
+  const shout = o.shout === undefined ? 1.15 : o.shout;
+  let ph = 0, prevG = 0, shim = 1, cyc = 0, fryHold = 0, fblock = 100, inFry = false;
+  for (let i = 0; i < N; i++) {
+    const t = i / SND_RATE, u = t / o.len;
+    if ((i & 31) === 0) {
+      // tono por bloques de 32 muestras (interpolación logarítmica del contorno y vibrato)
+      const fv = snd_track(o.f0, u);
+      fblock = typeof fv === 'number' ? fv : fv.a * Math.pow(fv.b / fv.a, fv.t);
+      fblock *= 1 + Math.sin(2 * Math.PI * vibRate * t) * vib * Math.min(1, u * 3);
+      inFry = fry > 0 && u > 1 - fry;
+      if (inFry) fblock = Math.max(28, fblock * 0.45);
+      // formantes: transición entre vocales
+      const v = snd_track(o.vowels, u);
+      const fa = typeof v === 'string' ? SND_FORM[v] : SND_FORM[v.a], fb = typeof v === 'string' ? null : SND_FORM[v.b];
+      const tt = typeof v === 'string' ? 0 : v.t * v.t * (3 - 2 * v.t);
+      for (let k = 0; k < 5; k++) {
+        let F = fb ? fa[k][0] + (fb[k][0] - fa[k][0]) * tt : fa[k][0];
+        let BW = fb ? fa[k][1] + (fb[k][1] - fa[k][1]) * tt : fa[k][1];
+        if (k === 0) F *= shout;
+        BW *= 1.3;
+        const C = -Math.exp(-2 * Math.PI * BW / SND_RATE);
+        const B = 2 * Math.exp(-Math.PI * BW / SND_RATE) * Math.cos(2 * Math.PI * F / SND_RATE);
+        res[k].A = 1 - B - C; res[k].B = B; res[k].C = C;
+      }
+    }
+    ph += fblock * (1 + r() * jit) / SND_RATE;
+    if (ph >= 1) {
+      ph -= 1; cyc++;
+      shim = 1 + r() * shimAmt;
+      if (rough && (cyc & 1)) shim *= 1 - rough;           // subarmónico: ronquera
+      fryHold = inFry ? (r() > 0.3 ? 1 : 0.2) : 1;         // estertor irregular
+    }
+    const OQ = 0.62, open = OQ * 0.62;
+    const g = (ph < open ? 0.5 * (1 - Math.cos(Math.PI * ph / open)) : ph < OQ ? Math.cos(0.5 * Math.PI * (ph - open) / (OQ - open)) : 0) * shim * fryHold;
+    const dg = g - prevG; prevG = g;
+    // amplitud: ataque, sostén, caída; con ataque aspirado la voz entra después
+    const att = o.attack || 0.03, rel = o.release || 0.35;
+    let env = Math.min(1, Math.max(0, t - onLen) / att) * (u > 1 - rel ? Math.max(0, (1 - u) / rel) : 1);
+    if (o.swell) env *= 0.7 + 0.3 * Math.sin(Math.PI * Math.min(1, u * 1.2));
+    const asp = r() * (breath * (0.35 + 0.65 * g) + (onset === 'h' && t < onLen + 0.02 ? 0.5 * (1 - t / (onLen + 0.02)) : 0) + (inFry ? 0.25 : 0));
+    let x = (dg * 24 * env + asp * (t < onLen ? 1 : env)) * 0.6;
+    for (let k = 0; k < 5; k++) {
+      const R = res[k];
+      const y = R.A * x + R.B * R.y1 + R.C * R.y2;
+      R.y2 = R.y1; R.y1 = y;
+      x = y;
+    }
+    out[i] = x;
+  }
+  // garganta forzada: saturación suave
+  const drive = o.drive || 2;
+  let peak = 1e-9;
+  for (let i = 0; i < N; i++) peak = Math.max(peak, Math.abs(out[i]));
+  for (let i = 0; i < N; i++) out[i] = Math.tanh(out[i] / peak * drive);
+  snd_biquad(out, 'hp', 90, 0.7);
+  return snd_normalize(out, o.peak || 0.9);
+}
+
 // --- Corneta (serie armónica de un clarín en Do) ---------------------------------------------------------
 function snd_bugle(notes, tempo) {
   const total = notes.reduce(function (s, n) { return s + n[1]; }, 0) * tempo + 0.4;
@@ -310,27 +399,38 @@ function SND_BuildSounds() {
     const ring = snd_osc(0.5, 2600, 'sine'); snd_env(ring, 0.001, 0.12);
     snd_mix(sb, ring, 0.3, 0.12);
     add('saber', snd_normalize(sb, 0.7));
-    add('sgtatk', snd_normalize(snd_voice({ len: 0.35, f0: 190, f1: 160, vowel: 'a', seed: 113 }), 0.8));
+    add('sgtatk', snd_scream({ len: 0.34, f0: [[0, 230], [0.3, 270], [1, 190]], vowels: [[0, 'a'], [1, 'a']], onset: 'h', seed: 113, release: 0.5, drive: 2.4 }));
   }
-  // Voces
-  add('posit1', snd_voice({ len: 0.4, f0: 170, f1: 210, vowel: 'e', vowel2: 'a', seed: 201, hold: 0.6 }));
-  add('posit2', snd_voice({ len: 0.5, f0: 150, f1: 190, vowel: 'a', vowel2: 'i', seed: 202, hold: 0.6 }));
-  add('posit3', snd_voice({ len: 0.45, f0: 180, f1: 220, vowel: 'o', vowel2: 'e', seed: 203, hold: 0.6 }));
-  add('sgtsit', snd_voice({ len: 0.8, f0: 160, f1: 210, vowel: 'a', seed: 204, hold: 0.8, drive: 2.5 }));
-  add('ofsit', snd_voice({ len: 0.6, f0: 130, f1: 160, vowel: 'a', vowel2: 'e', seed: 205, hold: 0.7 }));
-  add('popain', snd_voice({ len: 0.3, f0: 200, f1: 140, vowel: 'a', seed: 206, hold: 0.3 }));
-  add('podth1', snd_voice({ len: 0.8, f0: 190, f1: 90, vowel: 'a', vowel2: 'o', seed: 207, hold: 0.4, vib: 0.05 }));
-  add('podth2', snd_voice({ len: 0.9, f0: 170, f1: 80, vowel: 'o', vowel2: 'u', seed: 208, hold: 0.4, vib: 0.05 }));
-  add('podth3', snd_voice({ len: 0.7, f0: 210, f1: 100, vowel: 'e', vowel2: 'a', seed: 209, hold: 0.35, vib: 0.06 }));
-  add('sgtdth', snd_voice({ len: 1.0, f0: 180, f1: 70, vowel: 'a', vowel2: 'u', seed: 210, hold: 0.4, vib: 0.06, drive: 2 }));
-  add('ofdth', snd_voice({ len: 1.1, f0: 150, f1: 70, vowel: 'o', vowel2: 'a', seed: 211, hold: 0.4, vib: 0.04 }));
-  add('chdth', snd_voice({ len: 0.8, f0: 160, f1: 80, vowel: 'a', vowel2: 'u', seed: 212, hold: 0.45, vib: 0.05 }));
-  add('posact', snd_voice({ len: 0.3, f0: 140, f1: 130, vowel: 'u', vowel2: 'o', seed: 213, hold: 0.5, breath: 0.3 }));
-  add('plpain', snd_voice({ len: 0.35, f0: 140, f1: 95, vowel: 'a', vowel2: 'u', seed: 214, hold: 0.3, drive: 2 }));
-  add('pldeth', snd_voice({ len: 1.2, f0: 150, f1: 60, vowel: 'a', vowel2: 'u', seed: 215, hold: 0.45, vib: 0.05, drive: 2 }));
-  add('pdiehi', snd_voice({ len: 1.1, f0: 230, f1: 80, vowel: 'a', vowel2: 'o', seed: 216, hold: 0.4, vib: 0.08, drive: 2.5 }));
-  add('oof', snd_voice({ len: 0.2, f0: 120, f1: 100, vowel: 'u', seed: 217, hold: 0.3 }));
-  add('noway', snd_voice({ len: 0.22, f0: 115, f1: 95, vowel: 'u', vowel2: 'o', seed: 218, hold: 0.3 }));
+  // Voces: gritos de combate, quejidos y estertores (snd_scream)
+  const V = function (len, f0, vowels, seed, extra) { return snd_scream(Object.assign({ len: len, f0: f0, vowels: vowels, seed: seed }, extra || {})); };
+  add('posit1', V(0.42, [[0, 240], [0.25, 330], [1, 280]], [[0, 'a'], [1, 'a']], 201, { onset: 'h', drive: 2.4, release: 0.4 }));
+  add('posit2', V(0.5, [[0, 220], [0.3, 310], [1, 250]], [[0, 'e'], [0.6, 'a']], 202, { onset: 'h', drive: 2.2 }));
+  add('posit3', V(0.46, [[0, 200], [0.3, 290], [1, 240]], [[0, 'o'], [0.7, 'a']], 203, { onset: 'h', drive: 2.2 }));
+  add('sgtsit', V(1.0, [[0, 250], [0.2, 380], [0.8, 360], [1, 300]], [[0, 'a'], [1, 'a']], 204, { onset: 'h', rough: 0.3, drive: 3, vib: 0.03 }));
+  add('ofsit', V(0.55, [[0, 170], [0.3, 220], [1, 190]], [[0, 'a'], [0.7, 'e']], 205, { drive: 2.2 }));
+  add('popan1', V(0.3, [[0, 300], [0.3, 350], [1, 220]], [[0, 'a'], [1, 'a']], 206, { release: 0.5, drive: 2.6 }));
+  add('popan2', V(0.26, [[0, 230], [1, 160]], [[0, 'u'], [1, 'o']], 219, { release: 0.5, drive: 2.4 }));
+  // muertes peruanas
+  add('podth1', V(0.95, [[0, 320], [0.2, 440], [0.6, 380], [1, 140]], [[0, 'a'], [0.7, 'o']], 207, { fry: 0.2, vib: 0.05, drive: 2.6 }));
+  add('podth2', V(1.1, [[0, 210], [0.25, 260], [1, 90]], [[0, 'o'], [0.8, 'u']], 208, { fry: 0.3, rough: 0.2, drive: 2.2 }));
+  add('podth3', V(0.85, [[0, 300], [0.3, 460], [1, 200]], [[0, 'a'], [0.45, 'i'], [1, 'a']], 209, { vib: 0.06, drive: 2.6 }));
+  // muertes bolivianas
+  add('bodth1', V(0.9, [[0, 330], [0.25, 480], [0.7, 420], [1, 180]], [[0, 'a'], [0.5, 'i']], 221, { vib: 0.06, drive: 2.8 }));
+  add('bodth2', V(1.0, [[0, 230], [0.3, 350], [1, 110]], [[0, 'u'], [0.35, 'a'], [1, 'o']], 222, { rough: 0.35, fry: 0.2, drive: 2.6 }));
+  add('bodth3', V(1.1, [[0, 200], [0.3, 240], [1, 80]], [[0, 'a'], [0.9, 'o']], 223, { fry: 0.35, breath: 0.16, drive: 2.2 }));
+  // muertes chilenas
+  add('chdth1', V(0.9, [[0, 280], [0.2, 400], [1, 120]], [[0, 'a'], [1, 'a']], 212, { fry: 0.25, drive: 2.6 }));
+  add('chdth2', V(1.0, [[0, 260], [0.3, 380], [1, 140]], [[0, 'a'], [0.4, 'i'], [1, 'e']], 224, { vib: 0.05, drive: 2.4 }));
+  add('chdth3', V(1.1, [[0, 190], [0.25, 240], [1, 85]], [[0, 'o'], [0.8, 'u']], 225, { fry: 0.3, rough: 0.25, drive: 2.2 }));
+  add('sgtdth', V(1.1, [[0, 300], [0.2, 480], [0.6, 420], [1, 120]], [[0, 'a'], [0.8, 'o']], 210, { rough: 0.4, fry: 0.15, drive: 3 }));
+  add('ofdth', V(1.2, [[0, 170], [0.3, 210], [1, 70]], [[0, 'o'], [0.5, 'a'], [1, 'u']], 211, { fry: 0.35, drive: 2.2 }));
+  add('posact', V(0.36, [[0, 150], [1, 135]], [[0, 'u'], [1, 'o']], 213, { breath: 0.4, drive: 1.6, peak: 0.55 }));
+  // el soldado del jugador
+  add('plpain', V(0.32, [[0, 190], [0.3, 235], [1, 150]], [[0, 'a'], [1, 'u']], 214, { onset: 'g', drive: 2.6, release: 0.45 }));
+  add('pldeth', V(1.3, [[0, 260], [0.2, 400], [0.6, 330], [1, 80]], [[0, 'a'], [0.7, 'o'], [1, 'u']], 215, { fry: 0.3, rough: 0.2, drive: 2.6 }));
+  add('pdiehi', V(1.2, [[0, 350], [0.2, 560], [1, 150]], [[0, 'a'], [0.8, 'o']], 216, { rough: 0.5, vib: 0.07, drive: 3.2 }));
+  add('oof', V(0.2, [[0, 150], [1, 120]], [[0, 'u'], [1, 'u']], 217, { release: 0.6, drive: 2 }));
+  add('noway', V(0.26, [[0, 135], [1, 110]], [[0, 'u'], [1, 'o']], 218, { breath: 0.3, drive: 1.8 }));
   // Caballos
   {
     const len = 1.1;

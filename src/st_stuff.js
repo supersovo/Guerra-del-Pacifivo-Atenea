@@ -14,7 +14,7 @@ let st_lastattackdown = -1, st_randomnumber = 0, st_priority = 0;
 let st_cheatbuf = '';
 let automapRevealAll = false;
 
-const ST_FACEY = 1;
+const ST_FACEX = 144, ST_FACEY = 2;   // interior del marco (32×30)
 
 function ST_ViewSizeChanged() {}
 
@@ -212,7 +212,7 @@ function ST_Drawer(fullscreen) {
     V_DrawText(x, y, armsNums[i], false, owned ? V_Translations.gold : V_Translations.dark);
   }
   // rostro
-  V_DrawPatch(148, y0 + ST_FACEY, W_CacheLumpName(st_faceindex));
+  V_DrawPatch(ST_FACEX, y0 + ST_FACEY, W_CacheLumpName(st_faceindex));
   // moral
   ST_DrawBigNum(221, y0 + 5, plyr.armorpoints);
   V_DrawPatch(221, y0 + 5, V_GetGlyph('%', true), V_Translations.red);

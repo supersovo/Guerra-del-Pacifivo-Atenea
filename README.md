@@ -68,6 +68,74 @@ voladuras) salta en pedazos según su uniforme: cabeza, brazos y piernas vuelan,
 rebotan y quedan en el suelo junto al tronco; del jinete queda el caballo y del
 artillero, la pieza. También los caídos cercanos al impacto se despedazan.
 
+### Voces de los soldados
+
+Los soldados gritan al cargar, al ser heridos y al caer, cada uno con el acento
+de su país:
+
+- **peruanos**: "¡Asu mare!", "¡A la chucha!", "¡Chucha madre!", "¡Ahí vienen los chilenos!";
+- **bolivianos**: "¡Chuta, me han dado!", "¡Jilata, me han dado!", "¡Ay, Tata Dios!", "¡Jallalla, Bolivia!";
+- **chilenos**: "¡A la chucha!", "¡Puchas!", "¡Por la cresta!", "¡Viva Chile!".
+
+Oficiales, Colorados, Reserva de Lima, húsares y artilleros tienen frases
+propias. Habla una voz a la vez; quien cae por el fuego del jugador grita
+siempre. Las frases se dicen con la **voz sintética del navegador**, que elige
+para cada bando la voz más cercana a su acento. **Microsoft Edge** trae voces
+naturales de los tres países: Alex (Perú), Marcelo (Bolivia) y Lorenzo (Chile).
+Otros navegadores usan la voz en español que tengan. Bajo la retícula aparece
+el subtítulo de cada grito. Los quejidos y estertores no son grabaciones: los
+genera un modelo de la voz humana (pulso glotal y formantes del tracto vocal).
+Todo se ajusta en **Opciones › Sonido, voces y marchas**, que incluye **Probar
+las voces**.
+
+### Marchas militares
+
+El juego trae marchas originales tocadas por una banda sintetizada (cornetas,
+pífanos, bajos, caja y bombo). Las marchas históricas se cargan desde archivos
+propios, en **Opciones › Sonido, voces y marchas › Marchas militares ›
+Cargar**, o arrastrando los archivos a la ventana del juego:
+
+- un **MIDI** (`.mid`) lo interpreta la banda del juego. Cada parte se asigna a
+  cornetas, pífanos, clarinetes, bombardinos o tubas según su instrumento y
+  registro, y la percusión a caja, bombo y platillos;
+- un **audio** (`.mp3`, `.ogg`, `.wav`, `.m4a`) suena tal cual.
+
+Cada marcha se asigna por su nombre:
+
+| Archivo | Suena en |
+|---------|----------|
+| *Himno de Yungay* | portada y final de la campaña |
+| *Adiós al Séptimo de Línea* | parte de operaciones |
+| *Los Viejos Estandartes* | intermedio |
+| cualquier otra | la primera batalla que aún tenga música del juego |
+
+El menú permite cambiar la marcha de cada momento: portada, parte, intermedio,
+cada una de las seis batallas y final. Al elegir una, suena para escucharla. Las
+marchas quedan guardadas en el navegador.
+
+Los derechos de las tres marchas son distintos:
+
+- el **Himno de Yungay** (José Zapiola, 1839) es de dominio público;
+- la melodía de **Adiós al Séptimo de Línea** es del siglo XIX, pero su letra y
+  sus arreglos difundidos (José Goles) tienen derechos vigentes;
+- **Los Viejos Estandartes** (1966) también tiene derechos vigentes.
+
+Por eso no se incluyen en el juego (detalles en
+[docs/HISTORIA.md](docs/HISTORIA.md#música-y-voces)).
+
+### El rostro del soldado
+
+El retrato de la barra de estado es un soldado del 1879 pintado en alta
+resolución (cuatro veces la de DOOM): kepí rojo con franja azul y escarapela,
+cubrenuca de lino, bigote y levita. Las heridas crecen con el daño:
+
+1. hollín y un corte en la mejilla;
+2. moretón y una brecha en la frente que sangra;
+3. ojo en tinta, labio partido, venda empapada y kepí perforado;
+4. sangre de la nariz y del oído y el cuello manchado.
+
+Al caer queda pálido, con sangre en la boca.
+
 ## Cómo jugar
 
 No requiere instalación ni servidor: abra `index.html` en un navegador moderno
@@ -106,7 +174,8 @@ El progreso se guarda en el navegador.
 
 ```
 index.html            página del juego (canvas, consola de arranque, controles táctiles)
-src/                  motor: un archivo por módulo de DOOM (d_main, g_game, p_*, r_*, ...)
+src/                  motor: un archivo por módulo de DOOM (d_main, g_game, p_*, r_*, ...);
+                      s_voice.js voces de los soldados, s_march.js marchas MIDI y de audio
 content/              contenido generado por código al iniciar
   palette.js font.js  paleta de 256 colores + COLORMAP, fuentes con acentos
   textures.js sky.js  texturas, planos y cielos panorámicos de 360°
@@ -130,6 +199,7 @@ Requieren Node.js y Playwright con Chromium:
 node tests/logic_test.js 1,2,3,4,5,6  # cumple los objetivos de cada mapa, iza la bandera y llega al intermedio
 node tests/combat_test.js <salida> 2  # combate con teclado real: cinco armas, avance, carta
 node tests/aim_test.js <salida>       # mirada con el ratón, tiro a la retícula, miras y resolución
+node tests/sound_test.js <salida>     # marchas (MIDI, audio, menú, guardado), voces y rostro
 node tests/game_shots.js <salida> 1 vistas.json   # capturas desde puntos de vista
 node tests/ui_shots.js <salida>       # portada, menús, parte, carta, intermedio y final
 node tests/sprite_shots.js <salida>   # hojas de contacto de los sprites
