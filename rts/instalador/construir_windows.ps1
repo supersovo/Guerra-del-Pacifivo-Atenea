@@ -1,6 +1,6 @@
 # Construye el juego y su instalador para Windows.
 #
-# Requisitos: Python 3.11 o más nuevo (python.org) e Inno Setup 6
+# Requisitos: Python 3.11 o más nuevo (python.org) e Inno Setup 6.3 o más nuevo
 # (https://jrsoftware.org/isinfo.php). Desde la carpeta rts:
 #
 #     powershell -ExecutionPolicy Bypass -File instalador\construir_windows.ps1

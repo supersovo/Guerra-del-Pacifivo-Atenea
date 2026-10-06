@@ -5,7 +5,7 @@
 ;     pyinstaller --noconfirm instalador\salitre.spec
 ; Luego, desde rts\instalador:
 ;     iscc /DVersion=0.9.0 salitre.iss
-; El instalador queda en rts\instalador\Salida\.
+; El instalador queda en rts\instalador\Salida\. Requiere Inno Setup 6.3 o más nuevo.
 ;
 ; Los datos del jugador (configuración, cuentas del servidor, repeticiones y
 ; registros) se guardan en %APPDATA%\GuerraDelPacifico y NO se borran al
@@ -35,8 +35,9 @@ UninstallDisplayName={#Nombre}
 Compression=lzma2/max
 SolidCompression=yes
 WizardStyle=modern
-ArchitecturesAllowed=x64
-ArchitecturesInstallIn64BitMode=x64
+; x64compatible (Inno Setup 6.3 o más nuevo) permite instalar también en Windows ARM64
+ArchitecturesAllowed=x64compatible
+ArchitecturesInstallIn64BitMode=x64compatible
 ; se puede instalar solo para el usuario actual (sin permisos de administrador)
 PrivilegesRequired=admin
 PrivilegesRequiredOverridesAllowed=dialog
@@ -56,7 +57,6 @@ Source: "..\dist\GuerraDelPacifico\*"; DestDir: "{app}"; Flags: ignoreversion re
 [Icons]
 Name: "{group}\Guerra del Pacífico"; Filename: "{app}\{#Exe}"; WorkingDir: "{app}"
 Name: "{group}\Servidor dedicado"; Filename: "{app}\{#ExeServidor}"; WorkingDir: "{app}"; Comment: "Servidor para jugar con sus compañeros (puerto 47800)"
-Name: "{group}\Partidas, repeticiones y registros"; Filename: "{userappdata}\GuerraDelPacifico"
 Name: "{group}\Desinstalar"; Filename: "{uninstallexe}"
 Name: "{autodesktop}\Guerra del Pacífico"; Filename: "{app}\{#Exe}"; WorkingDir: "{app}"; Tasks: escritorio
 
