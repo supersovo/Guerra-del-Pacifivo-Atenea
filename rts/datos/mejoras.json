@@ -1,0 +1,293 @@
+{
+  "_comentario": "Investigaciones. Cada efecto suma 'suma' al 'campo' de las unidades que cumplen el 'objetivo'. Campos: danio, armadura, alcance, vida, vida_pct, velocidad_pct, ataque_vel_pct, vision, curacion_pct, energia_max, salpicadura, carga_pct. 'previa' es la investigación anterior de la misma línea.",
+
+  "armas_infanteria_1": {
+    "nombre": "Armamento de infantería I",
+    "descripcion": "+1 de daño a los fusiles de la infantería.",
+    "edificio": "maestranza",
+    "costo": {"salitre": 100, "agua": 100},
+    "tiempo": 60,
+    "requisitos": [],
+    "efectos": [{"campo": "danio", "suma": 1, "objetivo": {"clases": ["infanteria"], "armas": ["fusil"], "excluir_categorias": ["trabajador"]}}],
+    "atajo": "Q"
+  },
+  "armas_infanteria_2": {
+    "nombre": "Armamento de infantería II",
+    "descripcion": "+1 de daño a los fusiles de la infantería.",
+    "edificio": "maestranza",
+    "costo": {"salitre": 175, "agua": 175},
+    "tiempo": 75,
+    "previa": "armas_infanteria_1",
+    "requisitos": ["barracon_instruccion"],
+    "efectos": [{"campo": "danio", "suma": 1, "objetivo": {"clases": ["infanteria"], "armas": ["fusil"], "excluir_categorias": ["trabajador"]}}],
+    "atajo": "Q"
+  },
+  "armas_infanteria_3": {
+    "nombre": "Armamento de infantería III",
+    "descripcion": "+1 de daño a los fusiles de la infantería.",
+    "edificio": "maestranza",
+    "costo": {"salitre": 250, "agua": 250},
+    "tiempo": 90,
+    "previa": "armas_infanteria_2",
+    "requisitos": ["estado_mayor"],
+    "efectos": [{"campo": "danio", "suma": 1, "objetivo": {"clases": ["infanteria"], "armas": ["fusil"], "excluir_categorias": ["trabajador"]}}],
+    "atajo": "Q"
+  },
+  "blindaje_infanteria_1": {
+    "nombre": "Equipo de campaña I",
+    "descripcion": "+1 de armadura a la infantería (correajes, mochilas y cubrenucas).",
+    "edificio": "maestranza",
+    "costo": {"salitre": 100, "agua": 100},
+    "tiempo": 60,
+    "requisitos": [],
+    "efectos": [{"campo": "armadura", "suma": 1, "objetivo": {"clases": ["infanteria"], "excluir_categorias": ["trabajador"]}}],
+    "atajo": "W"
+  },
+  "blindaje_infanteria_2": {
+    "nombre": "Equipo de campaña II",
+    "descripcion": "+1 de armadura a la infantería.",
+    "edificio": "maestranza",
+    "costo": {"salitre": 175, "agua": 175},
+    "tiempo": 75,
+    "previa": "blindaje_infanteria_1",
+    "requisitos": ["barracon_instruccion"],
+    "efectos": [{"campo": "armadura", "suma": 1, "objetivo": {"clases": ["infanteria"], "excluir_categorias": ["trabajador"]}}],
+    "atajo": "W"
+  },
+  "blindaje_infanteria_3": {
+    "nombre": "Equipo de campaña III",
+    "descripcion": "+1 de armadura a la infantería.",
+    "edificio": "maestranza",
+    "costo": {"salitre": 250, "agua": 250},
+    "tiempo": 90,
+    "previa": "blindaje_infanteria_2",
+    "requisitos": ["estado_mayor"],
+    "efectos": [{"campo": "armadura", "suma": 1, "objetivo": {"clases": ["infanteria"], "excluir_categorias": ["trabajador"]}}],
+    "atajo": "W"
+  },
+  "armas_caballeria_1": {
+    "nombre": "Sables y carabinas I",
+    "descripcion": "+2 de daño a la caballería.",
+    "edificio": "maestranza",
+    "costo": {"salitre": 150, "agua": 150},
+    "tiempo": 70,
+    "requisitos": ["caballeriza"],
+    "efectos": [{"campo": "danio", "suma": 2, "objetivo": {"clases": ["caballeria"]}}],
+    "atajo": "E"
+  },
+  "armas_caballeria_2": {
+    "nombre": "Sables y carabinas II",
+    "descripcion": "+2 de daño a la caballería.",
+    "edificio": "maestranza",
+    "costo": {"salitre": 225, "agua": 225},
+    "tiempo": 85,
+    "previa": "armas_caballeria_1",
+    "requisitos": ["central_telegrafos"],
+    "efectos": [{"campo": "danio", "suma": 2, "objetivo": {"clases": ["caballeria"]}}],
+    "atajo": "E"
+  },
+  "blindaje_caballeria_1": {
+    "nombre": "Monturas y correajes I",
+    "descripcion": "+1 de armadura a la caballería.",
+    "edificio": "maestranza",
+    "costo": {"salitre": 150, "agua": 150},
+    "tiempo": 70,
+    "requisitos": ["caballeriza"],
+    "efectos": [{"campo": "armadura", "suma": 1, "objetivo": {"clases": ["caballeria"]}}],
+    "atajo": "R"
+  },
+  "blindaje_caballeria_2": {
+    "nombre": "Monturas y correajes II",
+    "descripcion": "+1 de armadura a la caballería.",
+    "edificio": "maestranza",
+    "costo": {"salitre": 225, "agua": 225},
+    "tiempo": 85,
+    "previa": "blindaje_caballeria_1",
+    "requisitos": ["central_telegrafos"],
+    "efectos": [{"campo": "armadura", "suma": 1, "objetivo": {"clases": ["caballeria"]}}],
+    "atajo": "R"
+  },
+  "armas_artilleria_1": {
+    "nombre": "Granadas de acero I",
+    "descripcion": "+8 de daño a los cañones y +1 a las ametralladoras.",
+    "edificio": "maestranza",
+    "costo": {"salitre": 175, "agua": 175},
+    "tiempo": 80,
+    "requisitos": ["parque_artilleria"],
+    "efectos": [
+      {"campo": "danio", "suma": 8, "objetivo": {"categorias": ["artilleria"], "armas": ["explosivo"]}},
+      {"campo": "danio", "suma": 1, "objetivo": {"categorias": ["artilleria"], "armas": ["metralla"]}}
+    ],
+    "atajo": "T"
+  },
+  "armas_artilleria_2": {
+    "nombre": "Granadas de acero II",
+    "descripcion": "+8 de daño a los cañones y +1 a las ametralladoras.",
+    "edificio": "maestranza",
+    "costo": {"salitre": 250, "agua": 250},
+    "tiempo": 95,
+    "previa": "armas_artilleria_1",
+    "requisitos": ["estado_mayor"],
+    "efectos": [
+      {"campo": "danio", "suma": 8, "objetivo": {"categorias": ["artilleria"], "armas": ["explosivo"]}},
+      {"campo": "danio", "suma": 1, "objetivo": {"categorias": ["artilleria"], "armas": ["metralla"]}}
+    ],
+    "atajo": "T"
+  },
+
+  "cirugia_campana": {
+    "nombre": "Cirugía de campaña",
+    "descripcion": "+50 % de curación de cantineras y heroínas.",
+    "edificio": "hospital_campana",
+    "costo": {"salitre": 100, "agua": 100},
+    "tiempo": 60,
+    "requisitos": [],
+    "efectos": [{"campo": "curacion_pct", "suma": 50, "objetivo": {}}],
+    "atajo": "Q"
+  },
+  "botiquines": {
+    "nombre": "Botiquines",
+    "descripcion": "+50 de energía máxima de las cantineras.",
+    "edificio": "hospital_campana",
+    "costo": {"salitre": 75, "agua": 75},
+    "tiempo": 45,
+    "requisitos": [],
+    "efectos": [{"campo": "energia_max", "suma": 50, "objetivo": {"unidades": ["cantinera"]}}],
+    "atajo": "W"
+  },
+
+  "orden_disperso": {
+    "nombre": "Orden disperso",
+    "descripcion": "+1 de alcance a los fusiles de la infantería: tiradores en guerrilla en vez de columnas cerradas.",
+    "edificio": "barracon_instruccion",
+    "costo": {"salitre": 100, "agua": 100},
+    "tiempo": 60,
+    "requisitos": [],
+    "efectos": [{"campo": "alcance", "suma": 1, "objetivo": {"clases": ["infanteria"], "armas": ["fusil"], "excluir_categorias": ["trabajador", "heroe"]}}],
+    "atajo": "Q"
+  },
+  "paso_trote": {
+    "nombre": "Paso de trote",
+    "descripcion": "+15 % de velocidad a la infantería.",
+    "edificio": "barracon_instruccion",
+    "costo": {"salitre": 100, "agua": 100},
+    "tiempo": 60,
+    "requisitos": [],
+    "efectos": [{"campo": "velocidad_pct", "suma": 15, "objetivo": {"clases": ["infanteria"], "excluir_categorias": ["trabajador"]}}],
+    "atajo": "W"
+  },
+  "dinamita_alto_poder": {
+    "nombre": "Dinamita de alto poder",
+    "descripcion": "+10 de daño y +0,5 de radio a la dinamita de los ingenieros.",
+    "edificio": "barracon_instruccion",
+    "costo": {"salitre": 125, "agua": 125},
+    "tiempo": 70,
+    "requisitos": [],
+    "efectos": [
+      {"campo": "danio", "suma": 10, "objetivo": {"armas": ["dinamita"]}},
+      {"campo": "salpicadura", "suma": 0.5, "objetivo": {"armas": ["dinamita"]}}
+    ],
+    "atajo": "E"
+  },
+
+  "herraje": {
+    "nombre": "Herraje de campaña",
+    "descripcion": "+15 % de velocidad a la caballería.",
+    "edificio": "caballeriza",
+    "costo": {"salitre": 100, "agua": 100},
+    "tiempo": 60,
+    "requisitos": [],
+    "efectos": [{"campo": "velocidad_pct", "suma": 15, "objetivo": {"clases": ["caballeria"]}}],
+    "atajo": "Q"
+  },
+  "carga_sable": {
+    "nombre": "Carga a sable",
+    "descripcion": "La carga de la caballería hace un 50 % más de daño.",
+    "edificio": "caballeriza",
+    "costo": {"salitre": 150, "agua": 100},
+    "tiempo": 70,
+    "requisitos": [],
+    "efectos": [{"campo": "carga_pct", "suma": 50, "objetivo": {"clases": ["caballeria"]}}],
+    "atajo": "W"
+  },
+
+  "cifrado": {
+    "nombre": "Cifrado telegráfico",
+    "descripcion": "+50 de energía máxima de las centrales de telégrafos y de los espías.",
+    "edificio": "central_telegrafos",
+    "costo": {"salitre": 100, "agua": 100},
+    "tiempo": 60,
+    "requisitos": [],
+    "efectos": [
+      {"campo": "energia_max", "suma": 50, "objetivo": {"edificios": ["central_telegrafos"]}},
+      {"campo": "energia_max", "suma": 50, "objetivo": {"unidades": ["espia"]}}
+    ],
+    "atajo": "Q"
+  },
+
+  "alza_mira": {
+    "nombre": "Alza de mira graduada",
+    "descripcion": "+2 de alcance a los cañones.",
+    "edificio": "parque_artilleria",
+    "costo": {"salitre": 150, "agua": 150},
+    "tiempo": 80,
+    "requisitos": [],
+    "efectos": [{"campo": "alcance", "suma": 2, "objetivo": {"categorias": ["artilleria"], "armas": ["explosivo"]}}],
+    "atajo": "Q"
+  },
+  "manivela_rapida": {
+    "nombre": "Manivela rápida",
+    "descripcion": "+25 % de cadencia de las ametralladoras Gatling.",
+    "edificio": "parque_artilleria",
+    "costo": {"salitre": 150, "agua": 150},
+    "tiempo": 70,
+    "requisitos": [],
+    "efectos": [{"campo": "ataque_vel_pct", "suma": 25, "objetivo": {"unidades": ["gatling"]}}],
+    "atajo": "W"
+  },
+
+  "academia_guerra": {
+    "nombre": "Academia de guerra",
+    "descripcion": "+200 de vida a los héroes.",
+    "edificio": "estado_mayor",
+    "costo": {"salitre": 200, "agua": 200},
+    "tiempo": 90,
+    "requisitos": [],
+    "efectos": [{"campo": "vida", "suma": 200, "objetivo": {"categorias": ["heroe"]}}],
+    "atajo": "Q"
+  },
+  "espionaje": {
+    "nombre": "Red de informantes",
+    "descripcion": "+3 de visión a los espías y +20 % de velocidad.",
+    "edificio": "estado_mayor",
+    "costo": {"salitre": 100, "agua": 150},
+    "tiempo": 60,
+    "requisitos": [],
+    "efectos": [
+      {"campo": "vision", "suma": 3, "objetivo": {"unidades": ["espia"]}},
+      {"campo": "velocidad_pct", "suma": 20, "objetivo": {"unidades": ["espia"]}}
+    ],
+    "atajo": "W"
+  },
+
+  "calderas": {
+    "nombre": "Calderas de alta presión",
+    "descripcion": "+20 % de velocidad a los buques.",
+    "edificio": "muelle",
+    "costo": {"salitre": 100, "agua": 100},
+    "tiempo": 60,
+    "requisitos": [],
+    "efectos": [{"campo": "velocidad_pct", "suma": 20, "objetivo": {"clases": ["naval"]}}],
+    "atajo": "Q"
+  },
+  "blindaje_naval": {
+    "nombre": "Blindaje de hierro",
+    "descripcion": "+2 de armadura a los buques.",
+    "edificio": "muelle",
+    "costo": {"salitre": 150, "agua": 150},
+    "tiempo": 80,
+    "requisitos": [],
+    "efectos": [{"campo": "armadura", "suma": 2, "objetivo": {"clases": ["naval"]}}],
+    "atajo": "W"
+  }
+}

@@ -1,0 +1,39 @@
+{
+  "_comentario": "Tablas generales del combate. Los multiplicadores son porcentajes: el daño del arma se multiplica por el valor de la fila (tipo de ataque) y la columna (clase de armadura del blanco); después se resta la armadura. Un 0 significa que el arma no puede atacar a esa clase.",
+  "clases_armadura": ["infanteria", "caballeria", "artilleria", "edificio", "naval"],
+  "multiplicadores": {
+    "fusil":       {"infanteria": 100, "caballeria": 100, "artilleria": 75,  "edificio": 75,  "naval": 50},
+    "sable":       {"infanteria": 100, "caballeria": 100, "artilleria": 125, "edificio": 50,  "naval": 0},
+    "metralla":    {"infanteria": 125, "caballeria": 100, "artilleria": 50,  "edificio": 40,  "naval": 40},
+    "explosivo":   {"infanteria": 75,  "caballeria": 100, "artilleria": 100, "edificio": 150, "naval": 100},
+    "dinamita":    {"infanteria": 75,  "caballeria": 75,  "artilleria": 125, "edificio": 200, "naval": 100},
+    "canon_naval": {"infanteria": 75,  "caballeria": 100, "artilleria": 100, "edificio": 150, "naval": 125}
+  },
+  "nombres_ataque": {
+    "fusil": "Fusil",
+    "sable": "Arma blanca",
+    "metralla": "Metralla",
+    "explosivo": "Granada explosiva",
+    "dinamita": "Dinamita",
+    "canon_naval": "Cañón naval"
+  },
+  "nombres_armadura": {
+    "infanteria": "Infantería",
+    "caballeria": "Caballería",
+    "artilleria": "Artillería",
+    "edificio": "Edificio",
+    "naval": "Naval"
+  },
+  "fallo_por_altura": 30,
+  "_fallo_por_altura": "Probabilidad (%) de errar el tiro desde un nivel más bajo hacia un blanco en un nivel más alto (ventaja de la altura, como en el Morro de Arica).",
+  "poblacion_maxima": 200,
+  "recursos_iniciales": {"salitre": 100, "agua": 0},
+  "trabajadores_iniciales": 6,
+  "carga_salitre": 5,
+  "tiempo_extraccion_salitre": 2.5,
+  "carga_agua": 6,
+  "tiempo_extraccion_agua": 1.5,
+  "carga_agua_agotada": 1,
+  "minas_maximas": 15,
+  "distancia_minima_recursos_cuartel": 3
+}
