@@ -68,6 +68,8 @@ async function D_DoomMain() {
   D_Boot('  DS*: síntesis de efectos de sonido.');
   await M_NextFrame();
   SND_BuildSounds();
+  VX_BuildLumps();
+  D_Boot('  DSV*: ' + VX_TABLE.length + ' frases gritadas en ' + VX_NVOICES + ' voces (en segundo plano).');
   D_Boot('R_Init: inicializando el renderizador.');
   await M_NextFrame();
   R_InitData();
@@ -89,7 +91,6 @@ async function D_DoomMain() {
   D_Boot('I_Init: teclado, ratón, pantalla táctil y mando.');
   I_InitInput(canvas);
   S_Init();
-  VOICE_Init();
   MARCH_Init().catch(function (e) { console.warn('Marchas: ' + e.message); });   // asíncrono
   HU_Init();
   D_Boot('D_CheckNetGame: partida individual.');

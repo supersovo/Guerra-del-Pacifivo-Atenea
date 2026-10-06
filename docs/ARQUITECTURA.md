@@ -26,7 +26,7 @@ módulos ES) para que el juego funcione abriendo `index.html` desde el disco.
 | `st_stuff.js`, `hu_stuff.js`, `am_map.js`, `m_menu.js`, `wi_stuff.js`, `f_finale.js`, `f_wipe.js`, `s_sound.js` | homónimos | barra de estado, mensajes, automapa, menús, intermedio, final, transición, sonido |
 | `p_battle.js` | — | **director de batalla** (extensión de Atenea) |
 | `r_smoke.js` | — | humo de pólvora negra: partículas semitransparentes del renderizador |
-| `s_voice.js` | — | voces de los soldados con el acento de su país (Web Speech API) |
+| `s_voice.js` | — | cuándo y qué grita cada soldado; la frase suena desde su posición |
 | `s_march.js` | — | marchas del jugador: lector MIDI, banda sintetizada, audio, IndexedDB |
 | `tools/mapcompile.js`, `tools/nodebuild.js` | editores y `doombsp` | compilador de mapas y constructor de nodos |
 
@@ -211,7 +211,7 @@ métricas se ajustan a las de la fuente clásica para no alterar la diagramació
 Los rótulos que antes venían pintados en las imágenes (barra de estado, portada,
 carta de campaña) se escriben al dibujar.
 
-### Voces, marchas y retrato (`s_voice.js`, `s_march.js`, `sounds.js`, `face.js`)
+### Voces, marchas y retrato (`s_voice.js`, `voices.js`, `s_march.js`, `sounds.js`, `face.js`)
 
 **Gritos.** Los quejidos y estertores de `content/sounds.js` salen de un
 sintetizador de formantes (`snd_scream`):
@@ -225,14 +225,61 @@ sintetizador de formantes (`snd_scream`):
 Al final pasa por una saturación suave. Hay tres variantes de muerte por bando,
 y la de cada caído se elige al azar.
 
-**Frases.** `s_voice.js` agrega frases dichas con la síntesis de voz del
-navegador. Para cada acento (`info.voice`: `pe`, `bo` o `cl`) elige la voz más
-cercana: es-PE, es-BO o es-CL; si no hay, otra voz latinoamericana. Prefiere las
-voces masculinas, y cada soldado recibe su propio tono y velocidad según su
-número de serie. Las reglas del grito:
+**Frases.** Las frases las grita el propio soldado: no hay voz del navegador.
+`content/voices.js` las convierte en sonido como un sintetizador de habla por
+formantes, en tres pasos.
+
+1. *Del texto a los fonemas.* Reglas del español: dígrafos (ch, ll, rr, qu, gu),
+   seseo, h muda, diptongos e hiatos, sílabas (ataques como pr, bl, tr) y acento
+   (la tilde manda; si no, llana o aguda según la última letra; los clíticos
+   van átonos). Luego los alófonos: b, d, g aproximantes salvo tras pausa o
+   nasal, nasal que toma el punto de la consonante siguiente. Y los rasgos de
+   cada habla (`info.voice`):
+   - chileno: s de coda aspirada, j palatal ante e/i;
+   - costeño: -ado y d final sin d;
+   - andino: rr y r de coda asibiladas, ll lateral, eses largas, átonas breves y
+     centralizadas.
+2. *Prosodia.* Duraciones por fonema y sílaba, con el núcleo final alargado
+   según el modo. Anclas de tono y de energía:
+   - arenga: sostiene en alto el núcleo final;
+   - herida: subida brusca y caída;
+   - agonía: caída larga, temblor, estertor (*fry*) y exhalación;
+   - "último grito" para los vivas de quien cae.
+
+   En el habla andina el pico de tono se alinea tarde, al final de la sílaba
+   fuerte, y la micro-prosodia sube el tono tras consonante sorda.
+3. *Síntesis* a la manera de Klatt (1980):
+   - fuente glótica KLGLOTT88 con jitter, shimmer, vibrato, ronquera
+     subarmónica y aspiración sincronizada con la apertura;
+   - par polo-cero nasal;
+   - F1–F5 variables y F6–F9 fijos en cascada (sin los formantes altos la voz
+     queda apagada sobre 4 kHz);
+   - rama paralela de ruido con preénfasis para s, f, ch, ç y las explosiones;
+   - saturación suave al final, de garganta forzada.
+
+   Las pistas de parámetros se arman por cuadros de 1,45 ms con blancos por
+   segmento (ecuaciones de locus para las transiciones consonánticas) y se
+   suavizan ida y vuelta.
+
+Cada frase de cada bando y situación se sintetiza en tres voces: aguda, media y
+grave, con tono y largo del tracto vocal distintos. En total son 87 frases y
+261 lumps `DSV*` diferidos, construidos en segundo plano: menos de un segundo de
+procesador y PCM de 16 bits.
+
+`s_voice.js` decide cuándo y qué se grita. Cada soldado tiene garganta fija:
+voz y tono salen de su número de serie. La frase se oye con `S_StartVoice`,
+desde la posición del soldado:
+
+- volumen y estéreo, como cualquier efecto;
+- prioridad alta;
+- un paso bajo que va de 10 kHz cerca a 2,2 kHz en el límite del oído;
+- una sola boca: la frase nueva calla la anterior del mismo soldado;
+- si grita frase, se omite su grito genérico.
+
+Las reglas del grito:
 
 - alcance, pausa mínima y probabilidad distintos para avistar, ser herido y caer;
-- una sola frase a la vez: la muerte de alguien cercano corta un grito de carga;
+- hasta tres frases a la vez, sin repetir las últimas oídas;
 - quien cae por el fuego del jugador grita siempre, hasta 1,6 veces más lejos;
 - el azar sale de `M_Random`, la tabla de la interfaz, así que las voces no
   alteran la simulación ni la reproducibilidad de `P_Random`;
@@ -320,6 +367,7 @@ retícula, miras), interfaz (con las dos cartas de campaña), hojas de contacto 
 sprites (incluidos Colorados, Reserva, Granaderos y restos), el renderizador
 aislado y el sonido. La prueba de sonido cubre las marchas en MIDI y en audio
 cargadas con el selector de archivos real, el menú, el guardado en IndexedDB y
-el render fuera de línea de la banda. También comprueba las voces, con una
-síntesis de voz simulada porque Chromium sin interfaz no trae voces, y el
-retrato diferido de la barra de estado.
+el render fuera de línea de la banda. También comprueba los gritos: frases y
+voces sintetizadas, prueba desde el menú, frases en combate que suenan desde
+los soldados con su tono y su filtro de distancia, y que no se use la voz del
+navegador. Cubre además el retrato diferido de la barra de estado.

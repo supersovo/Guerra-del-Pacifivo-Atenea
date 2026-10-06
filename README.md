@@ -103,15 +103,30 @@ de su país:
 - **chilenos**: "¡A la chucha!", "¡Puchas!", "¡Por la cresta!", "¡Viva Chile!".
 
 Oficiales, Colorados, Reserva de Lima, húsares y artilleros tienen frases
-propias. Habla una voz a la vez; quien cae por el fuego del jugador grita
-siempre. Las frases se dicen con la **voz sintética del navegador**, que elige
-para cada bando la voz más cercana a su acento. **Microsoft Edge** trae voces
-naturales de los tres países: Alex (Perú), Marcelo (Bolivia) y Lorenzo (Chile).
-Otros navegadores usan la voz en español que tengan. Bajo la retícula aparece
-el subtítulo de cada grito. Los quejidos y estertores no son grabaciones: los
-genera un modelo de la voz humana (pulso glotal y formantes del tracto vocal).
-Todo se ajusta en **Opciones › Sonido, voces y marchas**, que incluye **Probar
-las voces**.
+propias. Quien cae por el fuego del jugador grita siempre.
+
+No hay narrador ni voz del navegador: **cada soldado grita su frase con su
+propia garganta**, como un sonido más del combate. La frase sale de donde está
+él, con volumen y estéreo según la distancia y el ángulo, y a lo lejos llega
+opaca, sin agudos. Reemplaza su grito genérico. Cada soldado tiene siempre la
+misma voz: una de tres gargantas (aguda, media y grave) con su tono propio.
+
+Las frases no son grabaciones. Las genera un modelo de la voz humana (pulso
+glotal, formantes del tracto vocal, ruido de las consonantes) a partir del texto
+y con los rasgos de cada habla:
+
+- la **s final aspirada** del chileno ("¡Puchah!") y su **j suave** ante e/i
+  ("¡No me dejen!");
+- la **rr asibilada**, la **ll lateral**, las eses firmes, las átonas breves, el
+  habla más pausada y el **pico de tono tardío** del boliviano andino;
+- la **-ado sin d** y la **d final perdida** del habla costeña ("ciudá").
+
+Cada grito tiene su entonación: la **arenga** sostiene en alto la sílaba fuerte
+final ("¡A la caaarga!"); la **herida** sube de golpe y cae; la **agonía** alarga
+la última vocal, le quiebra la voz y termina en estertor y exhalación.
+
+Bajo la retícula aparece el subtítulo de cada grito. Todo se ajusta en
+**Opciones › Sonido, voces y marchas**, que incluye **Probar las voces**.
 
 ### Marchas militares
 
@@ -200,12 +215,13 @@ El progreso se guarda en el navegador.
 ```
 index.html            página del juego (canvas, consola de arranque, controles táctiles)
 src/                  motor: un archivo por módulo de DOOM (d_main, g_game, p_*, r_*, ...);
-                      r_smoke.js humo de pólvora, s_voice.js voces, s_march.js marchas
+                      r_smoke.js humo de pólvora, s_voice.js gritos, s_march.js marchas
 content/              contenido generado por código al iniciar
   palette.js font.js  paleta de 256 colores + COLORMAP, fuentes con acentos
   textures.js sky.js  texturas, planos y cielos panorámicos de 360°
   foundry.js models.js sprites.js   modelos 3D de primitivas -> sprites de 8 rotaciones
   sounds.js music.js  efectos y música sintetizados
+  voices.js           frases gritadas: del texto a la voz por formantes
   gfx.js face.js historia.js        interfaz, rostro del soldado, textos históricos
   maps/               terreno y los seis campos de batalla (e1m1 … e1m6)
 tools/                compilador de mapas y constructor de nodos BSP
@@ -224,7 +240,7 @@ Requieren Node.js y Playwright con Chromium:
 node tests/logic_test.js 1,2,3,4,5,6  # cumple los objetivos de cada mapa, iza la bandera y llega al intermedio
 node tests/combat_test.js <salida> 2  # combate con teclado real: cinco armas, avance, carta
 node tests/aim_test.js <salida>       # mirada con el ratón, tiro a la retícula, miras y resolución
-node tests/sound_test.js <salida>     # marchas (MIDI, audio, menú, guardado), voces y rostro
+node tests/sound_test.js <salida>     # marchas (MIDI, audio, menú, guardado), gritos y rostro
 node tests/game_shots.js <salida> 1 vistas.json   # capturas desde puntos de vista
 node tests/ui_shots.js <salida>       # portada, menús, parte, carta, intermedio y final
 node tests/sprite_shots.js <salida>   # hojas de contacto de los sprites

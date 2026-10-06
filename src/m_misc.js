@@ -33,7 +33,7 @@ function M_StorageSet(key, value) {
 
 // --- Configuración (m_misc.c: M_LoadDefaults / M_SaveDefaults) --------------------
 const defaults = {
-  configVersion: 2,
+  configVersion: 3,
   mouseSensitivity: 5,
   sfxVolume: 10,
   musicVolume: 7,
@@ -49,20 +49,21 @@ const defaults = {
   mouseMove: 0,          // 1 = el eje Y del ratón mueve adelante/atrás (clásico, sin mirar)
   touchControls: 2,      // 0 = no, 1 = sí, 2 = automático
   crosshair: 1,
-  voices: 1,             // frases de los soldados con la voz del navegador (s_voice.js)
+  voices: 1,             // los soldados gritan sus frases (content/voices.js, s_voice.js)
   voiceSubtitles: 1      // subtítulo breve con la frase gritada
 };
 
 // Claves cuyo valor guardado por una versión anterior se descarta (cambió su
-// valor por omisión o su significado).
-const M_RESET_ON_UPGRADE = ['crosshair', 'resolution', 'mouseLook', 'mouseMove'];
+// valor por omisión o su significado): clave → versión desde la que vale.
+// Las voces dejaron de ser la voz del navegador en la versión 3.
+const M_RESET_ON_UPGRADE = { crosshair: 2, resolution: 2, mouseLook: 2, mouseMove: 2, voices: 3 };
 
 function M_LoadDefaults() {
   const saved = M_StorageGet('config', null);
   if (saved && typeof saved === 'object') {
-    const upgrade = saved.configVersion !== defaults.configVersion;
+    const ver = saved.configVersion || 0;
     for (const k in defaults) {
-      if (k === 'configVersion' || (upgrade && M_RESET_ON_UPGRADE.indexOf(k) >= 0)) continue;
+      if (k === 'configVersion' || ver < (M_RESET_ON_UPGRADE[k] || 0)) continue;
       if (typeof saved[k] === typeof defaults[k]) defaults[k] = saved[k];
     }
   }

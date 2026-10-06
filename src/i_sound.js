@@ -43,21 +43,29 @@ function I_SetMusicVolume(v) {
   if (I_musicGain) I_musicGain.gain.value = Math.pow(v / 15, 1.5) * 0.55;
 }
 
-// Obtiene (o crea) el AudioBuffer de un lump de sonido.
+// Obtiene (o crea) el AudioBuffer de un lump de sonido. Las muestras vienen
+// en coma flotante (samples) o en 16 bits (pcm16, las voces: ocupan la mitad).
 function I_GetSfxBuffer(lumpname) {
   let b = I_bufferCache.get(lumpname);
   if (b) return b;
   const n = W_CheckNumForName(lumpname);
   if (n < 0 || !I_audioCtx) return null;
   const snd = W_CacheLumpNum(n);
-  b = I_audioCtx.createBuffer(1, snd.samples.length, snd.rate);
-  b.getChannelData(0).set(snd.samples);
+  if (snd.pcm16) {
+    b = I_audioCtx.createBuffer(1, snd.pcm16.length, snd.rate);
+    const d = b.getChannelData(0);
+    for (let i = 0; i < d.length; i++) d[i] = snd.pcm16[i] / 32767;
+  } else {
+    b = I_audioCtx.createBuffer(1, snd.samples.length, snd.rate);
+    b.getChannelData(0).set(snd.samples);
+  }
   I_bufferCache.set(lumpname, b);
   return b;
 }
 
-// Inicia un sonido. vol 0..1, sep -1 (izquierda) .. 1 (derecha).
-function I_StartSound(lumpname, vol, sep, pitch) {
+// Inicia un sonido. vol 0..1, sep -1 (izquierda) .. 1 (derecha); lp: corte
+// de un paso bajo (Hz) para las voces lejanas, o nada.
+function I_StartSound(lumpname, vol, sep, pitch, lp) {
   if (!I_audioCtx || I_audioCtx.state !== 'running') return null;
   const buf = I_GetSfxBuffer(lumpname);
   if (!buf) return null;
@@ -66,25 +74,35 @@ function I_StartSound(lumpname, vol, sep, pitch) {
   if (pitch && pitch !== 1) src.playbackRate.value = pitch;
   const gain = I_audioCtx.createGain();
   gain.gain.value = vol;
+  let head = src, filter = null;
+  if (lp) {
+    filter = I_audioCtx.createBiquadFilter();
+    filter.type = 'lowpass';
+    filter.frequency.value = lp;
+    filter.Q.value = 0.5;
+    src.connect(filter);
+    head = filter;
+  }
   let pan = null;
   if (I_audioCtx.createStereoPanner) {
     pan = I_audioCtx.createStereoPanner();
     pan.pan.value = sep;
-    src.connect(gain); gain.connect(pan); pan.connect(I_sfxGain);
+    head.connect(gain); gain.connect(pan); pan.connect(I_sfxGain);
   } else {
-    src.connect(gain); gain.connect(I_sfxGain);
+    head.connect(gain); gain.connect(I_sfxGain);
   }
-  const h = { src: src, gain: gain, pan: pan, playing: true };
+  const h = { src: src, gain: gain, pan: pan, filter: filter, playing: true };
   src.onended = function () { h.playing = false; };
   src.start();
   return h;
 }
 
-function I_UpdateSoundParams(h, vol, sep) {
+function I_UpdateSoundParams(h, vol, sep, lp) {
   if (!h || !h.playing) return;
   const t = I_audioCtx.currentTime;
   h.gain.gain.setTargetAtTime(vol, t, 0.015);
   if (h.pan) h.pan.pan.setTargetAtTime(sep, t, 0.015);
+  if (h.filter && lp) h.filter.frequency.setTargetAtTime(lp, t, 0.03);
 }
 
 function I_StopSound(h) {

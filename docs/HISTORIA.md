@@ -233,6 +233,23 @@ jugador reconozca de oído el origen de cada soldado:
 Son giros actuales: el habla de los soldados de 1879 no está documentada con ese
 detalle.
 
+Las frases no las lee un narrador: las grita cada soldado con una voz generada
+por el juego. Esa voz imita rasgos de pronunciación conocidos de cada habla:
+
+- chilena: la **s final aspirada** o perdida ("puchah") y la **j palatal** ante
+  e/i ("dejen" con una j suave, como la *ch* alemana de *ich*);
+- costeña peruana: la **d que se pierde** en -ado y al final de palabra
+  ("ciudá");
+- andina boliviana, en contacto con el aimara y el quechua:
+  - la **rr asibilada**, con silbido;
+  - la **ll lateral**, distinta de la y;
+  - eses firmes y vocales átonas breves;
+  - un habla más pausada, con el pico de tono que llega tarde en la sílaba
+    acentuada (rasgo descrito en el castellano andino).
+
+Es una aproximación sintética: sirve para reconocer de oído el bando de quien
+grita, no para reproducir el habla real de la época.
+
 ## Licencias del juego
 
 - **Escala**: las distancias y alturas están comprimidas (el farellón de Pisagua o

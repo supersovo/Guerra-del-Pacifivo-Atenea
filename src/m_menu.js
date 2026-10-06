@@ -105,15 +105,9 @@ const SoundMenu = {
     M_Toggle('Voces de los soldados', function () { return defaults.voices; }, function (v) { defaults.voices = v; if (!v) VOICE_StopAll(); }),
     M_Toggle('Subtítulos de las voces', function () { return defaults.voiceSubtitles; }, function (v) { defaults.voiceSubtitles = v; }),
     M_Item('Probar las voces', function () {
-      if (!VOICE_Test()) { M_StartMessage('Este navegador no tiene voz sintética.\nSe verán solo los subtítulos.\n\n(Presione una tecla)', null, false); return; }
-      const d = VOICE_Describe();
-      const line = function (acc, txt) {
-        if (!d[acc]) return txt + ': sin voz en español';
-        const v = d[acc].replace(/^Microsoft |^Google /, '').replace(/ Online \(Natural\)/, '').replace(/ - [^()]+\([^)]*\)/, '');
-        return txt + ': ' + MARCH_Fit(v, 200);
-      };
-      M_StartMessage(line('pe', 'Peruano') + '\n' + line('bo', 'Boliviano') + '\n' + line('cl', 'Chileno') +
-        '\n\nMicrosoft Edge trae voces de los tres países.\n(Presione una tecla)', null, false);
+      const said = VOICE_Test();
+      if (!said.length) { M_StartMessage('El navegador no permite sonido.\nSe verán solo los subtítulos.\n\n(Presione una tecla)', null, false); return; }
+      M_StartMessage(said.join('\n') + '\n\nCada soldado grita con su voz y su acento.\n(Presione una tecla)', null, false);
     }),
     M_Item('Marchas militares...', function () { M_SetupNextMenu(MarchMenu); })
   ]
