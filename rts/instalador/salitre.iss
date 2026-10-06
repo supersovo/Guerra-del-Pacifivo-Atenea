@@ -35,8 +35,8 @@ UninstallDisplayName={#Nombre}
 Compression=lzma2/max
 SolidCompression=yes
 WizardStyle=modern
-ArchitecturesAllowed=x64compatible
-ArchitecturesInstallIn64BitMode=x64compatible
+ArchitecturesAllowed=x64
+ArchitecturesInstallIn64BitMode=x64
 ; se puede instalar solo para el usuario actual (sin permisos de administrador)
 PrivilegesRequired=admin
 PrivilegesRequiredOverridesAllowed=dialog

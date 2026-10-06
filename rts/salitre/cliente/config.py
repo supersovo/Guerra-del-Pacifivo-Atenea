@@ -18,7 +18,6 @@ PREDETERMINADA = {
     "resolucion_interna": [1280, 720],
     "vsync": True,
     "volumen_efectos": 0.7,
-    "volumen_voces": 0.8,
     "velocidad_desplazamiento": 1.0,
     "desplazar_con_borde": True,
     "barras_siempre": False,
