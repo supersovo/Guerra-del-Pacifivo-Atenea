@@ -1,0 +1,176 @@
+# Integración continua del RTS «Guerra del Pacífico: Salitre y Pólvora» (carpeta rts/).
+# - Pruebas en Linux y Windows (simulación, red, servidor y cliente sin pantalla).
+# - Instalador de Windows (PyInstaller + Inno Setup) con prueba de humo del .exe.
+# - Versión portátil para Linux e imagen Docker del servidor dedicado.
+# - Con una etiqueta v* (por ejemplo v0.9.0) publica los archivos en una versión de GitHub.
+name: RTS Salitre y Pólvora
+
+on:
+  push:
+    branches: ["**"]
+    tags: ["v*"]
+    paths: ["rts/**", ".github/workflows/rts.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: rts-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  PYTHON_VERSION: "3.12"
+
+jobs:
+  pruebas:
+    name: Pruebas (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    defaults:
+      run:
+        working-directory: rts
+    env:
+      SDL_VIDEODRIVER: dummy
+      SDL_AUDIODRIVER: dummy
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+          cache-dependency-path: rts/requirements-dev.txt
+      - name: Dependencias
+        run: python -m pip install -r requirements-dev.txt
+      - name: Revisión estática (pyflakes)
+        run: python -m pyflakes salitre herramientas instalador tests
+      - name: Pruebas
+        run: python -m pytest -q
+
+  windows:
+    name: Instalador de Windows
+    needs: pruebas
+    runs-on: windows-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: rts
+        shell: pwsh
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+          cache-dependency-path: rts/requirements.txt
+      - name: Dependencias
+        run: python -m pip install -r requirements.txt pyinstaller
+      - name: Ejecutables (PyInstaller)
+        run: python -m PyInstaller --noconfirm instalador/salitre.spec
+      - name: Prueba de humo del ejecutable
+        env:
+          SDL_VIDEODRIVER: dummy
+          SDL_AUDIODRIVER: dummy
+          SALITRE_DATOS_USUARIO: ${{ runner.temp }}\salitre
+        run: |
+          $p = Start-Process -FilePath "dist\GuerraDelPacifico\GuerraDelPacifico.exe" -ArgumentList "--prueba-humo" -Wait -PassThru
+          Get-Content "$env:SALITRE_DATOS_USUARIO\registros\cliente.log" -Tail 25
+          if ($p.ExitCode -ne 0) { throw "La prueba de humo falló con código $($p.ExitCode)" }
+          & "dist\GuerraDelPacifico\ServidorSalitre.exe" --help
+          if ($LASTEXITCODE -ne 0) { throw "El servidor dedicado no arranca" }
+      - name: Instalador (Inno Setup)
+        run: |
+          $iscc = Join-Path ${env:ProgramFiles(x86)} "Inno Setup 6\ISCC.exe"
+          if (-not (Test-Path $iscc)) {
+            choco install innosetup --no-progress -y
+            if ($LASTEXITCODE -ne 0) { throw "No se pudo instalar Inno Setup" }
+          }
+          $version = (python -c "import salitre; print(salitre.VERSION)").Trim()
+          Push-Location instalador
+          & $iscc "/DVersion=$version" salitre.iss
+          if ($LASTEXITCODE -ne 0) { throw "Inno Setup falló" }
+          Pop-Location
+          Compress-Archive -Path dist\GuerraDelPacifico -DestinationPath "dist\GuerraDelPacifico-$version-windows-portatil.zip"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows
+          path: |
+            rts/instalador/Salida/*.exe
+            rts/dist/*.zip
+          if-no-files-found: error
+
+  linux:
+    name: Versión portátil para Linux
+    needs: pruebas
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: rts
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+          cache-dependency-path: rts/requirements.txt
+      - name: Construir y probar
+        run: sh instalador/construir.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: linux
+          path: rts/dist/*.tar.gz
+          if-no-files-found: error
+
+  docker:
+    name: Imagen del servidor dedicado
+    needs: pruebas
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      - name: Construir la imagen
+        run: docker build -f rts/docker/Dockerfile -t salitre-servidor rts
+      - name: Probar el contenedor
+        working-directory: rts
+        run: |
+          docker run -d --name salitre -p 47800:47800 salitre-servidor --nombre "Prueba CI" --sin-lan
+          python - <<'PY'
+          import time
+          from salitre.contenido import catalogo
+          from salitre.red.conexion import Conexion
+          for intento in range(30):
+              c = Conexion()
+              if c.conectar_y_esperar("127.0.0.1", 47800, 2.0):
+                  break
+              time.sleep(1)
+          else:
+              raise SystemExit("el servidor del contenedor no responde")
+          c.saludar("Prueba", huella=catalogo.cargar().huella)
+          print("Conectado a", c.esperar("bienvenida", 10)["servidor"])
+          c.cerrar()
+          PY
+          docker logs salitre
+
+  publicar:
+    name: Publicar versión
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [windows, linux, docker]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: artefactos
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: artefactos/**/*
+          generate_release_notes: true

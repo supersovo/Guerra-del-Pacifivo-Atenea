@@ -171,7 +171,11 @@ class App:
 
 
 def icono():
-    """Ícono de la ventana: bandera con el sol y un fusil cruzado."""
+    """Ícono de la ventana: el de recursos/icono.png (herramientas/generar_icono.py) o uno simple."""
+    try:
+        return pygame.image.load(str(rutas.dir_recursos() / "icono.png"))
+    except (pygame.error, FileNotFoundError):
+        pass
     s = pygame.Surface((64, 64), pygame.SRCALPHA)
     pygame.draw.circle(s, (150, 32, 28), (32, 32), 31)
     pygame.draw.circle(s, (230, 196, 120), (32, 32), 31, 3)
@@ -181,18 +185,54 @@ def icono():
     return s
 
 
+def prueba_humo(segundos=8.0):
+    """Escaramuza contra la IA sin intervención: comprueba que el ejecutable arranca el servidor
+    interno, recibe la partida y dibuja el campo de batalla. Devuelve 0 si todo anduvo bien."""
+    app = App(prueba=True)
+    ok = False
+    try:
+        from .escenas.escaramuza import Escaramuza
+        esc = Escaramuza(app)
+        app.cambiar(esc)
+        esc.comenzar()
+        limite = time.monotonic() + 30
+        while True:
+            app.paso(1 / 30)
+            juego = app.escena
+            if type(juego).__name__ == "Juego" and any(e.dueno == juego.est.yo for e in juego.est.ents.values()):
+                break
+            if time.monotonic() > limite:
+                raise RuntimeError(f"la escaramuza no comenzó (escena {type(juego).__name__})")
+        fin = time.monotonic() + segundos
+        while time.monotonic() < fin:
+            app.paso(1 / 30)
+        log.info("Prueba de humo superada: tick %s, %s entidades a la vista", juego.est.tick, len(juego.est.ents))
+        ok = True
+    except Exception:  # noqa: BLE001
+        log.error("Prueba de humo fallida:\n%s", traceback.format_exc())
+    finally:
+        app.cerrar()
+    return 0 if ok else 1
+
+
 def main(argv=None):
     ap = argparse.ArgumentParser(prog="salitre", description=NOMBRE_JUEGO)
-    ap.add_argument("--conectar", help="servidor al que conectarse al iniciar (host:puerto)")
+    ap.add_argument("--conectar", metavar="HOST[:PUERTO]", help="abrir directamente la conexión a ese servidor")
     ap.add_argument("--nombre", help="nombre del jugador")
-    ap.add_argument("--version", action="store_true")
+    ap.add_argument("--version", action="store_true", help="mostrar la versión y salir")
+    ap.add_argument("--prueba-humo", action="store_true", help=argparse.SUPPRESS)
     args = ap.parse_args(argv)
     if args.version:
         print(NOMBRE_JUEGO, VERSION)
         return 0
+    manejadores = [logging.FileHandler(rutas.dir_registros() / "cliente.log", encoding="utf-8")]
+    if sys.stdout is not None:   # el ejecutable sin consola de Windows no tiene salida estándar
+        manejadores.append(logging.StreamHandler(sys.stdout))
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s",
-                        handlers=[logging.FileHandler(rutas.dir_registros() / "cliente.log", encoding="utf-8"),
-                                  logging.StreamHandler(sys.stdout)])
+                        handlers=manejadores)
+    log.info("%s %s — datos del usuario en %s", NOMBRE_JUEGO, VERSION, rutas.dir_usuario())
+    if args.prueba_humo:
+        return prueba_humo()
     if sys.platform.startswith("win"):
         try:
             import ctypes
@@ -204,6 +244,13 @@ def main(argv=None):
         app = App(args)
         if args.nombre:
             app.config["nombre"] = args.nombre
+        if args.conectar:
+            from .escenas.conectar import Conectar
+            con = Conectar(app)
+            con.direccion.texto = args.conectar.strip()
+            app.cambiar(con)
+            if len(app.config["nombre"]) >= 3:
+                con.conectar()
         app.bucle()
     except Exception:  # noqa: BLE001 - se registra para poder ayudar al jugador
         log.error("Error fatal:\n%s", traceback.format_exc())

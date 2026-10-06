@@ -1,0 +1,11 @@
+**/__pycache__
+**/*.pyc
+.pytest_cache
+build
+dist
+tests
+herramientas
+instalador
+docs
+recursos
+mapas/vistas

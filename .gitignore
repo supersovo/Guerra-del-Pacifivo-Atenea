@@ -10,3 +10,7 @@ rts/build/
 rts/dist/
 rts/mapas/vistas/
 *.egg-info/
+
+# Instalador
+rts/instalador/version_windows.txt
+rts/instalador/Salida/
