@@ -2,6 +2,7 @@
 pantallas, juega una escaramuza contra la IA y una partida multijugador
 completa (salón → sala de espera → batalla) contra un segundo jugador."""
 
+import gc
 import time
 
 import pytest
@@ -28,6 +29,7 @@ def app():
     a.config["desplazar_con_borde"] = False
     yield a
     a.cerrar()
+    gc.collect()
 
 
 def cuadros(app, n=3):

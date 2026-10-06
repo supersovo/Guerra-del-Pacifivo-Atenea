@@ -7,6 +7,7 @@ ventana real. Si la GPU no está disponible, SDL usa su renderizador por
 software con el mismo código.
 """
 
+import gc
 import os
 
 import pygame
@@ -37,6 +38,20 @@ class Lienzo:
         self._texto = {}
         self._tex = {}
         self._orden = 0
+
+    def cerrar(self):
+        """Libera texturas, renderizador y ventana, en ese orden, antes de cerrar pygame.
+
+        Si una textura de SDL se destruye después del renderizador (o después de
+        pygame.quit), SDL toca memoria ya liberada y el programa cae.
+        """
+        self._tex.clear()
+        self._texto.clear()
+        gc.collect()
+        self.r = None
+        gc.collect()
+        self.window = None
+        gc.collect()
 
     # ------------------------------------------------------------------
     def poner_icono(self, superficie):

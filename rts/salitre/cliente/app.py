@@ -1,6 +1,7 @@
 """Aplicación del cliente: ventana, bucle principal y cambio de escenas."""
 
 import argparse
+import gc
 import logging
 import os
 import sys
@@ -165,9 +166,19 @@ class App:
             self.detener_servidor_local()
             self.perfil.cerrar()
         finally:
-            from . import fuentes
-            fuentes.olvidar()
+            self.liberar_graficos()
             pygame.quit()
+
+    def liberar_graficos(self):
+        """Suelta escenas, interfaz y texturas mientras SDL sigue vivo (ver Lienzo.cerrar)."""
+        from . import fuentes
+        from .ui import ui as mod_ui
+        self.escena = None
+        self.ui = None
+        mod_ui.olvidar()
+        gc.collect()
+        self.lz.cerrar()
+        fuentes.olvidar()
 
 
 def icono():

@@ -14,6 +14,12 @@ def ui_actual():
     return _actual
 
 
+def olvidar():
+    """Suelta el contexto global (al cerrar el juego, para liberar sus texturas a tiempo)."""
+    global _actual
+    _actual = None
+
+
 class UI:
     def __init__(self, lz):
         global _actual

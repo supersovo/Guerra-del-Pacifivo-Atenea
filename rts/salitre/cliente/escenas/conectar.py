@@ -39,6 +39,30 @@ def ips_locales():
     return sorted(ips)
 
 
+class BusquedaLAN:
+    """Búsqueda de servidores en segundo plano. El hilo solo toca este objeto, nunca la
+    escena: si la retuviera, sus texturas podrían liberarse después de cerrar pygame."""
+
+    def __init__(self):
+        self.encontrados = []
+        self.activa = False
+        self.nueva = False
+
+    def iniciar(self):
+        if self.activa:
+            return
+        self.activa = True
+        threading.Thread(target=self._tarea, name="busqueda-lan", daemon=True).start()
+
+    def _tarea(self):
+        try:
+            self.encontrados = descubrimiento.buscar(1.2)
+        except OSError:
+            self.encontrados = []
+        self.activa = False
+        self.nueva = True
+
+
 class Conectar(Escena):
     def __init__(self, app):
         super().__init__(app)
@@ -65,7 +89,7 @@ class Conectar(Escena):
                                                      "o una VPN como ZeroTier o Tailscale.")))
         self.widgets.append(Boton((self.p.x + 30, self.p.bottom - 60, 160, 42), "Volver", self.volver, "madera"))
         self.encontrados = []
-        self._buscando = False
+        self.busqueda = BusquedaLAN()
         self.estado = None
         self.recientes = app.perfil.servidores()
         self._refrescar_lista()
@@ -85,20 +109,7 @@ class Conectar(Escena):
         self.direccion.texto = clave
 
     def buscar(self):
-        if self._buscando:
-            return
-        self._buscando = True
-
-        def tarea():
-            try:
-                self.encontrados = descubrimiento.buscar(1.2)
-            except OSError:
-                self.encontrados = []
-            self._buscando = False
-            self._listo = True
-
-        self._listo = False
-        threading.Thread(target=tarea, daemon=True).start()
+        self.busqueda.iniciar()
 
     def volver(self):
         from .portada import Portada
@@ -138,8 +149,9 @@ class Conectar(Escena):
 
     def actualizar(self, dt):
         super().actualizar(dt)
-        if getattr(self, "_listo", False):
-            self._listo = False
+        if self.busqueda.nueva:
+            self.busqueda.nueva = False
+            self.encontrados = self.busqueda.encontrados
             self._refrescar_lista()
         if self.estado is None or self.app.red is None:
             return
@@ -194,7 +206,7 @@ class Conectar(Escena):
         lz.texto("Clave", x, y + 50, f, P.TINTA)
         lz.texto("Servidor", x, y + 136, f, P.TINTA)
         lz.texto("Servidores encontrados y recientes", self.p.x + 480, y - 26, f, P.TINTA)
-        if self._buscando:
+        if self.busqueda.activa:
             lz.texto("Buscando en la red local...", self.p.x + 480, y + 256, fuentes.cursiva(15), P.TINTA_SUAVE)
         ayuda = ("Sin clave se entra como invitado. Con una cuenta (clave) el servidor guarda sus victorias y su "
                  "puesto en el escalafón. Para jugar desde casas distintas, uno crea el servidor y abre el puerto "
