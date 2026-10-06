@@ -167,4 +167,5 @@ repeticiones quedan en el volumen `salitre-datos`; para respaldarlos, copie
 | «Ese nombre pertenece a una cuenta registrada» | Escriba la clave de esa cuenta o use otro nombre. |
 | «Se abrió otra sesión con su nombre» | Alguien entró con su nombre desde otro equipo. |
 | Para probar si el puerto responde (Windows) | `Test-NetConnection 192.168.1.20 -Port 47800` en PowerShell. |
+| Para comprobar que un servidor responde al juego (desde el código fuente) | `python docker/probar_servidor.py 192.168.1.20 47800` |
 | Registros para pedir ayuda | `%APPDATA%\GuerraDelPacifico\registros\cliente.log` y `servidor.log`. |

@@ -47,7 +47,7 @@ jobs:
       - name: Dependencias
         run: python -m pip install -r requirements-dev.txt
       - name: Revisión estática (pyflakes)
-        run: python -m pyflakes salitre herramientas instalador tests
+        run: python -m pyflakes salitre herramientas instalador docker tests
       - name: Pruebas
         run: python -m pytest -q
 
@@ -142,21 +142,7 @@ jobs:
         working-directory: rts
         run: |
           docker run -d --name salitre -p 47800:47800 salitre-servidor --nombre "Prueba CI" --sin-lan
-          python - <<'PY'
-          import time
-          from salitre.contenido import catalogo
-          from salitre.red.conexion import Conexion
-          for intento in range(30):
-              c = Conexion()
-              if c.conectar_y_esperar("127.0.0.1", 47800, 2.0):
-                  break
-              time.sleep(1)
-          else:
-              raise SystemExit("el servidor del contenedor no responde")
-          c.saludar("Prueba", huella=catalogo.cargar().huella)
-          print("Conectado a", c.esperar("bienvenida", 10)["servidor"])
-          c.cerrar()
-          PY
+          if ! python docker/probar_servidor.py 127.0.0.1 47800 60; then docker logs salitre; exit 1; fi
           docker logs salitre
 
   publicar:
