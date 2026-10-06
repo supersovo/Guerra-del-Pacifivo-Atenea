@@ -26,12 +26,31 @@ El juego en red con los compañeros es el centro del diseño: ver
 **Windows.** Ejecute `GuerraDelPacifico-<versión>-Instalador.exe`. El instalador
 crea los accesos «Guerra del Pacífico» y «Servidor dedicado» en el menú de
 inicio y, si se marca la opción, permite el juego en red en el cortafuegos de
-Windows. También hay una versión portátil (`.zip`) que se descomprime y se usa
-sin instalar. Ambas se generan en GitHub Actions (pestaña *Actions* → flujo
-«RTS Salitre y Pólvora» → artefacto `windows`) o en una versión publicada.
+Windows. También hay una versión portátil que se descomprime y se usa sin
+instalar (`GuerraDelPacifico.exe` dentro de la carpeta). Ambas se generan en
+GitHub Actions (pestaña *Actions* → flujo «RTS Salitre y Pólvora» → última
+ejecución → artefactos `instalador-windows` y `portatil-windows`; hay que
+iniciar sesión en GitHub para descargarlos) o en una versión publicada.
 
 **Linux.** Descomprima `GuerraDelPacifico-<versión>-linux.tar.gz` y ejecute
 `GuerraDelPacifico/GuerraDelPacifico`.
+
+**Si el navegador o Windows bloquean la descarga.** El juego es nuevo y no
+lleva firma digital, así que Chrome, Edge y Windows desconfían de él aunque no
+tenga nada malicioso:
+
+- *Chrome*: abra las descargas (`Ctrl + J`) y, en el archivo bloqueado, use el
+  menú de tres puntos (⋮) → *Descargar archivo sospechoso* (o *peligroso*) →
+  confirme. Si dice «bloqueado por tu organización», ese Chrome lo administra el
+  colegio o la empresa y no se puede saltar: use otro equipo o navegador.
+- *Edge*: en la descarga, «…» → *Conservar* → *Mostrar más* → *Conservar de todos
+  modos*.
+- *«Virus detectado»*: lo detuvo Windows Defender (los programas hechos con
+  PyInstaller a veces dan falsos positivos). Abra *Seguridad de Windows →
+  Protección antivirus y contra amenazas → Historial de protección*, elija el
+  elemento y pulse *Acciones → Restaurar* o *Permitir en el dispositivo*.
+- Al abrir el instalador, *Windows protegió su PC*: *Más información →
+  Ejecutar de todas formas*.
 
 **Desde el código fuente** (cualquier sistema con Python 3.11 o más nuevo):
 

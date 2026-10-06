@@ -68,7 +68,13 @@ jobs:
           cache: pip
           cache-dependency-path: rts/requirements.txt
       - name: Dependencias
-        run: python -m pip install -r requirements.txt pyinstaller
+        env:
+          # el cargador de PyInstaller se compila aquí: los antivirus confunden menos el
+          # ejecutable con programas maliciosos que usan el cargador precompilado
+          PYINSTALLER_COMPILE_BOOTLOADER: "1"
+        run: |
+          python -m pip install -r requirements.txt
+          python -m pip install --no-binary pyinstaller pyinstaller
       - name: Ejecutables (PyInstaller)
         run: python -m PyInstaller --noconfirm instalador/salitre.spec
       - name: Prueba de humo del ejecutable
@@ -94,13 +100,17 @@ jobs:
           & $iscc "/DVersion=$version" salitre.iss
           if ($LASTEXITCODE -ne 0) { throw "Inno Setup falló" }
           Pop-Location
-          Compress-Archive -Path dist\GuerraDelPacifico -DestinationPath "dist\GuerraDelPacifico-$version-windows-portatil.zip"
+      # dos artefactos separados y sin archivos comprimidos anidados: los navegadores
+      # desconfían de un zip que trae otro zip con ejecutables
       - uses: actions/upload-artifact@v4
         with:
-          name: windows
-          path: |
-            rts/instalador/Salida/*.exe
-            rts/dist/*.zip
+          name: instalador-windows
+          path: rts/instalador/Salida/*.exe
+          if-no-files-found: error
+      - uses: actions/upload-artifact@v4
+        with:
+          name: portatil-windows
+          path: rts/dist/
           if-no-files-found: error
 
   linux:
@@ -156,7 +166,14 @@ jobs:
       - uses: actions/download-artifact@v4
         with:
           path: artefactos
+      - name: Preparar los archivos de la versión
+        run: |
+          mkdir publicar
+          cp artefactos/instalador-windows/*.exe publicar/
+          (cd artefactos/portatil-windows && zip -qr "../../publicar/GuerraDelPacifico-${GITHUB_REF_NAME#v}-windows-portatil.zip" GuerraDelPacifico)
+          cp artefactos/linux/*.tar.gz publicar/
+          ls -la publicar
       - uses: softprops/action-gh-release@v2
         with:
-          files: artefactos/**/*
+          files: publicar/*
           generate_release_notes: true
