@@ -29,6 +29,8 @@ from .base import Escena
 
 TECLAS_GRUPO = {getattr(pygame, f"K_{k}"): k for k in range(10)}
 DOBLE_CLIC = 0.35
+# franja junto al borde de la imagen, en píxeles de la ventana, donde el ratón mueve la cámara
+MARGEN_BORDE = 6
 
 
 class Juego(Escena):
@@ -112,9 +114,15 @@ class Juego(Escena):
         self.botones = tarjeta(est, self.seleccion, self.submenu) if not est.espectador else []
         if self.submenu and not any(b for b in self.botones):
             self.submenu = None
+        # el puntero no sale de la ventana durante la batalla; en el menú queda libre
+        self.lz.encerrar_raton(self.app.config["encerrar_raton"] and self.menu is None and self.fin is None)
         self._desplazar(dt)
         ahora = time.monotonic()
         self.marcas_orden = [mk for mk in self.marcas_orden if mk[3] > ahora]
+
+    def salir(self):
+        super().salir()
+        self.lz.encerrar_raton(False)
 
     def _centrar_inicio(self):
         est = self.est
@@ -490,13 +498,10 @@ class Juego(Escena):
 
     # ------------------------------------------------------------------
     def _desplazar(self, dt):
-        if self.chat is not None:
-            teclas = None
-        else:
-            teclas = pygame.key.get_pressed()
         v = 900 * dt * self.app.config["velocidad_desplazamiento"]
         dx = dy = 0
-        if teclas is not None:
+        if self.chat is None and self.menu is None:
+            teclas = pygame.key.get_pressed()
             if teclas[pygame.K_LEFT]:
                 dx -= v
             if teclas[pygame.K_RIGHT]:
@@ -505,18 +510,28 @@ class Juego(Escena):
                 dy -= v
             if teclas[pygame.K_DOWN]:
                 dy += v
-        if self.app.config["desplazar_con_borde"] and pygame.mouse.get_focused() and self.arrastre is None:
-            x, y = self.ui.raton
-            if x <= 2:
-                dx -= v
-            elif x >= self.lz.W - 3:
-                dx += v
-            if y <= 2:
-                dy -= v
-            elif y >= self.lz.H - 3:
-                dy += v
+        if self.app.config["desplazar_con_borde"]:
+            bx, by = self._borde()
+            dx += bx * v
+            dy += by * v
         if dx or dy:
             self.cam.mover(dx, dy)
+
+    def _borde(self):
+        """Hacia dónde empuja el ratón la cámara: (-1, 0 o 1, -1, 0 o 1).
+
+        Cuenta la franja de MARGEN_BORDE píxeles junto al borde de la imagen y,
+        si la ventana tiene otra proporción, las franjas negras que la rodean.
+        """
+        if (self.menu is not None or self.fin is not None or self.arrastre is not None or self.arrastre_mini
+                or self.paneo is not None or not self.lz.con_foco()):
+            return 0, 0
+        lz = self.lz
+        x, y = lz.raton()
+        m = max(2.0, MARGEN_BORDE / lz.escala())
+        bx = -1 if x < m else (1 if x >= lz.W - m else 0)
+        by = -1 if y < m else (1 if y >= lz.H - m else 0)
+        return bx, by
 
     def manejar(self, ev):
         if self.fin is not None:

@@ -38,6 +38,12 @@ class Opciones(Escena):
                              lambda v: self._fijar("vsync", v))
         self.fps = Casilla((x, y + 190, 330, 30), "Mostrar cuadros por segundo", cfg["mostrar_fps"],
                            lambda v: self._fijar("mostrar_fps", v))
+        self.encerrar = Casilla((x, y + 230, 330, 30), "Encerrar el ratón en la ventana", cfg["encerrar_raton"],
+                                lambda v: self._fijar("encerrar_raton", v))
+        self.encerrar.tooltip = ("Encerrar el ratón en la ventana",
+                                 "Durante la batalla el puntero no sale de la ventana: basta llevarlo al borde "
+                                 "para mover la cámara. Queda libre en el menú (F10) y al cambiar de programa "
+                                 "(Alt+Tab).")
         self.volumen = Deslizador((x2, y + 74, 300, 20), cfg["volumen_efectos"], self._volumen)
         self.vel_cam = Deslizador((x2, y + 174, 300, 20), cfg["velocidad_desplazamiento"],
                                   lambda v: self._fijar("velocidad_desplazamiento", round(v, 2)), 0.4, 2.5)
@@ -45,8 +51,8 @@ class Opciones(Escena):
                              lambda v: self._fijar("desplazar_con_borde", v))
         self.barras = Casilla((x2, y + 248, 340, 30), "Barras de vida siempre visibles", cfg["barras_siempre"],
                               lambda v: self._fijar("barras_siempre", v))
-        self.widgets += [self.nombre, self.completa, self.vsync, self.fps, self.volumen, self.vel_cam, self.borde,
-                         self.barras, self.tamano]
+        self.widgets += [self.nombre, self.completa, self.vsync, self.fps, self.encerrar, self.volumen, self.vel_cam,
+                         self.borde, self.barras, self.tamano]
         self.widgets.append(Boton((self.p.x + 40, self.p.bottom - 64, 200, 44), "Restablecer", self.restablecer,
                                   "madera"))
         self.widgets.append(Boton((self.p.right - 260, self.p.bottom - 64, 220, 44), "Guardar y volver",

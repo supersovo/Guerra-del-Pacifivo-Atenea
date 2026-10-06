@@ -2,12 +2,20 @@
 
 Todo lo que se ve (terreno, unidades, interfaz, texto) son texturas en la GPU:
 escalar, rotar, teñir y mezclar con transparencia no cuesta CPU. La interfaz
-trabaja en una resolución lógica (por omisión 1280x720) que SDL escala a la
-ventana real. Si la GPU no está disponible, SDL usa su renderizador por
-software con el mismo código.
+trabaja en una resolución lógica (por omisión 1280x720): cada cuadro se dibuja
+en una textura de ese tamaño (el «lienzo») que presentar() escala a la ventana,
+con franjas negras si la ventana tiene otra proporción. Si la GPU no está
+disponible, SDL usa su renderizador por software con el mismo código.
+
+No se usa el «tamaño lógico» de SDL: con él, SDL convierte por su cuenta la
+posición del ratón en los eventos, y los recortes (set_viewport) olvidan las
+franjas negras, de modo que al agrandar la ventana el dibujo y los clics se
+desfasan. Aquí la única conversión entre la ventana y las coordenadas lógicas
+es area_imagen()/logico_de().
 """
 
 import gc
+import math
 import os
 
 import pygame
@@ -28,16 +36,29 @@ class Lienzo:
                 self.window.set_fullscreen(desktop=True)
             except pygame.error:
                 pass
-        try:
-            self.r = Renderer(self.window, accelerated=-1, vsync=vsync)
-        except pygame.error:
-            self.r = Renderer(self.window, accelerated=0, vsync=False)
         self.W, self.H = int(logico[0]), int(logico[1])
-        self.r.logical_size = (self.W, self.H)
+        self.r = None
+        self.lienzo = None
+        self._crear_renderizador(vsync)
         self.r.draw_blend_mode = 1
         self._texto = {}
         self._tex = {}
         self._orden = 0
+
+    def _crear_renderizador(self, vsync):
+        # si la tarjeta gráfica no permite dibujar sobre una textura, el renderizador por software sí
+        for acelerado, sincronia in ((-1, vsync), (0, False)):
+            try:
+                self.r = Renderer(self.window, accelerated=acelerado, vsync=sincronia)
+                self.lienzo = Texture(self.r, (self.W, self.H), target=True)
+                # el lienzo es opaco: se copia a la ventana sin mezclar
+                self.lienzo.blend_mode = 0
+                return
+            except pygame.error:
+                self.lienzo = None
+                self.r = None
+                gc.collect()
+        raise pygame.error("No se pudo preparar el dibujo en la ventana")
 
     def cerrar(self):
         """Libera texturas, renderizador y ventana, en ese orden, antes de cerrar pygame.
@@ -47,6 +68,13 @@ class Lienzo:
         """
         self._tex.clear()
         self._texto.clear()
+        if self.r is not None:
+            # el renderizador guarda una referencia a su destino: se suelta antes que el lienzo
+            try:
+                self.r.target = None
+            except pygame.error:
+                pass
+        self.lienzo = None
         gc.collect()
         self.r = None
         gc.collect()
@@ -69,25 +97,73 @@ class Lienzo:
         except pygame.error:
             pass
 
+    def encerrar_raton(self, valor):
+        """Impide (o vuelve a permitir) que el puntero salga de la ventana.
+
+        SDL lo suelta solo cuando la ventana pierde el foco (Alt+Tab) y lo vuelve
+        a encerrar al recuperarlo.
+        """
+        valor = bool(valor)
+        try:
+            if self.window.grab_mouse != valor:
+                self.window.grab_mouse = valor
+        except (pygame.error, AttributeError):
+            pass
+
+    def con_foco(self):
+        """True si la ventana recibe el teclado y el puntero está sobre ella."""
+        try:
+            return bool(self.window.focused) and pygame.mouse.get_focused()
+        except (pygame.error, AttributeError):
+            return False
+
+    def area_imagen(self, vw=None, vh=None):
+        """Dónde queda la imagen del juego en una ventana de vw×vh píxeles: (x, y, ancho, alto).
+
+        La imagen conserva la proporción de la resolución lógica; si la ventana
+        tiene otra forma, sobra espacio a los lados o arriba y abajo.
+        """
+        if vw is None:
+            vw, vh = self.window.size
+        esc = min(vw / self.W, vh / self.H)
+        w = max(1, round(self.W * esc))
+        h = max(1, round(self.H * esc))
+        return (vw - w) // 2, (vh - h) // 2, w, h
+
+    def escala(self):
+        """Píxeles de la ventana por cada píxel lógico."""
+        return self.area_imagen()[2] / self.W
+
     def raton(self):
-        """Posición del ratón en coordenadas lógicas."""
+        """Posición del ratón en coordenadas lógicas (fuera de 0..W-1 sobre las franjas negras)."""
         x, y = pygame.mouse.get_pos()
         return self.logico_de(x, y)
 
     def logico_de(self, x, y):
-        vw, vh = self.window.size
-        esc = min(vw / self.W, vh / self.H)
-        ox = (vw - self.W * esc) / 2
-        oy = (vh - self.H * esc) / 2
-        return int((x - ox) / esc), int((y - oy) / esc)
+        """Convierte un píxel de la ventana (el de los eventos del ratón) a coordenadas lógicas."""
+        ax, ay, aw, ah = self.area_imagen()
+        return (math.floor((x + 0.5 - ax) * self.W / aw),
+                math.floor((y + 0.5 - ay) * self.H / ah))
 
     # ------------------------------------------------------------------
     def limpiar(self, color=(0, 0, 0)):
+        """Comienza un cuadro: en adelante se dibuja sobre el lienzo."""
+        self.r.target = self.lienzo
+        self.r.set_viewport(None)
         self.r.draw_color = (*color[:3], 255)
         self.r.clear()
 
     def presentar(self):
-        self.r.present()
+        """Copia el lienzo a la ventana, escalado y centrado, y lo muestra."""
+        r = self.r
+        r.target = None
+        r.draw_color = (0, 0, 0, 255)
+        r.clear()
+        # en la ventana el área de dibujo es la ventana entera (SDL la ajusta al cambiar de tamaño)
+        salida = r.get_viewport()
+        if salida.w > 0 and salida.h > 0:
+            self.lienzo.draw(dstrect=self.area_imagen(salida.w, salida.h))
+        r.present()
 
     def rect(self, rect, color, alpha=255):
         self.r.draw_color = (*color[:3], alpha if len(color) < 4 else color[3])
@@ -196,9 +272,17 @@ class Lienzo:
             self.texto(ln, x, y + i * alto, fuente, color)
         return len(lineas) * alto
 
+    def imagen(self):
+        """Superficie con el último cuadro dibujado, en resolución lógica."""
+        anterior = self.r.target
+        self.r.target = self.lienzo
+        try:
+            return self.r.to_surface()
+        finally:
+            self.r.target = anterior
+
     def captura(self, ruta):
-        sup = self.r.to_surface()
-        pygame.image.save(sup, str(ruta))
+        pygame.image.save(self.imagen(), str(ruta))
         return ruta
 
 

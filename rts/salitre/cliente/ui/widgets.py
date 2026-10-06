@@ -13,7 +13,11 @@ from ..lienzo import envolver
 
 
 class Evento:
-    """Evento de pygame con la posición del ratón en coordenadas lógicas."""
+    """Evento de pygame con la posición del ratón en coordenadas lógicas.
+
+    SDL entrega la posición en píxeles de la ventana; se convierte aquí, una sola
+    vez, con la misma cuenta que usa el lienzo para escalar la imagen.
+    """
 
     __slots__ = ("type", "pos", "button", "key", "mod", "text", "y", "x", "unicode", "consumido")
 

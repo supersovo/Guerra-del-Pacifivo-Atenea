@@ -130,8 +130,19 @@ montoneros quietos, minas) solo se ven con un **detector** cerca.
 
 - **Lienzo**: todo se dibuja con `pygame._sdl2.video.Renderer`, es decir, con la
   tarjeta de video (Direct3D, OpenGL o Metal según el sistema; si no hay
-  aceleración, SDL usa su dibujo por software con el mismo código). La interfaz
-  trabaja a 1280×720 lógicos que se escalan a la ventana o a la pantalla completa.
+  aceleración, SDL usa su dibujo por software con el mismo código). Cada cuadro
+  se dibuja en una textura de 1280×720 lógicos que luego se escala a la ventana
+  o a la pantalla completa, centrada y con franjas negras si la proporción no es
+  16:9. No se usa el «tamaño lógico» de SDL: con él SDL convierte por su cuenta
+  la posición del ratón y los recortes de la vista pierden el centrado, de modo
+  que al agrandar la ventana los clics y el dibujo se desfasaban. La única
+  conversión entre píxeles de la ventana y coordenadas lógicas está en
+  `Lienzo.area_imagen()` y `Lienzo.logico_de()`.
+- **Ratón en la batalla**: la cámara se mueve cuando el puntero está a 6 píxeles
+  del borde de la imagen (o sobre las franjas negras), siempre que la ventana
+  tenga el foco. Durante la batalla el puntero queda encerrado en la ventana
+  (opción *Encerrar el ratón en la ventana*) y se suelta en el menú (F10) o al
+  cambiar de programa con Alt + Tab.
 - **Texturas en caché**: sprites, edificios, iconos y textos se generan una vez y
   quedan en la memoria de video.
 - **Terreno** por bloques de 16×16 casillas: colores fundidos con un escalado

@@ -20,6 +20,7 @@ PREDETERMINADA = {
     "volumen_efectos": 0.7,
     "velocidad_desplazamiento": 1.0,
     "desplazar_con_borde": True,
+    "encerrar_raton": True,
     "barras_siempre": False,
     "ultimo_servidor": "127.0.0.1:47800",
     "faccion": "chile",

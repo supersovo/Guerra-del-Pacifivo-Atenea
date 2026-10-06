@@ -140,7 +140,7 @@ Las cifras completas de cada unidad, edificio, investigación y héroe están en
 | Órdenes de la tarjeta | Botones abajo a la derecha o su tecla (M mover, S detener, A atacar, H mantener posición, P patrullar, G recolectar, B construir, V construcción avanzada…) |
 | Encolar órdenes | Mayúsculas + orden |
 | Grupos | Ctrl + 1…9 forma; 1…9 selecciona; dos veces centra la cámara |
-| Cámara | Flechas, borde de la pantalla, arrastrar con el botón central o clic en el minimapa; rueda para acercar |
+| Cámara | Flechas, borde de la pantalla, arrastrar con el botón central o clic en el minimapa; rueda para acercar. En ventana, el puntero queda encerrado durante la batalla para mover la cámara con el borde (se suelta con F10 o Alt + Tab; se desactiva en Opciones) |
 | Trabajador ocioso / todo el ejército | F1 / F2 |
 | Ir al último aviso | Espacio |
 | Conversar / con el equipo | Intro / Mayúsculas + Intro |
