@@ -166,7 +166,7 @@ class Archivo(Escena):
     # ------------------------------------------------------------------
     def dibujar(self):
         lz = self.lz
-        self.fondo.dibujar(self.t, titulo=False)
+        self.fondo.dibujar(self.t, titulo=False, velo=120)
         est = self.ui.estilo
         est.panel(self.p_izq)
         est.panel(self.p_der)

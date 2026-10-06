@@ -46,7 +46,7 @@ class Camara:
     def limitar(self):
         ancho = self.vista.w / self.zoom
         alto = self.vista.h / self.zoom
-        margen = 64
+        margen = 16
         self.x = max(-margen, min(self.mw - ancho + margen, self.x))
         self.y = max(-margen, min(self.mh - alto + margen, self.y))
         if ancho > self.mw:

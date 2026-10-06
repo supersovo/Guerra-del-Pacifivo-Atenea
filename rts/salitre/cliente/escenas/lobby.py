@@ -286,7 +286,7 @@ class Lobby(Escena):
     # ------------------------------------------------------------------
     def dibujar(self):
         lz = self.lz
-        self.fondo.dibujar(self.t, titulo=False)
+        self.fondo.dibujar(self.t, titulo=False, velo=120)
         est = self.ui.estilo
         bien = self.app.bienvenida or {}
         est.panel(self.cab, "madera")
@@ -308,7 +308,7 @@ class Lobby(Escena):
         if s is not None:
             ocup = [r["nombre"] or "?" for r in s.get("ranuras", []) if r["tipo"] in ("humano", "ia")]
             txt = (f"Anfitrión: {s.get('anfitrion', '?')}  ·  velocidad {NOMBRE_VELOCIDAD.get(s.get('velocidad'), '?')}"
-                   f"  ·  {', '.join(ocup)}")
+                   f"  ·  en la sala: {', '.join(ocup)}")
             lz.texto(txt, self.p_salas.x + 18, yd + 4, fuentes.cuerpo(15), P.TINTA_SUAVE)
         else:
             lz.texto("Batallas en curso (doble clic para observar):", self.p_salas.x + 18, yd + 4,

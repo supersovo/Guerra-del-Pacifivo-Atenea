@@ -30,6 +30,11 @@ def fuente(estilo="cuerpo", tam=16):
     return f
 
 
+def olvidar():
+    """Descarta las fuentes cargadas (dejan de valer cuando se cierra pygame)."""
+    _cache.clear()
+
+
 def titulo(tam=36):
     return fuente("titulo", tam)
 

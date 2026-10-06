@@ -155,9 +155,12 @@ class FondoMenu:
         self.lz = lz
         self.tex = lz.textura(("fondo", lz.W, lz.H), lambda: superficie_fondo(lz.W, lz.H))
 
-    def dibujar(self, t=0.0, titulo=True):
+    def dibujar(self, t=0.0, titulo=True, velo=0):
+        """velo: oscurece el paisaje (pantallas con muchos paneles, para que no distraiga)."""
         lz = self.lz
         lz.dibujar(self.tex, 0, 0, lz.W, lz.H)
+        if velo:
+            lz.rect((0, 0, lz.W, lz.H), (30, 20, 12), velo)
         if titulo:
             ft = fuentes.titulo(58)
             lz.texto("Guerra del Pacífico", lz.W // 2, 34, ft, (250, 240, 214), "centro", sombra=(40, 20, 10))

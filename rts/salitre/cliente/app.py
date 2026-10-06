@@ -165,6 +165,8 @@ class App:
             self.detener_servidor_local()
             self.perfil.cerrar()
         finally:
+            from . import fuentes
+            fuentes.olvidar()
             pygame.quit()
 
 

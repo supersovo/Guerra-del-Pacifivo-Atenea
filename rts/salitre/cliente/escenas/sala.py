@@ -219,7 +219,7 @@ class SalaEspera(Escena):
     # ------------------------------------------------------------------
     def dibujar(self):
         lz = self.lz
-        self.fondo.dibujar(self.t, titulo=False)
+        self.fondo.dibujar(self.t, titulo=False, velo=120)
         est = self.ui.estilo
         sala = self.sala
         pr = self.p_ran

@@ -116,7 +116,9 @@ class Resultados(Escena):
             lz.dibujar(tb, x0, y)
             col = color_jugador(j["color"])
             lz.rect((x0 + 40, y + 6, 10, 10), col)
-            nombre = res["nombre"] + ("  (IA)" if res.get("es_ia") else "")
+            nombre = res["nombre"]
+            if res.get("es_ia") and not nombre.startswith("IA"):
+                nombre += "  (IA)"
             lz.texto(nombre, x0 + 56, y + 2, fuentes.negrita(17), P.TINTA)
             if gan is not None:
                 txt = "Victoria" if res["equipo"] == gan else "Derrota"
