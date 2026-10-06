@@ -35,6 +35,10 @@ iniciar sesión en GitHub para descargarlos) o en una versión publicada.
 **Linux.** Descomprima `GuerraDelPacifico-<versión>-linux.tar.gz` y ejecute
 `GuerraDelPacifico/GuerraDelPacifico`.
 
+**Copia en el repositorio.** El instalador también puede guardarse en
+[`rts/descargas/`](descargas/LEEME.md), desde donde se baja con PowerShell sin
+pasar por el navegador.
+
 **Si el navegador o Windows bloquean la descarga.** El juego es nuevo y no
 lleva firma digital, así que Chrome, Edge y Windows desconfían de él aunque no
 tenga nada malicioso:
@@ -180,6 +184,7 @@ rts/
 ├── herramientas/         generadores de mapas, tablas e ícono
 ├── instalador/           PyInstaller e Inno Setup
 ├── docker/               servidor dedicado en contenedor
+├── descargas/            copia del instalador de Windows (se guarda a pedido desde GitHub Actions)
 ├── tests/                pruebas automáticas
 └── docs/                 investigación, diseño, arquitectura, multijugador y recomendaciones
 ```
