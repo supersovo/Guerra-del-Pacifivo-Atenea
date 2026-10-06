@@ -1,3 +1,18 @@
+# Guerra del Pacífico — proyecto Atenea
+
+Este repositorio reúne dos juegos sobre la Guerra del Pacífico (1879-1884):
+
+| Juego | Género | Dónde |
+|-------|--------|-------|
+| **Salitre y Pólvora** (nuevo) | Estrategia en tiempo real al estilo *StarCraft*/*WarCraft*: Chile, Perú, Bolivia y la Argentina; salitre y agua; héroes históricos; multijugador en línea con servidor, cuentas, escalafón y repeticiones; base de datos SQLite e instalador para Windows | [`rts/`](rts/README.md) |
+| **Motor Atenea** | Shooter en primera persona al estilo *DOOM*, en el navegador | esta página, más abajo |
+
+Para instalar y jugar *Salitre y Pólvora*, y para organizar partidas con los
+compañeros, vea [rts/README.md](rts/README.md) y
+[rts/docs/MULTIJUGADOR.md](rts/docs/MULTIJUGADOR.md).
+
+---
+
 # 1879: Guerra del Pacífico — Motor Atenea
 
 Shooter en primera persona sobre la campaña terrestre de la **Guerra del Pacífico**
