@@ -5,12 +5,34 @@ estudiar una batalla después)."""
 
 import gzip
 import json
+import re
 import time
 from pathlib import Path
 
 from .. import VERSION, rutas
 
 EXTENSION = ".rep"
+NOMBRE_SEGURO = re.compile(r"^[\w.\-]{1,120}$")
+
+
+def ruta_de(nombre, carpeta=None):
+    """Ruta de una repetición a partir de su nombre, sin poder salir de la carpeta."""
+    if not isinstance(nombre, str) or not NOMBRE_SEGURO.match(nombre) or ".." in nombre:
+        raise ValueError("nombre de repetición inválido")
+    carpeta = Path(carpeta) if carpeta else rutas.dir_repeticiones()
+    return carpeta / (nombre + EXTENSION)
+
+
+def guardar_datos(datos, nombre, carpeta=None):
+    """Guarda una repetición recibida por la red (por ejemplo, de un servidor dedicado)."""
+    for clave in ("mapa", "semilla", "jugadores", "comandos", "fin"):
+        if clave not in datos:
+            raise ValueError(f"Repetición incompleta: falta '{clave}'")
+    ruta = ruta_de(nombre, carpeta)
+    ruta.parent.mkdir(parents=True, exist_ok=True)
+    with gzip.open(ruta, "wt", encoding="utf-8") as f:
+        json.dump(datos, f, separators=(",", ":"), ensure_ascii=False)
+    return ruta
 
 
 def guardar(mundo, configs, ganador, nombre=None, carpeta=None):

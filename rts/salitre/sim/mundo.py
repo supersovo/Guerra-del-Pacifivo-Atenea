@@ -22,7 +22,7 @@ from . import edificios as logica_edificios
 from . import vision as mod_vision
 from .azar import Azar
 from .constantes import AGUA, MEDIA, TICKS, TIERRA, TILE
-from .entidades import Edificio, Recurso, Unidad
+from .entidades import RECOLECTAR, Edificio, Orden, Recurso, Unidad
 from .espacial import Rejilla, RejillaEdificios
 from .jugador import Jugador
 from .mapa import OCUPA_EDIFICIO, OCUPA_RECURSO, Mapa
@@ -172,10 +172,23 @@ class Mundo:
             tx, ty = inicios[asignados[j.idx]]
             j.inicio = (tx, ty)
             cg = self.crear_edificio(j.idx, "cuartel_general", tx, ty, construido=True)
+            trabajadores = []
             for _ in range(self.cat.trabajadores_iniciales):
                 x, y = self.punto_salida(cg, TIERRA)
-                self.crear_unidad(j.idx, "trabajador", x, y)
+                trabajadores.append(self.crear_unidad(j.idx, "trabajador", x, y))
                 j.pob_usada += self.cat.unidades["trabajador"].poblacion
+            self._primera_faena(cg, trabajadores)
+
+    def _primera_faena(self, cg, trabajadores):
+        """Como en StarCraft, los trabajadores iniciales salen solos a las calicheras más cercanas."""
+        cerca = sorted((r for r in self.recursos.values() if r.rtipo == "salitre"),
+                       key=lambda r: ((r.x - cg.x) ** 2 + (r.y - cg.y) ** 2, r.id))
+        cerca = [r for r in cerca[:8] if (r.x - cg.x) ** 2 + (r.y - cg.y) ** 2 <= (12 * TILE) ** 2]
+        if not cerca:
+            return
+        for k, u in enumerate(trabajadores):
+            r = cerca[k % len(cerca)]
+            comandos.dar(self, u, Orden(RECOLECTAR, obj=r.id, dato="salitre"))
 
     def crear_unidad(self, p, tipo_id, x, y):
         tipo = self.cat.unidades[tipo_id]

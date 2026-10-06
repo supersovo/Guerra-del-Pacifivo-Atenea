@@ -51,6 +51,8 @@ class Sesion:
         self.vivo = True
         self.ritmo_chat = []
         self.ritmo_cmd = []
+        self.ritmo_rep = []
+        self.ultima_repeticion = None
         pe = writer.get_extra_info("peername")
         self.direccion = f"{pe[0]}:{pe[1]}" if pe else "?"
 
@@ -412,11 +414,12 @@ class Partida:
                 "vivo": j.vivo,
             })
         nombre_rep = None
+        ruta_rep = None
         elos = {}
         if self.repeticion is None and m.tick >= self.srv.minimo_registro:
             try:
-                ruta = repeticion.guardar(m, self.configs, ganador)
-                nombre_rep = ruta.name
+                ruta_rep = repeticion.guardar(m, self.configs, ganador)
+                nombre_rep = ruta_rep.stem
             except OSError:
                 log.exception("No se pudo guardar la repetición")
             if not self.abortada:
@@ -439,6 +442,8 @@ class Partida:
             s.enviar(msg)
             s.partida = None
             s.indice = None
+            if ruta_rep is not None:
+                s.ultima_repeticion = ruta_rep
         self.srv.partida_terminada(self)
 
 
@@ -963,9 +968,8 @@ class Servidor:
         if not self.local or s.partida is not None:
             s.error("Las repeticiones se ven en el modo local.")
             return
-        ruta = rutas.dir_repeticiones() / (P.texto(msg.get("nombre"), 120) + repeticion.EXTENSION)
         try:
-            datos = repeticion.cargar(ruta)
+            datos = repeticion.cargar(repeticion.ruta_de(msg.get("nombre")))
         except (OSError, ValueError) as e:
             s.error(f"No se pudo abrir la repetición: {e}")
             return
@@ -977,6 +981,21 @@ class Servidor:
         p.agregar_espectador(s)
         p.iniciar()
         s.enviar(p.mensaje_inicio(-1), comprimir=True)
+
+    def m_pedir_repeticion(self, s, msg):
+        """Envía la repetición de la última partida de este jugador, para que la guarde en su equipo."""
+        ruta = s.ultima_repeticion
+        if ruta is None:
+            s.error("No hay una repetición de su última partida.")
+            return
+        if not s.limite(s.ritmo_rep, 1, 10.0):
+            return
+        try:
+            datos = repeticion.cargar(ruta)
+        except (OSError, ValueError) as e:
+            s.error(f"No se pudo leer la repetición: {e}")
+            return
+        s.enviar({"t": "repeticion", "nombre": ruta.stem, "datos": datos}, comprimir=True)
 
     # ------------------------------------------------------------------
     def partida_terminada(self, p):
