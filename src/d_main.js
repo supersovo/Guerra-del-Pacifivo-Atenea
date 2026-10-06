@@ -58,13 +58,13 @@ async function D_DoomMain() {
   D_Boot('  F_START..F_END: flats.');
   await M_NextFrame();
   TX_BuildFlats();
-  D_Boot('  S_START..S_END: fundición de sprites en 8 rotaciones');
-  await M_NextFrame();
-  await SPR_BuildSprites(function (msg) { D_Boot('    ' + msg); });
   D_Boot('  STBAR, STF*, TITLEPIC, WIMAP, WIMAP2: interfaz.');
   await M_NextFrame();
   FACE_BuildLumps();
   GFX_BuildAll();
+  D_Boot('  S_START..S_END: fundición de sprites en 8 rotaciones (en segundo plano)');
+  await M_NextFrame();
+  await SPR_BuildSprites(function (msg) { D_Boot('    ' + msg); });
   D_Boot('  DS*: síntesis de efectos de sonido.');
   await M_NextFrame();
   SND_BuildSounds();
@@ -122,6 +122,14 @@ function D_PageDrawer() {
   V_DrawTextCentered(58, 'GUERRA DEL PACÍFICO', true);
   V_DrawTextCentered(82, 'PISAGUA · DOLORES · ARICA', false, V_Translations.sand);
   if (!menuactive && (D_pagetic & 32)) V_DrawTextCentered(178, 'Presione cualquier tecla', false, V_Translations.gold);
+  D_DrawWarmProgress();
+}
+
+// Avance de la fundición en segundo plano (esquina inferior izquierda).
+function D_DrawWarmProgress() {
+  const f = W_WarmProgress();
+  if (f >= 1) return;
+  V_DrawText(4, 190, 'Fundiendo tropas: ' + Math.floor(f * 100) + ' %', 'note', V_Translations.sand);
 }
 
 function D_ProcessEvents() {
@@ -223,7 +231,12 @@ function D_Frame(now) {
   D_Display();
   I_FinishUpdate();
   if (gamestate === GS_LEVEL && !menuactive && !paused && !automapactive) D_AdaptResolution(performance.now() - t0);
-  else FACE_WarmStep();   // retratos del soldado, uno por cuadro fuera del combate
+  // Fundición en segundo plano (sprites y retratos) fuera del combate; en la
+  // portada, con más tiempo por cuadro.
+  if (gamestate !== GS_LEVEL || menuactive) {
+    const waiting = gamestate === GS_BRIEFING && wi_brief && wi_brief.waitWarm;
+    W_WarmStep(waiting ? 45 : gamestate === GS_DEMOSCREEN ? 22 : 12);
+  }
 }
 
 function D_DoomLoop() {

@@ -302,6 +302,7 @@ function G_DeferedInitNew(skill, map, campaign) {
 function G_DoLoadLevel() {
   exitTimer = 0;
   VOICE_StopAll();
+  W_WarmAll();   // si la fundición en segundo plano no terminó, se completa antes del combate
   if (wipegamestate === GS_LEVEL) wipegamestate = -1;
   gamestate = GS_LEVEL;
   if (playeringame[0] && players[0].playerstate === PST_DEAD) players[0].playerstate = PST_REBORN;

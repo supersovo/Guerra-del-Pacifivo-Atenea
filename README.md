@@ -15,12 +15,37 @@ soldados de ambos bandos combaten a la vez, las columnas marchan en formación, 
 posiciones se defienden y los vencidos se retiran; las explosiones **despedazan**
 los cuerpos.
 
-Sobre esa base el motor agrega lo que se espera de un shooter actual: **alta
-resolución** automática (hasta cuatro veces la de DOOM, 1280×800 o más ancha en
-pantallas panorámicas), **letras nítidas** rasterizadas a la resolución real,
-sprites, texturas y cielos al doble de detalle, **puntería libre con el ratón**
-(mirar arriba y abajo; la bala va a la retícula) y **miras** con clic derecho,
-con un leve aumento propio de cada arma.
+Sobre esa base, el motor agrega lo que se espera de un shooter actual:
+
+- **alta resolución** automática, hasta cuatro veces la de DOOM (1280×800, o más
+  ancha en pantallas panorámicas);
+- **letras nítidas** rasterizadas a la resolución real;
+- **puntería libre con el ratón**: se mira arriba y abajo, y la bala va a la
+  retícula;
+- **miras** con clic derecho, con un leve aumento propio de cada arma.
+
+### Gráfica
+
+- **Tropas al triple de la resolución de DOOM**, iluminadas con sol, cielo,
+  rebote de la arena, contraluz, oclusión ambiental y brillo metálico, con
+  tramado para matizar la paleta.
+- Uniformes con más detalle: la levita chilena con sus faldones, el cubrenuca de
+  brin que cae sobre la nuca, cuello, cartucheras y vaina de bayoneta.
+- Las armas en primera persona se dibujan a 1280×800 y tienen más detalle:
+  - madera de nogal con veta y acero pavonado;
+  - martillo, palanca y portafusil en el Comblain;
+  - tambor estriado en el revólver;
+  - manos con dedos que envuelven la culata, el guardamano, la cacha o la
+    manivela.
+- **Bruma**: lo lejano se funde con el color del horizonte de cada mapa (polvo
+  de la pampa, alba rosada en Arica, neblina de Lima) en vez de oscurecerse.
+- **Humo de pólvora negra**: cada disparo deja una bocanada blanca y
+  semitransparente que sube y deriva con el viento; los fuegos de fusilería
+  cubren el campo.
+- Barrancos con estratos, aleros y cárcavas, y taludes de arena con grano y
+  guijarros.
+- Los sprites se funden en segundo plano: el juego arranca en menos de dos
+  segundos.
 
 ## Campaña
 
@@ -175,7 +200,7 @@ El progreso se guarda en el navegador.
 ```
 index.html            página del juego (canvas, consola de arranque, controles táctiles)
 src/                  motor: un archivo por módulo de DOOM (d_main, g_game, p_*, r_*, ...);
-                      s_voice.js voces de los soldados, s_march.js marchas MIDI y de audio
+                      r_smoke.js humo de pólvora, s_voice.js voces, s_march.js marchas
 content/              contenido generado por código al iniciar
   palette.js font.js  paleta de 256 colores + COLORMAP, fuentes con acentos
   textures.js sky.js  texturas, planos y cielos panorámicos de 360°

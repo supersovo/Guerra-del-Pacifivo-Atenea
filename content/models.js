@@ -21,7 +21,7 @@ const STYLE = {
     cap: 'kepi', capTop: MAT(R_RED, 5), capBand: MAT(R_NAVY, 6), visor: MAT(R_GRAY, 13, { spec: 0.6 }),
     havelock: MAT(R_LINEN, 2), belts: MAT(R_WOOD, 12), crossbelts: MAT(R_LINEN, 3), boots: MAT(R_WOOD, 13),
     skin: MAT(R_SKIN, 4), hair: MAT(R_WOOD, 13), buttons: MAT(R_GOLD, 3, { spec: 1 }), pack: MAT(R_WOOD, 9),
-    blanket: MAT(R_STEEL, 7), moustache: true, weapon: 'rifle'
+    blanket: MAT(R_STEEL, 7), moustache: true, coat: 'levita', weapon: 'rifle'
   },
   GUARDIA: {
     tunic: MAT(R_LINEN, 3), trousers: MAT(R_LINEN, 4), cuffs: MAT(R_LINEN, 5), collar: MAT(R_NAVY, 7),
@@ -56,7 +56,7 @@ const STYLE = {
     cap: 'kepi', capTop: MAT(R_NAVY, 8), capBand: MAT(R_GOLD, 3, { spec: 1 }), visor: MAT(R_GRAY, 13, { spec: 0.8 }),
     havelock: null, belts: MAT(R_GRAY, 13), crossbelts: null, sash: MAT(R_SKY, 3), boots: MAT(R_GRAY, 13, { spec: 0.6 }),
     skin: MAT(R_SKIN, 4), hair: MAT(R_GRAY, 14), buttons: MAT(R_GOLD, 2, { spec: 1.2 }), epaulettes: MAT(R_GOLD, 2, { spec: 1.2 }),
-    pack: null, moustache: true, sideburns: true, weapon: 'revolver'
+    pack: null, moustache: true, sideburns: true, coat: 'levita', weapon: 'revolver'
   },
   ARTILLERO_PE: {
     tunic: MAT(R_NAVY, 8), trousers: MAT(R_LINEN, 4), cuffs: MAT(R_RED, 5), collar: MAT(R_RED, 5),
@@ -68,7 +68,7 @@ const STYLE = {
     tunic: MAT(R_NAVY, 7), trousers: MAT(R_RED, 5), cuffs: MAT(R_RED, 5), collar: MAT(R_RED, 5),
     cap: 'kepi', capTop: MAT(R_RED, 5), capBand: MAT(R_NAVY, 6), visor: MAT(R_GRAY, 13, { spec: 0.6 }),
     havelock: MAT(R_LINEN, 2), belts: MAT(R_WOOD, 12), crossbelts: MAT(R_LINEN, 3), boots: MAT(R_WOOD, 13),
-    skin: MAT(R_SKIN, 4), hair: MAT(R_WOOD, 13), buttons: MAT(R_GOLD, 3, { spec: 1 }), pack: null, moustache: true, weapon: 'none'
+    skin: MAT(R_SKIN, 4), hair: MAT(R_WOOD, 13), buttons: MAT(R_GOLD, 3, { spec: 1 }), pack: null, moustache: true, coat: 'levita', weapon: 'none'
   },
   // Batallón Colorados de Bolivia (guardia del presidente): casaca roja corta
   // con botones de bronce, pantalón blanco, kepí rojo con cubrenuca, abarcas.
@@ -86,7 +86,7 @@ const STYLE = {
     cap: 'hat', capTop: MAT(R_GRAY, 13), capBand: MAT(R_GRAY, 10), visor: null,
     havelock: null, belts: MAT(R_WOOD, 11), crossbelts: MAT(R_WOOD, 10), boots: MAT(R_GRAY, 14, { spec: 0.6 }),
     skin: MAT(R_SKIN, 4), hair: MAT(R_GRAY, 14), buttons: MAT(R_GRAY, 9),
-    pack: null, moustache: true, sideburns: true, weapon: 'rifle'
+    pack: null, moustache: true, sideburns: true, coat: 'levita', weapon: 'rifle'
   },
   // Caballería chilena (Granaderos a Caballo), con los colores del ejército de línea.
   GRANADERO: {
@@ -123,17 +123,44 @@ const M_SMOKED = MAT(R_GRAY, 9, { k: 4 });
 // --- Armas portátiles (en coordenadas locales: x hacia la boca, z arriba) ----------------------------------
 // sights: alza de hoja con muesca y guion (se ven al apuntar por las miras).
 // La línea de mira queda a z = 2,6 sobre el eje local.
+// Madera de nogal con veta a lo largo del arma; acero pavonado; cuero.
+function WPN_Grain(lp) { return Math.sin(lp[0] * 2.1 + Math.sin(lp[2] * 2.4 + lp[1] * 1.3) * 1.7) * 0.8; }
+const M_WOODG = MAT(R_WOOD, 6, { k: 6, pattern: WPN_Grain });
+const M_WOODGD = MAT(R_WOOD, 9, { k: 6, pattern: WPN_Grain });
+const M_BLUED = MAT(R_STEEL, 10, { spec: 1.9 });
+const M_LEATHER = MAT(R_WOOD, 11, { k: 5 });
+
 function WPN_Rifle(bayonet, dark, sights) {
-  const wood = dark ? M_WOODD : M_WOOD;
+  const wood = dark ? M_WOODGD : M_WOODG;
   const s = [];
-  s.push(PR_box([-12, 0, -1.2], 3.2, 1.1, 2.3, null, wood));       // culata
-  s.push(PR_box([-5, 0, -0.4], 4.2, 0.9, 1.2, null, wood));        // garganta
-  s.push(PR_box([1.5, 0, 0.1], 2.6, 1.0, 1.3, null, M_STEEL));     // cajón de mecanismo
-  s.push(PR_box([2, 0, -1.9], 2.2, 0.35, 0.6, null, M_STEEL));     // palanca (guardamonte)
-  s.push(PR_box([12, 0, -0.5], 8.5, 0.95, 0.95, null, wood));      // guardamano
-  s.push(PR_cyl([15, 0, 0.5], 0.55, 15, M3_fromDir([1, 0, 0]), M_STEEL));  // cañón
-  s.push(PR_cyl([9, 0, 0], 1.15, 0.4, M3_fromDir([1, 0, 0]), M_BRASS));
-  s.push(PR_cyl([18, 0, 0], 1.1, 0.4, M3_fromDir([1, 0, 0]), M_STEEL));
+  // culata redondeada con cantonera de hierro, y garganta
+  s.push(PR_ell([-12.2, 0, -1.5], 4.5, 1.15, 2.45, M3_rotY(-0.1), wood));
+  s.push(PR_box([-16.4, 0, -1.95], 0.28, 1.12, 2.35, M3_rotY(-0.1), M_IRON));
+  s.push(PR_ell([-5.4, 0, -0.5], 4.4, 0.9, 1.2, M3_rotY(-0.05), wood));
+  // cajón del mecanismo, pavonado, con lomo redondo y martillo exterior
+  s.push(PR_box([1.5, 0, 0], 2.6, 0.95, 1.15, null, M_BLUED));
+  if (!sights) {
+    // (por las miras, el lomo y el martillo quedarían delante del ojo)
+    s.push(PR_cyl([1.5, 0, 1.0], 0.95, 2.6, M3_fromDir([1, 0, 0]), M_BLUED));
+    s.push(PR_box([-0.95, 0, 1.5], 0.45, 0.3, 0.55, M3_rotY(0.55), M_BLUED));
+  }
+  // tornillos del mecanismo
+  for (const px of [0.2, 2.9]) for (const sy of [-0.97, 0.97]) s.push(PR_cyl([px, sy, -0.2], 0.22, 0.06, M3_fromDir([0, 1, 0]), M_STEEL));
+  // palanca-guardamonte (abre el bloque de cierre) y gatillo
+  s.push(PR_box([2.0, 0, -1.85], 2.2, 0.3, 0.22, null, M_BLUED));
+  s.push(PR_box([0, 0, -1.4], 0.22, 0.3, 0.6, null, M_BLUED));
+  s.push(PR_box([1.0, 0, -1.25], 0.14, 0.18, 0.45, M3_rotY(0.3), M_STEEL));
+  // guardamano, cañón, abrazaderas, sombrerete y baqueta
+  s.push(PR_ell([12.6, 0, -0.5], 9.3, 0.95, 1.0, null, wood));
+  s.push(PR_cyl([15.2, 0, 0.5], 0.55, 15.2, M3_fromDir([1, 0, 0]), M_BLUED));
+  s.push(PR_cyl([9.5, 0, 0.05], 1.18, 0.38, M3_fromDir([1, 0, 0]), M_BRASS));
+  s.push(PR_cyl([19, 0, 0.1], 1.1, 0.34, M3_fromDir([1, 0, 0]), M_STEEL));
+  s.push(PR_cyl([21.6, 0, 0.15], 1.0, 0.5, M3_fromDir([1, 0, 0]), M_STEEL));
+  s.push(PR_cyl([25.8, 0, -0.55], 0.18, 4.2, M3_fromDir([1, 0, 0]), M_STEEL));
+  // portafusil de cuero, de la abrazadera a la culata, con algo de caída
+  const sl = [[19, 0.3, -1.25], [4, 0.75, -4.0], [-10.5, 0.5, -3.7]];
+  s.push(PR_boxAlong(sl[0], sl[1], 0.12, 0.55, M_LEATHER, [0, 1, 0]));
+  s.push(PR_boxAlong(sl[1], sl[2], 0.12, 0.55, M_LEATHER, [0, 1, 0]));
   if (bayonet) {
     s.push(PR_cyl([30.5, 0, 0.5], 0.8, 1.2, M3_fromDir([1, 0, 0]), M_STEEL));
     s.push(PR_box([39, 0, 0.9], 8.5, 0.18, 0.55, null, M_STEELB));
@@ -146,6 +173,9 @@ function WPN_Rifle(bayonet, dark, sights) {
     s.push(PR_box([6.7, -0.45, 2.24], 0.22, 0.3, 0.36, null, blued));
     s.push(PR_box([29.4, 0, 1.3], 0.5, 0.35, 0.28, null, M_STEEL));          // base del guion
     s.push(PR_box([29.4, 0, 2.1], 0.3, 0.16, 0.5, null, MAT(R_LINEN, 3, { spec: 1 })));   // guion
+  } else {
+    s.push(PR_box([6.7, 0, 1.25], 0.55, 0.45, 0.25, null, M_BLUED));        // alza
+    s.push(PR_box([29.4, 0, 1.15], 0.25, 0.12, 0.3, null, M_STEEL));        // guion
   }
   return s;
 }
@@ -154,10 +184,18 @@ function WPN_Rifle(bayonet, dark, sights) {
 // mira y guion alto (línea de mira a z = 1,75).
 function WPN_Revolver(sights) {
   const s = [];
-  s.push(PR_box([-1.8, 0, -2.4], 1.1, 0.8, 2.2, M3_rotY(0.35), M_WOODD));   // cacha
-  s.push(PR_box([0.6, 0, 0.2], 2.0, 0.75, 1.0, null, M_STEEL));             // armazón
-  s.push(PR_cyl([1.2, 0, 0.3], 1.2, 1.3, M3_fromDir([1, 0, 0]), M_STEEL));  // tambor
-  s.push(PR_cyl([5.2, 0, 0.6], 0.4, 2.8, M3_fromDir([1, 0, 0]), M_STEEL));  // cañón
+  s.push(PR_ell([-1.9, 0, -2.3], 1.05, 0.78, 2.3, M3_rotY(0.35), M_WOODGD));      // cacha de nogal
+  s.push(PR_box([0.4, 0, 0.1], 1.9, 0.62, 0.95, null, M_BLUED));                 // armazón
+  s.push(PR_cyl([1.2, 0, 0.3], 1.15, 1.25, M3_fromDir([1, 0, 0]), M_BLUED));     // tambor
+  for (let k = 0; k < 6; k++) {                                                   // estrías del tambor
+    const a = k * Math.PI / 3 + 0.5;
+    s.push(PR_cyl([1.2, Math.cos(a) * 1.05, 0.3 + Math.sin(a) * 1.05], 0.2, 1.05, M3_fromDir([1, 0, 0]), M_IRON));
+  }
+  s.push(PR_cyl([5.2, 0, 0.55], 0.42, 2.8, M3_fromDir([1, 0, 0]), M_BLUED));     // cañón
+  s.push(PR_cyl([4.6, -0.48, 0.0], 0.15, 2.1, M3_fromDir([1, 0, 0]), M_STEEL));  // varilla extractora
+  s.push(PR_box([0.7, 0, -1.25], 1.0, 0.22, 0.14, null, M_BLUED));               // guardamonte
+  s.push(PR_box([1.6, 0, -0.95], 0.14, 0.22, 0.36, null, M_BLUED));
+  s.push(PR_box([0.5, 0, -0.85], 0.12, 0.15, 0.36, M3_rotY(0.3), M_STEEL));       // gatillo
   if (sights) {
     s.push(PR_box([1.0, 0, 1.56], 1.9, 0.4, 0.07, null, M_STEEL));           // puente sobre el tambor
     s.push(PR_box([-1.5, 0, 1.05], 0.45, 0.28, 0.35, null, M_STEEL));        // martillo
@@ -165,7 +203,10 @@ function WPN_Revolver(sights) {
     s.push(PR_box([-0.9, 0.32, 1.63], 0.22, 0.17, 0.12, null, blued));       // muesca del alza
     s.push(PR_box([-0.9, -0.32, 1.63], 0.22, 0.17, 0.12, null, blued));
     s.push(PR_box([7.6, 0, 1.36], 0.28, 0.11, 0.39, null, MAT(R_LINEN, 3, { spec: 1 })));  // guion
-  } else s.push(PR_box([-1.2, 0, 1.3], 0.5, 0.3, 0.6, null, M_STEEL));      // martillo
+  } else {
+    s.push(PR_box([-1.2, 0, 1.3], 0.5, 0.3, 0.6, M3_rotY(-0.3), M_BLUED));    // martillo
+    s.push(PR_box([7.6, 0, 1.05], 0.25, 0.1, 0.18, null, M_STEEL));          // guion
+  }
   return s;
 }
 
@@ -243,6 +284,15 @@ function HUM_Build(style, pose) {
     s.push(PR_boxAlong(T([3.3, 6.0, 16.5]), T([4.4, -5.5, 4.8]), 0.95, 0.45, style.crossbelts, [1, 0, 0]));
     s.push(PR_boxAlong(T([3.3, -6.0, 16.5]), T([4.4, 5.5, 4.8]), 0.95, 0.45, style.crossbelts, [1, 0, 0]));
   }
+  // Faldones de la levita: tela casi vertical de la cintura a medio muslo.
+  if (style.coat === 'levita') s.push(PR_shell(T([0.3, 0, -3]), 6.4, 8.0, 16, Rt(), style.tunic, [[2, 1, 6], [2, -1, -6.8]]));
+  // Cuello de la casaca
+  if (style.collar) s.push(PR_cyl(T([0.3, 0, 18.4]), 3.15, 0.85, Rt(), style.collar, 2.95));
+  // Cartucheras al frente del cinturón y vaina de la bayoneta a la izquierda
+  if (style.weapon === 'rifle' || style.weapon === 'bayonet') {
+    for (const sy of [-3.6, 3.6]) s.push(PR_box(T([5.5, sy, 3.3]), 0.95, 1.7, 1.45, Rt(), style.belts || MAT(R_WOOD, 12)));
+    s.push(PR_limb(T([-0.6, 7.4, 2.6]), T([-3.4, 8.3, -9.5]), 0.6, MAT(R_WOOD, 13, { spec: 0.3 })));
+  }
   if (style.buttons) for (let k = 0; k < 5; k++) s.push(PR_ell(T([4.95, 1.4, 6 + k * 2.4]), 0.55, 0.55, 0.55, null, style.buttons));
   if (style.epaulettes) {
     s.push(PR_ell(T([0, 7.4, 17.8]), 2.4, 1.8, 0.9, Rt(), style.epaulettes));
@@ -266,6 +316,9 @@ function HUM_Build(style, pose) {
   s.push(PR_limb(T([0, 0, 17]), neck, 2.2, style.skin));
   s.push(PR_ell(H([0.4, 0, 4.2]), 4.1, 3.7, 4.8, headR, style.skin));
   s.push(PR_ell(H([4.3, 0, 3.9]), 0.9, 0.75, 1.1, headR, MAT(R_SKIN, style.skin.tone + 1)));
+  // orejas, cejas y ojos
+  for (const sy of [-3.75, 3.75]) s.push(PR_ell(H([0.3, sy, 4.1]), 0.75, 0.45, 1.15, headR, MAT(R_SKIN, style.skin.tone + 1)));
+  for (const sy of [-1.55, 1.55]) s.push(PR_ell(H([3.75, sy, 5.85]), 0.4, 0.85, 0.28, headR, style.hair));
   if (!pose.eyesClosed) {
     s.push(PR_ell(H([3.9, 1.5, 5.0]), 0.45, 0.55, 0.45, null, MAT(R_GRAY, 14)));
     s.push(PR_ell(H([3.9, -1.5, 5.0]), 0.45, 0.55, 0.45, null, MAT(R_GRAY, 14)));
@@ -279,7 +332,12 @@ function HUM_Build(style, pose) {
   s.push(PR_ell(H([-0.6, 0, 6.2]), 3.8, 3.6, 2.6, headR, style.hair));
   // Tocado
   if (!pose.noCap) HUM_Cap(s, style, H, headR);
-  if (style.havelock && !pose.noCap) s.push(PR_box(H([-3.4, 0, 3.8]), 0.7, 3.9, 4.2, headR, style.havelock));
+  // Cubrenuca de brin: cae desde el kepí sobre la nuca y los hombros, abierto
+  // adelante (enmarca la cara) y abajo; los pliegues verticales dan la tela.
+  if (style.havelock && !pose.noCap) {
+    const hv = Object.assign({}, style.havelock, { pattern: function (lp) { return 0.9 * Math.sin(Math.atan2(lp[1], lp[0]) * 7); } });
+    s.push(PR_shell(H([-0.6, 0, -0.5]), 5.0, 5.0, 9.5, headR, hv, [[0, 1, 1.8], [2, 1, 7.9], [2, -1, -1.0]]));
+  }
   // Brazos
   const shL = T([0.2, 7.4, 16.6]), shR = T([0.2, -7.4, 16.6]);
   const handL = pose.handL || T([2, 9, 2]), handR = pose.handR || T([2, -9, 2]);
@@ -290,7 +348,7 @@ function HUM_Build(style, pose) {
     const wrist = vlerp(arm[1], arm[2], 0.86);
     s.push(PR_limb(arm[1], wrist, 1.9, style.tunic));
     s.push(PR_limb(vlerp(arm[1], arm[2], 0.72), wrist, 2.05, style.cuffs));
-    s.push(PR_ell(arm[2], 1.5, 1.4, 1.6, null, style.skin));
+    s.push(PR_ell(arm[2], 1.75, 1.55, 1.85, null, style.skin));
   }
   // Piernas
   const hipL = vadd(pel, M3_mulv(M3_rotZ(pose.twist || 0), [0, 3.4, -1])), hipR = vadd(pel, M3_mulv(M3_rotZ(pose.twist || 0), [0, -3.4, -1]));
@@ -539,7 +597,7 @@ function GIB_Part(style, part) {
     }
     s.push(PR_ell([-1.0, 0, 2.0], 3.8, 3.6, 2.6, null, style.hair));
     HUM_Cap(s, style, H, M3_I());
-    if (style.havelock) s.push(PR_box(H([-3.4, 0, 3.8]), 0.7, 3.9, 4.2, null, style.havelock));
+    if (style.havelock) s.push(PR_shell(H([-0.6, 0, -0.5]), 5.0, 5.0, 9.5, null, style.havelock, [[0, 1, 1.8], [2, 1, 7.9], [2, -1, -1.0]]));
     s.push(PR_limb([-0.4, 0, -3.8], [-0.6, 0, -6.4], 2.1, style.skin));
     s.push(PR_ell([-0.6, 0, -6.6], 2.2, 2.2, 0.7, null, M_BLOOD));
     s.push(PR_ell([-0.6, 0, -6.2], 1.4, 1.4, 0.6, null, M_FLESH));
@@ -809,12 +867,18 @@ function DINA_Pose(frame, phase) {
 
 // --- Objetos ----------------------------------------------------------------------------------------------------
 const M_PAPER = MAT(R_LINEN, 4);
-const M_CRATE = MAT(R_WOOD, 5);
+// Cajón de tablas: juntas cada 2,6 unidades y veta de la madera.
+const M_CRATE = MAT(R_WOOD, 5, { pattern: function (lp) { return ((lp[2] % 2.6 + 2.6) % 2.6 < 0.3 ? 2.6 : 0) + WPN_Grain(lp) * 0.45; } });
 const M_TIN = MAT(R_STEEL, 5, { spec: 1 });
 
+// Cajón con cantoneras de hierro y rótulo de papel (con renglones) del color labelMat.
 function ITEM_Box(hx, hy, hz, mat, labelMat) {
   const s = [PR_box([0, 0, hz], hx, hy, hz, null, mat)];
-  if (labelMat) s.push(PR_box([hx + 0.05, 0, hz], 0.12, hy * 0.6, hz * 0.5, null, labelMat));
+  for (const sx of [-1, 1]) for (const sy of [-1, 1]) s.push(PR_box([sx * (hx - 0.25), sy * (hy - 0.25), hz], 0.32, 0.32, hz + 0.05, null, M_IRON));
+  if (labelMat) {
+    s.push(PR_box([hx + 0.05, 0, hz], 0.12, hy * 0.6, hz * 0.5, null, MAT(R_LINEN, 4)));
+    for (let k = 0; k < 3; k++) s.push(PR_box([hx + 0.12, 0, hz + hz * (0.25 - k * 0.25)], 0.08, hy * (k === 0 ? 0.42 : 0.3), 0.18, null, labelMat));
+  }
   return s;
 }
 
@@ -1122,19 +1186,71 @@ const M_SLEEVE = MAT(R_NAVY, 7);
 const M_CUFF = MAT(R_RED, 5);
 const M_HANDS = MAT(R_SKIN, 4);
 
+// Mano que empuña: palma, cuatro dedos que rodean el objeto y el pulgar del
+// otro lado. c: centro del objeto empuñado; g: su eje; e1: dirección del
+// objeto a la palma; e2: sentido en que lo rodean los dedos; R0: su radio.
+function FP_Grip(c, g, e1, e2, R0, hs) {
+  const s = [];
+  g = vnorm(g);
+  e1 = vnorm(vsub(e1, vscale(g, vdot(e1, g))));
+  e2 = vsub(e2, vscale(g, vdot(e2, g)));
+  e2 = vnorm(vsub(e2, vscale(e1, vdot(e2, e1))));
+  const at = function (theta, along, rad) {
+    return vadd(c, vadd(vscale(g, along), vadd(vscale(e1, Math.cos(theta) * rad), vscale(e2, Math.sin(theta) * rad))));
+  };
+  const rr = R0 + 0.42 * hs;
+  const palm = at(0, -0.1 * hs, R0 + 0.95 * hs);
+  s.push(PR_ell(palm, 0.95 * hs, 2.25 * hs, 1.7 * hs, [e1, g, vcross(e1, g)], M_HANDS));
+  const fr = [0.44, 0.47, 0.44, 0.37];
+  for (let k = 0; k < 4; k++) {
+    const al = (-1.38 + k * 0.92) * hs;
+    const p0 = at(0.45, al, rr + 0.25 * hs), p1 = at(1.55, al + 0.1 * hs, rr), p2 = at(2.55, al + 0.18 * hs, rr - 0.05 * hs);
+    s.push(PR_limb(p0, p1, fr[k] * hs, M_HANDS));
+    s.push(PR_limb(p1, p2, fr[k] * 0.93 * hs, M_HANDS));
+  }
+  const t0 = at(-0.55, -1.75 * hs, rr + 0.35 * hs), t1 = at(-1.45, -0.35 * hs, rr + 0.05 * hs), t2 = at(-2.05, 0.75 * hs, rr - 0.1 * hs);
+  s.push(PR_limb(t0, t1, 0.52 * hs, M_HANDS));
+  s.push(PR_limb(t1, t2, 0.46 * hs, M_HANDS));
+  return { prims: s, palm: palm };
+}
+
 // Brazo visto desde el hombro del soldado: manga azul, puño rojo y mano.
-function FP_Arm(elbow, handC, handScale) {
+// grip (opcional): { c, g, e1, e2, R0, wrist } mano empuñando (ver FP_Grip);
+// wrist es la dirección de la palma hacia el antebrazo. Sin grip, e1 apunta
+// al codo y los dedos rodean el objeto por el otro lado.
+function FP_Arm(elbow, handC, handScale, grip) {
   const s = [];
   const hs = handScale || 1;
-  const dir = vnorm(vsub(handC, elbow));
-  const wrist = vsub(handC, vscale(dir, 2.0 * hs));
+  let wrist;
+  if (grip) {
+    const e1 = grip.e1 || vsub(elbow, grip.c);
+    const e2 = grip.e2 || vcross(grip.g, e1);
+    const h = FP_Grip(grip.c, grip.g, e1, e2, grip.R0, hs);
+    for (const q of h.prims) s.push(q);
+    const wd = vnorm(grip.wrist || vsub(elbow, h.palm));
+    wrist = vadd(h.palm, vscale(wd, 1.9 * hs));
+    s.push(PR_limb(wrist, vadd(h.palm, vscale(wd, 0.4 * hs)), 1.45 * hs, M_HANDS));
+  } else {
+    const dir = vnorm(vsub(handC, elbow));
+    wrist = vsub(handC, vscale(dir, 2.0 * hs));
+    s.push(PR_limb(vsub(wrist, vscale(dir, 0.8)), wrist, 1.5 * hs, M_HANDS));
+    s.push(PR_ell(handC, 1.6 * hs, 1.9 * hs, 2.1 * hs, M3_fromDir(dir), M_HANDS));
+  }
   // manga azul con bocamanga y un vivo rojo en el puño
+  const back = vnorm(vsub(wrist, elbow));
   s.push(PR_limb(elbow, vlerp(elbow, wrist, 0.9), 2.6, M_SLEEVE, 2.8));
   s.push(PR_rod(vlerp(elbow, wrist, 0.885), vlerp(elbow, wrist, 0.9), 2.85, MAT(R_RED, 7)));
-  s.push(PR_limb(vlerp(elbow, wrist, 0.9), vsub(wrist, vscale(dir, 0.4)), 2.55, MAT(R_NAVY, 9)));
-  s.push(PR_limb(vsub(wrist, vscale(dir, 0.8)), wrist, 1.5 * hs, M_HANDS));
-  s.push(PR_ell(handC, 1.6 * hs, 1.9 * hs, 2.1 * hs, M3_fromDir(dir), M_HANDS));
+  s.push(PR_limb(vlerp(elbow, wrist, 0.9), vsub(wrist, vscale(back, 0.4)), 2.55, MAT(R_NAVY, 9)));
   return s;
+}
+
+// Empuñadura del revólver (cacha inclinada bajo el armazón): la palma por la
+// derecha, los dedos por delante y el pulgar por detrás.
+function FP_RevolverGrip(P0, f, u) {
+  const left = vcross(u, f);
+  const c = vadd(P0, vadd(vscale(f, -1.8), vscale(u, -2.4)));
+  const g = vadd(vscale(f, 0.343), vscale(u, 0.94));
+  return { c: c, g: g, e1: vscale(left, -1), e2: f, R0: 0.95, wrist: vadd(vscale(g, -0.8), vscale(left, -0.3)) };
 }
 
 // Ametralladora Gatling de 6 cañones: caja de bronce, tambor de cañones y
@@ -1144,7 +1260,7 @@ function FP_Gatling(c0, axis, frame, flashOnly, ads) {
   const s = [];
   const rot = frame * Math.PI / 6;
   const R = M3_fromDir(axis);
-  const M_BRONZE = MAT(R_GOLD, 7, { spec: 0.9, k: 6 });
+  const M_BRONZE = MAT(R_GOLD, 10, { spec: 1.5, k: 6 });
   if (flashOnly) {
     const muz = vadd(c0, vscale(axis, 36));
     const a = rot + 1.2;
@@ -1163,10 +1279,15 @@ function FP_Gatling(c0, axis, frame, flashOnly, ads) {
   s.push(PR_cyl(vadd(c0, vscale(axis, 20)), 3.8, 0.6, R, M_BRONZE));
   s.push(PR_cyl(vadd(c0, vscale(axis, 34)), 3.7, 0.5, R, M_BRONZE));
   s.push(PR_cyl(vadd(c0, vscale(axis, 0.5)), 5.0, 3.8, R, M_BRONZE));
-  s.push(PR_cyl(vadd(c0, vscale(axis, -3.6)), 4.0, 0.5, R, MAT(R_GOLD, 9, { spec: 0.6 })));
+  s.push(PR_cyl(vadd(c0, vscale(axis, -3.6)), 4.0, 0.5, R, MAT(R_GOLD, 11, { spec: 0.8 })));
+  s.push(PR_cyl(vadd(c0, vscale(axis, 1.6)), 5.08, 0.35, R, MAT(R_GOLD, 12, { spec: 1 })));
+  for (let k = 0; k < 10; k++) {
+    const a = k / 10 * Math.PI * 2;
+    s.push(PR_ell(vadd(c0, vadd(vscale(axis, -2.9), M3_mulv(R, [Math.cos(a) * 4.45, Math.sin(a) * 4.45, 0]))), 0.32, 0.32, 0.32, null, M_IRON));
+  }
   // guía de alimentación con cartuchos
   s.push(PR_box(vadd(c0, [1.0, -2.6, 5.6]), 1.1, 1.0, 1.8, null, M_IRON));
-  for (let k = 0; k < 3; k++) s.push(PR_cyl(vadd(c0, [1.0, -2.6, 7.7 + k * 0.9]), 0.38, 0.9, M3_fromDir([0, 1, 0]), M_BRASS));
+  for (let k = 0; k < 3; k++) s.push(PR_cyl(vadd(c0, [1.0, -2.6, 7.6 + k * 0.7]), 0.3, 0.75, M3_fromDir([0, 1, 0]), M_BRASS));
   if (ads) {
     // miras laterales (la tolva ocupa el lomo del arma): guion alto sobre el
     // costado izquierdo del anillo de la boca y alza en el costado de la caja,
@@ -1192,7 +1313,8 @@ function FP_Gatling(c0, axis, frame, flashOnly, ads) {
   s.push(PR_cyl(hub, 1.2, 0.8, M3_fromDir([0, 1, 0]), M_IRON));
   s.push(PR_rod(hub, handle, 0.55, M_IRON));
   s.push(PR_rod(handle, vadd(handle, [0, -2.2, 0]), 0.65, MAT(R_WOOD, 8)));
-  for (const q of FP_Arm(ads ? [8, -14, -22] : [5, -16, -22], vadd(handle, [0, -2.8, 0]))) s.push(q);
+  for (const q of FP_Arm(ads ? [8, -14, -22] : [5, -16, -22], null, 1,
+    { c: vadd(handle, [0, -1.1, 0]), g: [0, -1, 0], e1: [-1, 0, 0.25], e2: [0, 0, -1], R0: 0.65, wrist: [-1, -0.25, -0.55] })) s.push(q);
   return s;
 }
 
@@ -1222,7 +1344,7 @@ function FP_Build(name, frame, flashOnly) {
       }
       const d = vnorm(p.dir);
       for (const q of WPN_Place(blade, vadd(p.hand, vscale(d, 3)), d, [0, 0, 1])) s.push(q);
-      for (const q of FP_Arm(p.elbow, p.hand)) s.push(q);
+      for (const q of FP_Arm(p.elbow, null, 1, { c: p.hand, g: d, R0: 0.85 })) s.push(q);
       return s;
     }
     case 'REVO': case 'RFLA': {
@@ -1238,7 +1360,7 @@ function FP_Build(name, frame, flashOnly) {
       }
       for (const q of WPN_Place(WPN_Revolver(), P0, dir, [0, 0, 1])) s.push(q);
       const upv = vnorm(vsub([0, 0, 1], vscale(dir, dir[2])));
-      for (const q of FP_Arm([2, -9, -18], vadd(P0, vadd(vscale(dir, -1.9), vscale(upv, -2.7))))) s.push(q);
+      for (const q of FP_Arm([2, -9, -18], null, 1, FP_RevolverGrip(P0, dir, upv))) s.push(q);
       return s;
     }
     case 'COMB': case 'CFLA': {
@@ -1276,11 +1398,16 @@ function FP_Build(name, frame, flashOnly) {
       for (const q of WPN_Place(rifle, p.P0, dir, up)) s.push(q);
       const B = M3_fromDir(dir);
       const at = function (along, side, h) { return vadd(p.P0, vadd(vscale(dir, along), vadd(vscale(vcross(up, dir), side), vscale(up, h)))); };
-      // mano derecha en la garganta de la culata
-      for (const q of FP_Arm([6, -14, -20], at(-4.2, 0, -1.4))) s.push(q);
-      // mano izquierda: bajo el guardamano, o llevando el cartucho a la recámara
-      const leftHand = frame === 4 ? at(1.5, 2.4, 1.2) : at(12, 0.4, -1.9);
-      for (const q of FP_Arm([14, 9, -24], leftHand)) s.push(q);
+      const left = vcross(up, dir);
+      // mano derecha empuñando la garganta: palma a la derecha, dedos por debajo, pulgar encima
+      for (const q of FP_Arm([6, -14, -20], null, 1, { c: at(-4.6, 0, -0.5), g: dir, e1: vscale(left, -1), e2: vscale(up, -1), R0: 1.0,
+        wrist: vadd(vscale(dir, -1), vadd(vscale(left, -0.35), vscale(up, -0.45))) })) s.push(q);
+      // mano izquierda: bajo el guardamano (dedos por la izquierda), o llevando el cartucho a la recámara
+      if (frame === 4) for (const q of FP_Arm([14, 9, -24], at(1.5, 2.4, 1.2))) s.push(q);
+      else {
+        for (const q of FP_Arm([14, 9, -24], null, 1, { c: at(12.5, 0, -0.5), g: dir, e1: vscale(up, -1), e2: left, R0: 1.0,
+          wrist: vadd(vscale(dir, -0.5), vadd(vscale(left, 0.35), vscale(up, -0.8))) })) s.push(q);
+      }
       if (frame === 3) s.push(PR_cyl(at(2, -3.5, 4.5), 0.75, 2.4, M3_fromDir([0.3, -0.6, 1]), M_BRASS));
       if (frame === 4) s.push(PR_cyl(at(3.2, 1.2, 1.6), 0.7, 2.6, M3_fromDir(dir), M_BRASS));
       void B;
@@ -1306,7 +1433,8 @@ function FP_Build(name, frame, flashOnly) {
       }
       for (const q of WPN_Place(WPN_Rifle(false, false, true), P0, [1, 0, 0], [0, 0, 1])) s.push(q);
       // mano izquierda envolviendo el guardamano por la izquierda
-      for (const q of FP_Arm([10, 11, -18], vadd(P0, [13, 1.5, -0.9]))) s.push(q);
+      for (const q of FP_Arm([10, 11, -18], null, 1, { c: vadd(P0, [12.5, 0, -0.5]), g: [1, 0, 0], e1: [0, 0, -1], e2: [0, 1, 0], R0: 1.0,
+        wrist: [-0.5, 0.35, -0.8] })) s.push(q);
       return s;
     }
     case 'REVZ': case 'RFLZ': {
@@ -1324,8 +1452,7 @@ function FP_Build(name, frame, flashOnly) {
       }
       for (const q of WPN_Place(WPN_Revolver(true), grip, dir, up)) s.push(q);
       // mano algo menor que de cadera: el puño queda bajo el arma, sin taparla
-      const hand = vadd(grip, vadd(vscale(dir, -2.0), vscale(up, -3.0)));
-      for (const q of FP_Arm([6, -4.5, -10], hand, 0.8)) s.push(q);
+      for (const q of FP_Arm([6, -4.5, -10], null, 0.8, FP_RevolverGrip(grip, dir, up))) s.push(q);
       return s;
     }
     case 'GATZ': case 'GFLZ':
@@ -1340,7 +1467,8 @@ function FP_Build(name, frame, flashOnly) {
       ];
       const p = poses[frame];
       if (!p.empty) for (const q of WPN_Place(WPN_Dynamite(p.lit), vadd(p.hand, [0, 0, 0.4]), p.dir, [1, 0, 0])) s.push(q);
-      for (const q of FP_Arm(p.elbow, p.hand)) s.push(q);
+      if (p.empty) for (const q of FP_Arm(p.elbow, p.hand)) s.push(q);
+      else for (const q of FP_Arm(p.elbow, null, 1, { c: vadd(p.hand, [0, 0, 0.4]), g: p.dir, R0: 1.1 })) s.push(q);
       return s;
     }
   }

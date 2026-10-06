@@ -143,4 +143,49 @@ function PAL_BuildLumps() {
     colormap[33 * 256 + i] = 0;
   }
   W_AddLump('COLORMAP', colormap, 'colormap');
+  PAL_BuildTranMaps();
+}
+
+// --- Bruma (perspectiva aérea) -----------------------------------------------------------
+// NUMHAZE bloques de 34 mapas de luz: el bloque h mezcla cada color, ya
+// oscurecido por su nivel de luz, con el color de la bruma en la proporción
+// max·h/(NUMHAZE−1). El bloque 0 es el COLORMAP de DOOM, así que los mapas
+// fijos (invulnerabilidad) y los objetos a plena luz no cambian.
+const NUMHAZE = 16;
+function PAL_BuildFogMaps(colormap, haze, maxHaze) {
+  const out = new Uint8Array(NUMHAZE * 34 * 256);
+  out.set(colormap.subarray(0, 34 * 256), 0);
+  for (let h = 1; h < NUMHAZE; h++) {
+    const a = maxHaze * h / (NUMHAZE - 1);
+    const base = h * 34 * 256;
+    for (let l = 0; l < 34; l++) {
+      for (let i = 0; i < 256; i++) {
+        const c = colormap[l * 256 + i];
+        if (l >= 32) { out[base + l * 256 + i] = c; continue; }
+        const r = PAL_BASE[c * 3], g = PAL_BASE[c * 3 + 1], b = PAL_BASE[c * 3 + 2];
+        out[base + l * 256 + i] = RGB(Math.round(r + (haze[0] - r) * a), Math.round(g + (haze[1] - g) * a), Math.round(b + (haze[2] - b) * a));
+      }
+    }
+  }
+  return out;
+}
+
+// --- Transparencia (como el TRANMAP de Boom) ------------------------------------------------
+// PAL_TRAN[k][(fuente << 8) | destino]: color de la paleta más cercano a la
+// mezcla del texel con lo que ya está dibujado, con opacidad PAL_TRANALPHA[k].
+// Los sprites de humo guardan por texel uno de estos tres niveles.
+const PAL_TRANALPHA = [0.22, 0.42, 0.64];
+const PAL_TRAN = [];
+function PAL_BuildTranMaps() {
+  PAL_TRAN.length = 0;
+  for (const a of PAL_TRANALPHA) {
+    const t = new Uint8Array(65536);
+    for (let src = 0; src < 256; src++) {
+      const sr = PAL_BASE[src * 3] * a, sg = PAL_BASE[src * 3 + 1] * a, sb = PAL_BASE[src * 3 + 2] * a;
+      for (let dst = 0; dst < 256; dst++) {
+        t[(src << 8) | dst] = RGB(Math.round(sr + PAL_BASE[dst * 3] * (1 - a)), Math.round(sg + PAL_BASE[dst * 3 + 1] * (1 - a)), Math.round(sb + PAL_BASE[dst * 3 + 2] * (1 - a)));
+      }
+    }
+    PAL_TRAN.push(t);
+  }
 }

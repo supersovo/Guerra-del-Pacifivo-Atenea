@@ -138,8 +138,8 @@ function R_MapPlane(y, x1, x2) {
   ds_yfrac = -viewy - Math.sin(angle) * length;
   if (fixedcolormap >= 0) ds_colormap = fixedcolormap;
   else {
-    let index = Math.floor(distance / 16);
-    if (index >= MAXLIGHTZ) index = MAXLIGHTZ - 1;
+    let index = Math.floor(distance / R_ZLIGHTDIV);
+    if (index >= R_ZLIGHTS) index = R_ZLIGHTS - 1;
     ds_colormap = planezlight[index];
   }
   ds_y = y;

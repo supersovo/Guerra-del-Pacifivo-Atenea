@@ -366,13 +366,13 @@ async function MARCH_Init() {
     });
   } catch (e) { /* sin arrastrar y soltar */ }
   MARCH_db = await MARCH_OpenDB();   // null si el navegador no lo permite (incrustado, privado...)
-  MARCH_dbTried = true;
   const rows = await MARCH_Store('readonly', function (s) { return s.getAll(); });
   if (rows) {
     rows.sort(function (a, b) { return (a.added || 0) - (b.added || 0); });
     for (const r of rows) MARCH_Add(r);
   }
   for (const k in MARCH_assign) if (!MARCH_Find(MARCH_assign[k])) delete MARCH_assign[k];
+  MARCH_dbTried = true;   // marchas guardadas ya leídas (o no hay almacenamiento)
   if (MARCH_list.length) {
     console.log('Marchas cargadas: ' + MARCH_list.map(function (m) { return m.name; }).join(', '));
     if (S_currentMusic && MARCH_assign[S_currentMusic]) MUS_Play(S_currentMusic, S_musicLoop);

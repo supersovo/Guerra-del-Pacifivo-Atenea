@@ -73,5 +73,6 @@ function P_Ticker() {
   if (playeringame[0]) P_PlayerThink(players[0]);
   P_RunThinkers();
   P_UpdateSpecials();
+  R_SmokeTicker();
   leveltime++;
 }

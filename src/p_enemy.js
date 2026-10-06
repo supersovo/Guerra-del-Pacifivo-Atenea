@@ -301,6 +301,7 @@ function A_RifleAttack(actor) {
   angle = (angle + ((P_Random() - P_Random()) << 20)) >>> 0;
   const damage = ((P_Random() % 5) + 1) * 3;
   P_LineAttack(actor, angle, MISSILERANGE, slope, damage);
+  P_MuzzleSmoke(actor, 30, 44, 'fusil');
 }
 
 // Infante boliviano: Remington de bloque rodante, algo más certero y dañino.
@@ -313,6 +314,7 @@ function A_RemingtonAttack(actor) {
   angle = (angle + ((P_Random() - P_Random()) << 19)) >>> 0;
   const damage = ((P_Random() % 5) + 1) * 4;
   P_LineAttack(actor, angle, MISSILERANGE, slope, damage);
+  P_MuzzleSmoke(actor, 30, 44, 'fusil');
 }
 
 function A_BayonetAttack(actor) {
@@ -344,6 +346,7 @@ function A_OfficerShoot(actor) {
   angle = (angle + ((P_Random() - P_Random()) << 20)) >>> 0;
   const damage = ((P_Random() % 5) + 1) * 3;
   P_LineAttack(actor, angle, MISSILERANGE, slope, damage);
+  P_MuzzleSmoke(actor, 22, 44, 'fusil');
 }
 
 function A_CannonFire(actor) {
@@ -354,6 +357,7 @@ function A_CannonFire(actor) {
   if (mo && !mo.removed) {
     const smoke = P_SpawnMobj(actor.x + 36 * FineCos(actor.angle), actor.y + 36 * FineSin(actor.angle), actor.z + 30, MT.SMOKE);
     smoke.momz = 0.6;
+    P_MuzzleSmoke(actor, 44, 28, 'canon');
   }
   P_NoiseAlert(actor.target, actor);
 }

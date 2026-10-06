@@ -74,8 +74,11 @@ function R_ProjectSprite(thing) {
     lump = sprframe.lump[0];
     flip = sprframe.flip[0];
   }
-  const patch = lumpinfo[lump].data;
-  // density: texeles por unidad de mapa (2 = sprites de alta resolución)
+  let patch = W_CacheLumpNum(lump);
+  // Lejos, cuando cada texel ocupa menos de ~media columna de pantalla, se usa
+  // la versión a media resolución (evita el centelleo del muestreo sin filtro).
+  if (patch.mip && xscale < patch.density * 0.55) patch = patch.mip;
+  // density: texeles por unidad de mapa (3 = sprites de alta resolución)
   const d = patch.density || 1;
   tx -= patch.leftoffset / d;
   const x1 = Math.floor(centerx + tx * xscale);
@@ -108,8 +111,8 @@ function R_ProjectSprite(thing) {
   if (fixedcolormap >= 0) vis.colormap = fixedcolormap;
   else if (thing.frame & FF_FULLBRIGHT) vis.colormap = 0;
   else {
-    let index = Math.floor(xscale * lightscalemul);
-    if (index >= MAXLIGHTSCALE) index = MAXLIGHTSCALE - 1;
+    let index = Math.floor(xscale * lightscalemul * R_SCALEK);
+    if (index >= R_SCALELIGHTS) index = R_SCALELIGHTS - 1;
     vis.colormap = spritelights[index];
   }
 }
@@ -125,10 +128,11 @@ function R_DrawVisSprite(vis) {
   sprtopscreen = centery - vis.texturemid * vis.scale;
   let frac = vis.startfrac;
   const w = patch.width;
+  const draw = patch.translucent ? R_DrawMaskedColumnAlpha : R_DrawMaskedColumn;
   for (dc_x = vis.x1; dc_x <= vis.x2; dc_x++, frac += vis.xiscale) {
     const tc = Math.floor(frac);
     if (tc < 0 || tc >= w) continue;
-    R_DrawMaskedColumn(patch.columns[tc]);
+    draw(patch.columns[tc]);
   }
   dc_translation = null;
 }
@@ -218,7 +222,7 @@ function R_DrawPSprite(psp, lightcm, ads, dip) {
   const sprdef = sprites[spr];
   if (!sprdef) return false;
   const sprframe = sprdef.frames[st.frame & FF_FRAMEMASK] || sprdef.frames[0];
-  const patch = lumpinfo[sprframe.lump[0]].data;
+  const patch = W_CacheLumpNum(sprframe.lump[0]);
   const S = pspritescale;
   const d = patch.density || 1;
   const tS = S / d;                       // píxeles de pantalla por texel
@@ -263,7 +267,7 @@ function R_DrawPlayerSprites() {
   const sec = player.mo.subsector.sector;
   let lightnum = (sec.lightlevel >> LIGHTSEGSHIFT) + extralight;
   const lights = scalelight[clamp(lightnum, 0, LIGHTLEVELS - 1)];
-  const lightcm = lights[MAXLIGHTSCALE - 1];
+  const lightcm = lights[R_SCALELIGHTS - 1];
   let ads = player.ads;
   if (defaults.interpolate && R_interpFrac < 1) ads = player.oldads + (player.ads - player.oldads) * R_interpFrac;
   const dip = (ads < 0.5 ? ads : 1 - ads) * 2 * 36;

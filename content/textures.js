@@ -266,45 +266,103 @@ function tx_registerFlat(name, t, dither) {
 
 // --- Generadores de muros ---------------------------------------------------------------
 
-// Roca estratificada (acantilados de la costa, Morro de Arica).
-function txg_rock(w, h, seed, light, dark, opts) {
+// Barranco sedimentario: capas de grosor irregular (las duras sobresalen y
+// forman aleros que dan sombra a las blandas), cárcavas verticales de la
+// erosión, grietas, guijarros y relieve iluminado desde arriba a la izquierda.
+// La altura es la de la textura (las capas se repiten en vertical sin costura).
+function txg_strata(w, h, seed, light, dark, opts) {
   opts = opts || {};
   const t = tx_new(w, h);
-  const n1 = tx_fbm(w, h, seed, 4, 4, 5, 0.55);
-  const n2 = tx_fbm(w, h, seed + 7, 8, 2, 3, 0.5);
-  const n3 = tx_fbm(w, h, seed + 13, 16, 16, 2, 0.5);
-  const hm = new Float32Array(w * h);
-  const bands = opts.bands || 5;
+  const rng = M_SeededRNG(seed);
+  const layerOf = new Int32Array(h * 4);
+  const layers = [];
+  for (let y = 0; y < h;) {
+    const th = Math.min(h - y, (opts.minLayer || 5) + Math.floor(rng() * (opts.maxLayer || 20)));
+    layers.push({ y0: y, th: th, hard: rng(), tint: rng() });
+    for (let k = y; k < y + th; k++) layerOf[k] = layers.length - 1;
+    y += th;
+  }
+  const warp = tx_fbm(w, h, seed + 1, 4, 2, 3, 0.5);
+  const n1 = tx_fbm(w, h, seed + 2, 8, 8, 4, 0.55);
+  const gully = tx_fbm(w, h, seed + 3, 28, 2, 3, 0.5);
+  const hf = new Float32Array(w * h);
+  const base = new Float32Array(w * h);
+  const gul = new Float32Array(w * h);
   for (let y = 0; y < h; y++) {
     for (let x = 0; x < w; x++) {
       const i = y * w + x;
-      const strata = Math.sin((y + (n2[i] - 0.5) * 36) / h * Math.PI * 2 * bands);
-      hm[i] = 0.5 + (n1[i] - 0.5) * 1.2 + strata * (opts.strata || 0.13) + (n3[i] - 0.5) * 0.3;
+      let yy = y + (warp[i] - 0.5) * (opts.warp || 14);
+      yy = ((Math.floor(yy) % h) + h) % h;
+      const L = layers[layerOf[yy]];
+      const f = (yy - L.y0) / L.th;
+      const g = Math.max(0, gully[i] - 0.58) * 2.4 * (0.4 + f * 0.6);
+      gul[i] = g;
+      hf[i] = L.hard * 0.7 + (n1[i] - 0.5) * 0.45 - (1 - L.hard) * f * 0.55 - g * 0.5;
+      base[i] = 0.32 + 0.42 * L.tint + (n1[i] - 0.5) * 0.3;
     }
   }
-  const rng = M_SeededRNG(seed + 99);
   const crack = new Uint8Array(w * h);
-  const ncr = opts.cracks === undefined ? 8 : opts.cracks;
-  for (let c = 0; c < ncr; c++) {
+  for (let c = 0; c < (opts.cracks === undefined ? 10 : opts.cracks); c++) {
     let x = rng() * w, y = rng() * h;
-    let dir = rng() < 0.65 ? Math.PI / 2 + (rng() - 0.5) * 0.6 : (rng() - 0.5) * 0.5;
-    const len = 20 + rng() * 50;
-    for (let s = 0; s < len; s++) {
+    let dir = Math.PI / 2 + (rng() - 0.5) * 0.7;
+    const len = 12 + rng() * 40;
+    for (let k = 0; k < len; k++) {
       x += Math.cos(dir); y += Math.sin(dir);
-      dir += (rng() - 0.5) * 0.5;
+      dir += (rng() - 0.5) * 0.45;
       crack[tx_idx(t, Math.floor(x), Math.floor(y))] = 1;
     }
   }
   for (let y = 0; y < h; y++) {
     for (let x = 0; x < w; x++) {
       const i = y * w + x;
-      const g = hm[tx_idx(t, x - 1, y - 1)] - hm[tx_idx(t, x + 1, y + 1)];
-      const sh = 1 + g * 1.7;
-      const v = clamp(hm[i], 0, 1);
-      let c = tx_scale(tx_mix(dark, light, v), sh);
-      if (crack[i]) c = tx_scale(c, 0.42);
-      else if (crack[tx_idx(t, x, y - 1)]) c = tx_scale(c, 1.12);
+      const gx = hf[tx_idx(t, x - 1, y)] - hf[tx_idx(t, x + 1, y)];
+      const gy = hf[tx_idx(t, x, y - 1)] - hf[tx_idx(t, x, y + 1)];
+      let sh = 1 + gx * 1.1 + gy * 2.2;
+      // alero: si arriba sobresale una capa dura, sombra
+      const above = hf[tx_idx(t, x, y - 3)];
+      if (above - hf[i] > 0.25) sh *= 0.72;
+      let c = tx_scale(tx_mix(dark, light, clamp(base[i], 0, 1)), clamp(sh, 0.45, 1.4) * (1 - gul[i] * 0.35));
+      if (crack[i]) c = tx_scale(c, 0.45);
+      else if (crack[tx_idx(t, x - 1, y)]) c = tx_scale(c, 1.12);
+      const hs = tx_hash(seed + 5, x, y);
+      if (hs < 0.012) c = tx_scale(c, 0.6);
+      else if (hs > 0.992) c = tx_scale(c, 1.25);
       t.r[i] = c[0]; t.g[i] = c[1]; t.b[i] = c[2];
+    }
+  }
+  return t;
+}
+
+// Talud de arena o tierra compactada: grano fino, capas tenues, regueros de
+// erosión que bajan desde el borde, pie más oscuro y guijarros con luz y sombra.
+function txg_bank(w, h, seed, base, opts) {
+  opts = opts || {};
+  const t = tx_new(w, h);
+  const n = tx_fbm(w, h, seed, 6, 3, 5, 0.55);
+  const fine = tx_fbm(w, h, seed + 1, 32, 16, 2, 0.5);
+  const rill = tx_fbm(w, h, seed + 2, 40, 2, 2, 0.5);
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      const i = y * w + x;
+      const fy = y / h;
+      let v = 0.9 + (n[i] - 0.5) * 0.24 + (fine[i] - 0.5) * 0.16 + Math.sin((y + n[i] * 10) / h * Math.PI * 2 * (opts.layers || 3)) * 0.035;
+      v *= 1.04 - fy * 0.14;
+      if (rill[i] > 0.68) v *= 0.92 + (1 - fy) * 0.03;
+      const c = tx_scale(base, v);
+      t.r[i] = c[0]; t.g[i] = c[1]; t.b[i] = c[2];
+    }
+  }
+  const rng = M_SeededRNG(seed + 9);
+  const np = Math.floor(w * h * (opts.pebbles || 0.004));
+  for (let k = 0; k < np; k++) {
+    const cx = rng() * w, cy = rng() * h, r = 0.6 + rng() * 1.5;
+    const pc = tx_mix(opts.pebbleColor || [120, 108, 96], base, 0.25 + rng() * 0.45);
+    for (let dy = -3; dy <= 3; dy++) for (let dx = -3; dx <= 3; dx++) {
+      const ex = dx / r, ey = dy / (r * 0.75);
+      const d = ex * ex + ey * ey;
+      const xx = Math.floor(cx + dx), yy = Math.floor(cy + dy);
+      if (d <= 1) tx_put(t, xx, yy, tx_scale(pc, 1.15 - (ex + ey) * 0.22));
+      else if (d <= 1.9 && dx >= 0 && dy >= 0) tx_put(t, xx, yy, tx_scale(tx_get(t, xx, yy), 0.78));   // sombra
     }
   }
   return t;
@@ -545,9 +603,9 @@ function TX_BuildTextures() {
   }
 
   // --- Roca y terreno ---
-  tx_register('ROCA1', txg_rock(128, 128, 101, [176, 160, 138], [70, 60, 50], { bands: 5 }), 6);
-  tx_register('ROCA2', txg_rock(128, 128, 202, [190, 144, 104], [84, 56, 40], { bands: 4, strata: 0.18, cracks: 10 }), 6);
-  tx_register('ROCA4', txg_rock(128, 128, 404, [150, 138, 124], [52, 46, 42], { bands: 7, strata: 0.08, cracks: 14 }), 6);
+  tx_register('ROCA1', txg_strata(256, 128, 101, [192, 176, 152], [74, 64, 54], { maxLayer: 18 }), 6);
+  tx_register('ROCA2', txg_strata(256, 128, 202, [204, 160, 116], [88, 58, 40], { maxLayer: 22, cracks: 12 }), 6);
+  tx_register('ROCA4', txg_strata(256, 128, 404, [162, 150, 136], [54, 48, 44], { maxLayer: 14, cracks: 16, warp: 8 }), 6);
   {
     // Peñascos (voronoi) para rompientes y parapetos naturales.
     const t = tx_new(64, 64);
@@ -562,22 +620,8 @@ function TX_BuildTextures() {
     }
     tx_register('ROCA3', t, 6);
   }
-  {
-    const t = txf_sand(410, [206, 178, 128], { ripple: 0.05 });
-    const t2 = tx_new(128, 64);
-    for (let y = 0; y < 64; y++) for (let x = 0; x < 128; x++) {
-      const c = tx_get(t, x, y);
-      const shade = 0.82 + (1 - y / 64) * 0.12;
-      tx_put(t2, x, y, tx_scale(c, shade));
-    }
-    tx_register('ARENAW', t2, 5);
-  }
-  {
-    const t = txf_sand(420, [150, 116, 82], { pebbles: 0.05, pebbleColor: [110, 100, 92] });
-    const t2 = tx_new(64, 64);
-    for (let y = 0; y < 64; y++) for (let x = 0; x < 64; x++) tx_put(t2, x, y, tx_scale(tx_get(t, x, y * 2), 0.9 + Math.sin(y * 0.4) * 0.04));
-    tx_register('TIERRA1', t2, 5);
-  }
+  tx_register('ARENAW', txg_bank(256, 64, 410, [200, 170, 122], { layers: 2, pebbles: 0.003, pebbleColor: [150, 132, 112] }), 5);
+  tx_register('TIERRA1', txg_bank(128, 64, 420, [146, 112, 80], { layers: 4, pebbles: 0.005, pebbleColor: [118, 100, 84] }), 5);
   {
     const t = txf_sand(430, [208, 202, 186], { pebbles: 0.03, pebbleColor: [150, 140, 128] });
     tx_register('CALICHEW', t, 4);

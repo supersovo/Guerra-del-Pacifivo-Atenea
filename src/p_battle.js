@@ -273,6 +273,7 @@ function A_AllyRifle(actor) {
   S_StartSound(actor, 'rifle3');
   angle = (angle + ((P_Random() - P_Random()) << 20)) >>> 0;
   P_LineAttack(actor, angle, MISSILERANGE, slope, ((P_Random() % 5) + 1) * 3);
+  P_MuzzleSmoke(actor, 30, 44, 'fusil');
 }
 
 // --- Eventos (oleadas y refuerzos) -------------------------------------------------------------------

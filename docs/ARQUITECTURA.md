@@ -25,6 +25,7 @@ módulos ES) para que el juego funcione abriendo `index.html` desde el disco.
 | `p_spec.js`, `p_doors.js`, `p_floor.js`, `p_lights.js`, `p_switch.js` | homónimos | especiales de líneas y sectores |
 | `st_stuff.js`, `hu_stuff.js`, `am_map.js`, `m_menu.js`, `wi_stuff.js`, `f_finale.js`, `f_wipe.js`, `s_sound.js` | homónimos | barra de estado, mensajes, automapa, menús, intermedio, final, transición, sonido |
 | `p_battle.js` | — | **director de batalla** (extensión de Atenea) |
+| `r_smoke.js` | — | humo de pólvora negra: partículas semitransparentes del renderizador |
 | `s_voice.js` | — | voces de los soldados con el acento de su país (Web Speech API) |
 | `s_march.js` | — | marchas del jugador: lector MIDI, banda sintetizada, audio, IndexedDB |
 | `tools/mapcompile.js`, `tools/nodebuild.js` | editores y `doombsp` | compilador de mapas y constructor de nodos |
@@ -163,9 +164,28 @@ y `NODES` en el arranque. Sobre eso, `terrain.js` ofrece:
   tablas que dependen del campo visual (ángulo por columna, en tiempo lineal;
   corrección de distancia de los planos; escala del cielo). La luz no cambia.
 - **Densidad**: sprites, texturas y flats llevan `density` (texeles por unidad
-  de mapa). Los sprites se rasterizan al doble de resolución, las texturas y
-  flats se registran al doble (ampliación "bilineal nítida" con grano fino), y
-  los cielos son panoramas de 2048×400.
+  de mapa). Los sprites de figuras se rasterizan al triple de resolución y las
+  armas en primera persona a 1280×800. Las texturas y flats se registran al
+  doble, con ampliación "bilineal nítida" y grano fino. Los cielos son
+  panoramas de 2048×400.
+- **Mipmaps de sprites**: cada cuadro de figura lleva una versión a media
+  resolución (`patch.mip`). `R_ProjectSprite` la usa cuando un texel ocupa menos
+  de media columna de pantalla, y así las tropas lejanas no centellean.
+- **Bruma** (perspectiva aérea): los índices de luz son cuatro veces más finos
+  que en DOOM (`R_SCALEK`, `R_ZLIGHTDIV`) para distinguir lejanías de miles de
+  unidades.
+  - Al aire libre, la luz del sector ya no se apaga con la distancia como en los
+    pasillos de DOOM: lo lejano se funde con el color del horizonte del cielo de
+    cada mapa.
+  - `PAL_BuildFogMaps` arma 16 bloques de 34 mapas de luz, cada uno mezclado con
+    ese color, y `R_SetupHaze` los instala al cargar el mapa.
+  - `levelinfo.haze`, `hazeStart`, `hazeDist` y `hazeMax` permiten ajustarla o
+    quitarla.
+- **Transparencia** como el TRANMAP de Boom: `PAL_TRAN` tiene tres tablas de
+  65.536 entradas, (fuente, destino) → color con opacidad 0,22, 0,42 y 0,64. Los
+  patches semitransparentes (`V_MakeAlphaPatch`) guardan por texel el nivel de
+  opacidad, y `R_DrawColumnAlpha` los mezcla después de aplicar la luz y la
+  bruma.
 
 ### Puntería moderna (`p_user.js`, `p_pspr.js`, `r_things.js`)
 
@@ -253,12 +273,42 @@ fuera del combate, así que el arranque no paga el medio segundo que cuestan.
 Nada viene de archivos externos: la paleta y el `COLORMAP`, las fuentes, las
 texturas, los cielos, la interfaz, los sonidos y la música se generan al iniciar
 (las marchas que el jugador cargue son opcionales).
-Los sprites salen de una **fundición**: cada personaje es un modelo de primitivas
-(elipsoides, cajas, cilindros) con uniformes históricos, que se rasteriza con
-z-buffer desde 8 ángulos (como los modelos de arcilla fotografiados de DOOM) y en
-perspectiva para las armas en primera persona, se sombrea y se cuantiza a la
-paleta. Unos 800 cuadros se generan en un segundo y medio, al doble de la
-resolución de DOOM.
+Los sprites salen de una **fundición**: cada personaje es un modelo de
+primitivas con uniformes históricos. Las primitivas son elipsoides, cajas,
+cilindros y telas: elipsoides huecos recortados, para el cubrenuca y los
+faldones de la levita. El modelo se rasteriza desde 8 ángulos, como los modelos
+de arcilla fotografiados de DOOM, o en perspectiva para las armas en primera
+persona. Se hace en dos pasadas:
+
+1. **Rasterizado**: un G-buffer guarda por texel la profundidad, la normal, el
+   punto local y el material.
+2. **Revelado** (`FND_Develop`): ilumina en espacio lineal y cuantiza a la
+   paleta.
+   - Luces: sol cálido con luz envolvente, cielo frío desde arriba, rebote de la
+     arena desde abajo, contraluz y brillo especular en los metales (atenuado en
+     las caras planas).
+   - Oclusión ambiental medida en el buffer de profundidad.
+   - Veta en las maderas, textura leve en las telas y contorno en la silueta.
+   - Cuantización a la paleta con tramado de Bayer, más la versión mip de
+     cada cuadro.
+
+Los 1.213 cuadros, al triple de la resolución de DOOM, se registran como
+**lumps diferidos** (`W_AddLazyLump`) y se funden en segundo plano mientras se
+está en la portada, los menús o el parte (`W_WarmStep`); la portada muestra el
+avance. Si se confirma el parte de operaciones antes de que termine, el parte
+muestra «Preparando la batalla» con el porcentaje, dedica más tiempo por cuadro
+a la fundición y entra al combate al terminar; `G_DoLoadLevel` completa lo que
+falte cuando se carga un mapa por otra vía. Así el arranque bajó de 4,7 a 1,8 s.
+En la ruta de los elipsoides, la mayoría de las primitivas, el rasterizado usa
+límites exactos de la elipse proyectada y una intersección en línea.
+
+El **humo de pólvora negra** (`r_smoke.js`) es un sistema de partículas del
+renderizador, fuera de la simulación: no usa `P_Random` ni el blockmap.
+- Cada disparo de fusil, revólver, Gatling o cañón deja una bocanada que sube,
+  deriva con el viento (`levelinfo.wind`) y se disipa en seis cuadros.
+- Hay a lo sumo 220 a la vez.
+- Se proyectan como vissprites semitransparentes, de modo que el COLORMAP les
+  aplica la luz y la bruma como a cualquier sprite.
 
 ## Pruebas
 

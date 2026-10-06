@@ -142,6 +142,13 @@ function P_BulletSlope(mo) {
   }
 }
 
+// Humo del disparo del jugador: algo adelante y abajo de la vista, para que
+// la bocanada no tape la mira (luego sube y deriva).
+function P_PlayerSmoke(player) {
+  const mo = player.mo;
+  R_SpawnSmoke(mo.x + 46 * FineCos(mo.angle), mo.y + 46 * FineSin(mo.angle), player.viewz - 14, mo.angle, 'fusil');
+}
+
 // Dispersión: con el arma encarada (miras) la desviación es cuatro veces menor.
 function P_GunShot(mo, accurate, damage) {
   let angle = mo.angle;
@@ -176,6 +183,7 @@ function A_FireRevolver(player, psp) {
   P_SetPsprite(player, ps_flash, weaponinfo[player.readyweapon].flashstate);
   P_BulletSlope(player.mo);
   P_GunShot(player.mo, !player.refire, 5 * ((P_Random() % 3) + 1));
+  P_PlayerSmoke(player);
 }
 
 // --- Fusil Comblain II: un tiro preciso y potente, recarga manual ---
@@ -186,6 +194,7 @@ function A_FireComblain(player, psp) {
   P_SetPsprite(player, ps_flash, weaponinfo[player.readyweapon].flashstate);
   P_BulletSlope(player.mo);
   P_GunShot(player.mo, true, 10 * ((P_Random() % 5) + 3));
+  P_PlayerSmoke(player);
 }
 function A_OpenBreech(player) { S_StartSound(player.mo, 'rload1'); }
 function A_LoadCartridge(player) { S_StartSound(player.mo, 'rload2'); }
@@ -201,6 +210,7 @@ function A_FireGatling(player, psp) {
   P_SetPsprite(player, ps_flash, flash);
   P_BulletSlope(player.mo);
   P_GunShot(player.mo, !player.refire, 5 * ((P_Random() % 3) + 1));
+  if (!(leveltime & 3)) P_PlayerSmoke(player);
 }
 
 // --- Dinamita ---

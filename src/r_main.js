@@ -178,29 +178,88 @@ function R_InitTextureMapping() {
   clipangle = xtoviewangle[0];
 }
 
+// --- Luz y bruma ----------------------------------------------------------------------------
+// Los índices de luz son cuatro veces más finos que en DOOM para distinguir
+// lejanías de miles de unidades: muros y sprites usan escala·lightscalemul·4
+// (R_SCALELIGHTS entradas, lo cercano satura igual que en DOOM) y los planos,
+// distancia/32 (hasta 10.240 unidades).
+// Con bruma (campo abierto) la luz del sector no se apaga con la distancia
+// como en los pasillos de DOOM: lo lejano se funde con el color del horizonte
+// (perspectiva aérea), a través de las tablas de PAL_BuildFogMaps; el
+// desplazamiento de cada entrada es (bloque de bruma·34 + nivel)·256.
+const R_SCALEK = 4;
+const R_SCALELIGHTS = MAXLIGHTSCALE * R_SCALEK;
+const R_ZLIGHTDIV = 32;
+const R_ZLIGHTS = 320;
+let R_haze = null;               // { color, start, dist, max } o null (sin bruma)
+let R_colormapBase = null;       // COLORMAP de DOOM (bloque 0)
+
+function R_HazeBlock(dist) {
+  if (!R_haze) return 0;
+  const d = dist - R_haze.start;
+  if (d <= 0) return 0;
+  return Math.min(NUMHAZE - 1, Math.round((1 - Math.exp(-d / R_haze.dist)) * (NUMHAZE - 1)));
+}
+
 function R_InitLightTables() {
   scalelight = [];
   zlight = [];
   for (let i = 0; i < LIGHTLEVELS; i++) {
     const startmap = ((LIGHTLEVELS - 1 - i) * 2) * NUMCOLORMAPS / LIGHTLEVELS;
-    const zl = new Int32Array(MAXLIGHTZ);
-    for (let j = 0; j < MAXLIGHTZ; j++) {
-      const scale = 160 / (j + 1);
-      let level = Math.floor(startmap - scale / 2);
+    const flat = Math.floor(startmap * 0.4);   // nivel único con bruma
+    const zl = new Int32Array(R_ZLIGHTS);
+    for (let j = 0; j < R_ZLIGHTS; j++) {
+      const dist = (j + 0.5) * R_ZLIGHTDIV;
+      let level = R_haze ? flat : Math.floor(startmap - 160 / (dist / 16 + 1) / 2);
       if (level < 0) level = 0;
       if (level >= NUMCOLORMAPS) level = NUMCOLORMAPS - 1;
-      zl[j] = level * 256;
+      zl[j] = (R_HazeBlock(dist) * 34 + level) * 256;
     }
     zlight.push(zl);
-    const sl = new Int32Array(MAXLIGHTSCALE);
-    for (let j = 0; j < MAXLIGHTSCALE; j++) {
-      let level = Math.floor(startmap - j / 2);
+    const sl = new Int32Array(R_SCALELIGHTS);
+    for (let j = 0; j < R_SCALELIGHTS; j++) {
+      const dist = j > 0 ? 2560 * R_SCALEK / j : 16384;
+      let level = R_haze ? flat : Math.floor(startmap - j / R_SCALEK / 2);
       if (level < 0) level = 0;
       if (level >= NUMCOLORMAPS) level = NUMCOLORMAPS - 1;
-      sl[j] = level * 256;
+      sl[j] = (R_HazeBlock(dist) * 34 + level) * 256;
     }
     scalelight.push(sl);
   }
+}
+
+// Bruma del mapa: color del horizonte de su cielo (o levelinfo.haze) y
+// distancias de levelinfo.hazeStart / hazeDist. levelinfo.haze === false la quita.
+function R_SetupHaze(info) {
+  if (!R_colormapBase) R_colormapBase = colormaps;
+  if (info && info.haze === false) {
+    R_haze = null;
+    colormaps = R_colormapBase;
+  } else {
+    let color = info && Array.isArray(info.haze) ? info.haze : R_SkyHorizonColor();
+    R_haze = { color: color, start: (info && info.hazeStart) || 200, dist: (info && info.hazeDist) || 4200, max: (info && info.hazeMax) || 0.85 };
+    colormaps = PAL_BuildFogMaps(R_colormapBase, color, R_haze.max);
+  }
+  R_InitLightTables();
+}
+
+// Color medio del cielo justo sobre el horizonte, algo agrisado (polvo).
+function R_SkyHorizonColor() {
+  const t = textures[skytexture];
+  if (!t || !t.columns) return [200, 200, 196];
+  const d = t.density || 1;
+  let r = 0, g = 0, b = 0, n = 0;
+  for (let x = 0; x < t.width; x += 4) {
+    const col = t.columns[x];
+    for (let y = skytexturemid - 7 * d; y < skytexturemid - d; y++) {
+      if (y < 0 || y >= col.length) continue;
+      const c = col[y];
+      r += PAL_BASE[c * 3]; g += PAL_BASE[c * 3 + 1]; b += PAL_BASE[c * 3 + 2]; n++;
+    }
+  }
+  if (!n) return [200, 200, 196];
+  const dust = [200, 190, 172];
+  return [r / n * 0.8 + dust[0] * 0.2, g / n * 0.8 + dust[1] * 0.2, b / n * 0.8 + dust[2] * 0.2].map(Math.round);
 }
 
 // --- Interpolación entre tics ------------------------------------------------------------
@@ -268,6 +327,7 @@ function R_RenderPlayerView(player) {
   R_ClearSprites();
   R_DrawSkyBackground();
   R_RenderBSPNode(rootnode);
+  R_AddSmokeSprites();
   R_DrawPlanes();
   R_DrawMasked();
   for (let i = 0; i < saved.length; i += 3) {

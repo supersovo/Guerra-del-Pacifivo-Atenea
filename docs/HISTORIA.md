@@ -189,6 +189,11 @@ la Reserva (civiles de levita y sombrero).
 | Granaderos a caballo (Chile) | casaca azul, pantalón rojo, kepí rojo | sable |
 | Artillería | dotación con su pieza (Krupp chilena; pieza aliada) | cañón |
 
+Todas las armas de fuego de la guerra usaban **pólvora negra**; la pólvora sin
+humo (la *Poudre B* de Paul Vieille) es de 1884. Por eso cada descarga levantaba
+una nube blanca y las líneas de fuego quedaban envueltas en humo, como se ve en
+el juego.
+
 El **corvo** es el cuchillo curvo que llevaban los mineros de Atacama y que quedó
 asociado al soldado chileno. El **escapulario de la Virgen del Carmen**, patrona del
 Ejército de Chile, aparece como objeto de moral.

@@ -164,6 +164,8 @@ function WI_StartBriefing(map, first) {
 function WI_BriefingTicker() {
   wi_bcnt++;
   if (!wi_brief) return;
+  // se pidió empezar pero la fundición seguía: se entra en cuanto termina
+  if (wi_brief.waitWarm && W_WarmProgress() >= 1) { WI_BriefingStart(); return; }
   if (!wi_brief.ready) {
     wi_brief.chars += 2;
     const total = wi_brief.lines.join(' ').length;
@@ -175,14 +177,20 @@ function WI_BriefingResponder(ev) {
   if (!wi_brief) return false;
   if (ev.type === ev_keydown || (ev.type === ev_pointer && (ev.data1 === 'down' || ev.data1 === 'tap'))) {
     if (!wi_brief.ready) { wi_brief.ready = true; wi_brief.chars = 99999; return true; }
+    if (wi_brief.waitWarm) return true;
     S_StartSound(null, 'menusl');
-    const b = wi_brief;
-    wi_brief = null;
-    if (b.first) G_InitNew(d_skill, b.map);
-    else G_DoLoadLevel();
+    if (W_WarmProgress() < 1) { wi_brief.waitWarm = true; return true; }
+    WI_BriefingStart();
     return true;
   }
   return false;
+}
+
+function WI_BriefingStart() {
+  const b = wi_brief;
+  wi_brief = null;
+  if (b.first) G_InitNew(d_skill, b.map);
+  else G_DoLoadLevel();
 }
 
 function WI_BriefingDrawer() {
@@ -201,5 +209,7 @@ function WI_BriefingDrawer() {
     remaining -= l.length + 1;
     y += 11;
   }
-  if (wi_brief.ready && (wi_bcnt & 16)) V_DrawText(bx, 186, wi_brief.first ? 'Presione para iniciar la acción' : 'Presione para avanzar', false, V_Translations.red);
+  if (wi_brief.waitWarm) V_DrawText(bx, 186, 'Preparando la batalla: ' + Math.floor(W_WarmProgress() * 100) + ' %', false, V_Translations.red);
+  else if (wi_brief.ready && (wi_bcnt & 16)) V_DrawText(bx, 186, wi_brief.first ? 'Presione para iniciar la acción' : 'Presione para avanzar', false, V_Translations.red);
+  D_DrawWarmProgress();
 }

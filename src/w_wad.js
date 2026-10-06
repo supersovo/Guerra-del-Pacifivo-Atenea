@@ -22,11 +22,36 @@ function W_AddLump(name, data, kind) {
 }
 
 // Lump diferido: se construye la primera vez que se consulta. Así el arranque
-// no paga recursos caros que quizá tarden en usarse (los retratos del soldado).
+// no paga recursos caros (los sprites de la fundición y los retratos del
+// soldado): W_WarmStep los va construyendo en segundo plano, en el orden en
+// que se registraron, mientras se está en la portada, los menús o el parte.
+const W_pending = [];
+let W_pendingPos = 0, W_built = 0;
+
 function W_AddLazyLump(name, build, kind) {
   const num = W_AddLump(name, null, kind);
   lumpinfo[num].build = build;
+  W_pending.push(num);
   return num;
+}
+
+// Construye lumps pendientes durante budgetMs; devuelve cuántos quedan.
+function W_WarmStep(budgetMs) {
+  const t0 = performance.now();
+  while (W_pendingPos < W_pending.length) {
+    const num = W_pending[W_pendingPos++];
+    if (!lumpinfo[num].build) continue;
+    W_CacheLumpNum(num);
+    if (performance.now() - t0 >= budgetMs) break;
+  }
+  return W_pending.length - W_pendingPos;
+}
+
+function W_WarmAll() { return W_WarmStep(Infinity); }
+
+// Fracción de lumps diferidos ya construidos (0..1).
+function W_WarmProgress() {
+  return W_pending.length ? W_built / W_pending.length : 1;
 }
 
 function W_AddMarker(name) {
@@ -51,6 +76,7 @@ function W_CacheLumpNum(num) {
     const build = info.build;
     info.build = null;
     info.data = build();
+    W_built++;
   }
   return info.data;
 }

@@ -357,8 +357,8 @@ function R_RenderSegLoop() {
       texcol = rw_offset - Math.tan(ang) * rw_distance;
       if (fixedcolormap >= 0) dc_colormap = fixedcolormap;
       else {
-        let index = Math.floor(rw_scale * lightscalemul);
-        if (index >= MAXLIGHTSCALE) index = MAXLIGHTSCALE - 1;
+        let index = Math.floor(rw_scale * lightscalemul * R_SCALEK);
+        if (index >= R_SCALELIGHTS) index = R_SCALELIGHTS - 1;
         dc_colormap = walllights[index];
       }
       dc_x = rw_x;
@@ -462,8 +462,8 @@ function R_RenderMaskedSegRange(ds, x1, x2) {
     if (c !== MAXSHORTCOL) {
       if (fixedcolormap >= 0) dc_colormap = fixedcolormap;
       else {
-        let index = Math.floor(scale * lightscalemul);
-        if (index >= MAXLIGHTSCALE) index = MAXLIGHTSCALE - 1;
+        let index = Math.floor(scale * lightscalemul * R_SCALEK);
+        if (index >= R_SCALELIGHTS) index = R_SCALELIGHTS - 1;
         dc_colormap = walllights[index];
       }
       sprtopscreen = centery - mid * scale;

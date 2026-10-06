@@ -56,7 +56,7 @@ window.addEventListener('load', async function () {
         const ox = rx * cell, oy = ry * cell;
         for (let k = 0; k < cell; k++) { for (let z = 0; z < zoom; z++) { put((ox + k) * zoom, (oy) * zoom + z, 60, 60, 60); put(ox * zoom + z, (oy + k) * zoom, 60, 60, 60); } }
         if (n < 0) return;
-        const p = lumpinfo[n].data;
+        const p = W_CacheLumpNum(n);
         const d = p.density || 1;
         const psp = /^(CORV|REVO|RFLA|COMB|CFLA|GATL|GFLA|DINW|COMZ|CFLZ|REVZ|RFLZ|GATZ|GFLZ)/.test(name);
         if (psp) {

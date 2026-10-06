@@ -408,13 +408,10 @@ function FACE_Draw(pain, expr, look, turn) {
 }
 
 // Los 42 retratos se registran como lumps diferidos (W_AddLazyLump): pintarlos
-// cuesta medio segundo, así que no se hace al arrancar. FACE_WarmStep pinta uno
-// por cuadro mientras se está en la portada, los menús o el parte de
-// operaciones; si en el campo hace falta uno que aún no está, se pinta al pedirlo.
-const FACE_pending = [];
-
+// cuesta medio segundo, así que no se hace al arrancar sino en segundo plano
+// (W_WarmStep); si en el campo hace falta uno que aún no está, se pinta al pedirlo.
 function FACE_Lazy(name, pain, expr, look, turn) {
-  FACE_pending.push(W_AddLazyLump(name, function () { return FACE_Draw(pain, expr, look, turn); }, 'patch'));
+  W_AddLazyLump(name, function () { return FACE_Draw(pain, expr, look, turn); }, 'patch');
 }
 
 function FACE_BuildLumps() {
@@ -430,16 +427,4 @@ function FACE_BuildLumps() {
   }
   FACE_Lazy('STFGOD0', 0, 'god', 0, 0);
   FACE_Lazy('STFDEAD0', 4, 'dead', 0, 0);
-}
-
-// Pinta el siguiente retrato pendiente; devuelve false cuando no queda ninguno.
-function FACE_WarmStep() {
-  while (FACE_pending.length) {
-    const num = FACE_pending.shift();
-    if (lumpinfo[num].build) {
-      W_CacheLumpNum(num);
-      return true;
-    }
-  }
-  return false;
 }

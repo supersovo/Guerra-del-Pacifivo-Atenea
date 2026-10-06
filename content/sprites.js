@@ -16,32 +16,49 @@ const SPR_DEATHVIEW = { yaw: Math.PI * 0.64, elev: 0.26 };   // 3/4 lateral para
 const SPR_ITEMVIEW = { yaw: Math.PI - 0.55, elev: 0.5 };      // objetos en el suelo, vistos desde arriba
 const SPR_DECOVIEW = { yaw: Math.PI - 0.35, elev: 0.2 };
 let SPR_count = 0;
-// Densidad de los sprites: texeles por unidad de mapa (2 = el doble de
-// resolución que DOOM, para pantallas de 1280x800 o más). Las armas en
-// primera persona se rasterizan a 640x400.
-const SPR_RES = 2;
-const SPR_PRES = 2;
+// Densidad de los sprites: texeles por unidad de mapa (3 = el triple de la
+// resolución de DOOM). Las armas en primera persona se rasterizan a 1280x800
+// (densidad 4: un texel por píxel a la resolución máxima).
+const SPR_RES = 3;
+const SPR_PRES = 4;
 
-function SPR_Put(name, img) {
-  const patch = FND_ToPatch(img);
-  patch.density = SPR_RES;
-  W_AddLump(name, patch, 'sprite');
+// Los cuadros se registran como lumps diferidos: la fundición los "fotografía"
+// en segundo plano (W_WarmStep) o al pedirlos. Los de figuras en el mundo
+// llevan además su versión a media resolución (mip) para la distancia.
+function SPR_Lazy(name, render) {
+  W_AddLazyLump(name, function () {
+    const img = render();
+    const patch = FND_ToPatch(img);
+    patch.density = SPR_RES;
+    if (img.mip) {
+      const m = img.mip;
+      patch.mip = V_MakePatch(m.w, m.h, m.px, m.left, m.top);
+      patch.mip.density = SPR_RES / 2;
+    }
+    return patch;
+  }, 'sprite');
   SPR_count++;
 }
 
 // Ocho rotaciones de una escena (cuadro vivo de un personaje u objeto).
 function SPR_Rot(base, frame, scene, elev) {
   for (let r = 0; r < 8; r++) {
-    SPR_Put(base + frame + (r + 1), FND_Render(scene, { yaw: Math.PI - r * Math.PI / 4, elev: elev, res: SPR_RES }));
+    const yaw = Math.PI - r * Math.PI / 4;
+    SPR_Lazy(base + frame + (r + 1), function () { return FND_Render(scene, { yaw: yaw, elev: elev, res: SPR_RES, mip: true }); });
   }
 }
 
 // Cuadro único (rotación 0). center: origen vertical en el medio de la imagen
 // (efectos que aparecen en el punto de impacto, no apoyados en el suelo).
 function SPR_One(base, frame, scene, view, center) {
-  const img = FND_Render(scene, Object.assign({ res: SPR_RES }, view || SPR_DECOVIEW));
-  if (center) img.top = Math.round(img.h / 2);
-  SPR_Put(base + frame + '0', img);
+  SPR_Lazy(base + frame + '0', function () {
+    const img = FND_Render(scene, Object.assign({ res: SPR_RES, mip: true }, view || SPR_DECOVIEW));
+    if (center) {
+      img.top = Math.round(img.h / 2);
+      if (img.mip) img.mip.top = img.top / 2;
+    }
+    return img;
+  });
 }
 
 // Arma en primera persona. De cadera se ancla al borde inferior de la vista;
@@ -49,10 +66,12 @@ function SPR_One(base, frame, scene, view, center) {
 // ancla al centro. zoom: distancia focal del modelo encarado.
 function SPR_PSprite(name, scene, ads, zoom) {
   const res = SPR_PRES;
-  const img = FND_RenderPersp(scene, { outline: true, res: res, zoom: zoom || 1 });
-  const patch = V_MakePatch(img.w, img.h, img.px, res - img.screenX, (ads ? 100 : 200) * res - img.screenY);
-  patch.density = res;
-  W_AddLump(name, patch, 'sprite');
+  W_AddLazyLump(name, function () {
+    const img = FND_RenderPersp(scene, { outline: true, res: res, zoom: zoom || 1 });
+    const patch = V_MakePatch(img.w, img.h, img.px, res - img.screenX, (ads ? 100 : 200) * res - img.screenY);
+    patch.density = res;
+    return patch;
+  }, 'sprite');
   SPR_count++;
 }
 
@@ -193,6 +212,53 @@ function SPR_Effects() {
   for (let f = 0; f < 6; f++) SPR_One('BARR', 'ABCDEF'[f], ITEM_Build('BARR', f), SPR_DECOVIEW);
 }
 
+// --- Humo de pólvora negra ---------------------------------------------------------------------
+// Bocanadas procedurales con opacidad por texel en tres niveles
+// (V_MakeAlphaPatch): el renderizador las mezcla con lo que hay detrás
+// (PAL_TRAN). PSMK: fusil, revólver y Gatling; PSMG: cañón. Seis cuadros, de
+// la bocanada densa recién salida a la nube que se disipa.
+function SPR_SmokeImage(frame, big) {
+  const res = 2;
+  const t = frame / 5;
+  const rad = (big ? 40 : 16) * (0.55 + 1.0 * Math.sqrt(t));       // radio en unidades
+  const n = Math.ceil(rad * 2.4 * res) | 1;
+  const px = new Int16Array(n * n).fill(-1), alpha = new Uint8Array(n * n);
+  const seed = (big ? 9100 : 9000) + frame * 17;
+  const fade = 1 - 0.55 * t;
+  for (let y = 0; y < n; y++) {
+    for (let x = 0; x < n; x++) {
+      const dx = (x + 0.5 - n / 2) / (rad * res), dy = (y + 0.5 - n / 2) / (rad * res);
+      const r = Math.sqrt(dx * dx + dy * dy * 1.15);
+      const nz = 0.65 * tx_vnoise(seed, x / res * 0.22, y / res * 0.22, 4096, 4096) +
+                 0.35 * tx_vnoise(seed + 7, x / res * 0.5, y / res * 0.5, 4096, 4096);
+      const dens = clamp((1 - r) * 1.8 + (nz - 0.5) * 1.1, 0, 1) * fade;
+      const lvl = dens > 0.55 ? 3 : dens > 0.32 ? 2 : dens > 0.13 ? 1 : 0;
+      if (!lvl) continue;
+      const p = y * n + x;
+      alpha[p] = lvl;
+      // blanco azulado, con luz de arriba; recién salida, tibia por el fogonazo
+      const v = 1.0 - 0.32 * clamp((dy + 1) / 2, 0, 1) - 0.1 * (1 - nz);
+      const warm = frame === 0 ? 1 : 0;
+      px[p] = RGB(Math.round(226 * v + warm * 20), Math.round(229 * v + warm * 9), Math.round(236 * v));
+    }
+  }
+  return { w: n, h: n, px: px, alpha: alpha, left: n / 2, top: n / 2, res: res };
+}
+
+function SPR_Smoke() {
+  for (const big of [false, true]) {
+    for (let f = 0; f < 6; f++) {
+      W_AddLazyLump((big ? 'PSMG' : 'PSMK') + 'ABCDEF'[f] + '0', function () {
+        const img = SPR_SmokeImage(f, big);
+        const patch = V_MakeAlphaPatch(img.w, img.h, img.px, img.alpha, img.left, img.top);
+        patch.density = img.res;
+        return patch;
+      }, 'sprite');
+      SPR_count++;
+    }
+  }
+}
+
 // --- Objetos recogibles ---------------------------------------------------------------------------
 // [nombre, cuadros, escala, vista]: los objetos pequeños se agrandan un poco
 // (como en DOOM) para que se distingan en el suelo.
@@ -254,7 +320,12 @@ async function SPR_BuildSprites(progressCb) {
   SPR_count = 0;
   W_AddMarker('S_START');
   const groups = [
+    ['PSPR', 'armas en primera persona', SPR_Weapons],
     ['CHIL', 'infantería chilena (levita azul, pantalón rojo, Comblain)', function () { SPR_Infantry('CHIL', STYLE.CHILE); }],
+    ['FX', 'proyectiles, explosiones y humo', SPR_Effects],
+    ['PSMK', 'humo de pólvora negra (semitransparente)', SPR_Smoke],
+    ['ITEM', 'pertrechos, víveres y estandartes', SPR_Items],
+    ['DECO', 'cañones, tamarugos, postes, lanchas y carretas', SPR_Decorations],
     ['GUAR', 'Guardia Nacional peruana (dril blanco, Peabody)', function () { SPR_Infantry('GUAR', STYLE.GUARDIA); }],
     ['BOLI', 'infantería boliviana (bayeta gris, Remington)', function () { SPR_Infantry('BOLI', STYLE.BOLIVIA); }],
     ['BAYO', 'infantería de línea peruana a la bayoneta', SPR_Bayoneta],
@@ -264,21 +335,16 @@ async function SPR_BuildSprites(progressCb) {
     ['COLO', 'Colorados de Bolivia (casaca roja)', function () { SPR_Infantry('COLO', STYLE.COLORADO); }],
     ['RESE', 'Ejército de Reserva de Lima (levita y sombrero)', function () { SPR_Infantry('RESE', STYLE.RESERVA); }],
     ['GRAN', 'Granaderos a Caballo', function () { SPR_Cavalry('GRAN', STYLE.GRANADERO); }],
-    ['GIBS', 'cuerpos desmembrados por las explosiones', SPR_Gibs],
     ['ARTI', 'artillería aliada con su dotación', function () { SPR_Artilleria('ARTI', 'liso', STYLE.ARTILLERO_PE); }],
     ['ARTC', 'batería Krupp chilena', function () { SPR_Artilleria('ARTC', 'krupp', STYLE.ARTILLERO_CL); }],
-    ['FX', 'proyectiles, explosiones y humo', SPR_Effects],
-    ['ITEM', 'pertrechos, víveres y estandartes', SPR_Items],
-    ['DECO', 'cañones, tamarugos, postes, lanchas y carretas', SPR_Decorations],
-    ['PSPR', 'armas en primera persona', SPR_Weapons]
+    ['GIBS', 'cuerpos desmembrados por las explosiones', SPR_Gibs]
   ];
   for (const g of groups) {
     const before = SPR_count;
     g[2]();
     say(g[0] + ': ' + g[1] + ' (' + (SPR_count - before) + ' cuadros)');
-    await M_NextFrame();
   }
   W_AddMarker('S_END');
   const dt = Math.round(((typeof performance !== 'undefined') ? performance.now() : Date.now()) - t0);
-  say(SPR_count + ' cuadros de sprite en ' + dt + ' ms');
+  say(SPR_count + ' cuadros de sprite registrados en ' + dt + ' ms; la fundición sigue en segundo plano');
 }

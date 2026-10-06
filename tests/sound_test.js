@@ -105,13 +105,16 @@ function makeWav(file, secs) {
   };
   await boot();
 
-  // 1) Retratos diferidos: casi todos pendientes al llegar a la portada (se pinta
-  //    uno por cuadro), ninguno tras unos segundos.
-  const pend0 = await page.evaluate('lumpinfo.filter(function (l) { return l.build; }).length');
-  await page.waitForTimeout(2500);
-  const pend1 = await page.evaluate('lumpinfo.filter(function (l) { return l.build; }).length');
+  // 1) Fundición en segundo plano: retratos y sprites quedan pendientes al
+  //    llegar a la portada y se construyen mientras se la mira.
+  const pending = "(function () { let f = 0, s = 0; for (const l of lumpinfo) if (l.build) { if (/^STF/.test(l.name)) f++; else if (l.kind === 'sprite') s++; } return { f: f, s: s }; })()";
+  const pend0 = await page.evaluate(pending);
+  const tw = Date.now();
+  await page.waitForFunction('W_WarmProgress() >= 1', null, { timeout: 120000, polling: 250 });
+  const pend1 = await page.evaluate(pending);
   const face = await page.evaluate("(function () { const p = W_CacheLumpName('STFOUCH3'); return { w: p.width, h: p.height, d: p.density }; })()");
-  check(pend0 > 20 && pend1 === 0, 'retratos diferidos: ' + pend0 + ' de 42 pendientes al llegar a la portada, ' + pend1 + ' tras 2,5 s');
+  check(pend0.f > 20 && pend0.s > 1000 && pend1.f === 0 && pend1.s === 0,
+    'fundición en segundo plano: al llegar a la portada faltaban ' + pend0.f + ' retratos y ' + pend0.s + ' cuadros de sprite; todo listo en ' + ((Date.now() - tw) / 1000).toFixed(1) + ' s');
   check(face.w === 32 && face.h === 30 && face.d === 4, 'retrato de 32x30 a densidad 4 (' + JSON.stringify(face) + ')');
 
   // 2) Voces: elección por acento y prueba desde el menú.

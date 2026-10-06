@@ -43,6 +43,27 @@ function V_MakePatch(width, height, pixels, leftoffset, topoffset) {
   };
 }
 
+// Patch semitransparente: alpha[i] es el nivel de opacidad (0 = vacío,
+// 1..3 = PAL_TRANALPHA); cada poste lleva sus colores y sus niveles.
+function V_MakeAlphaPatch(width, height, pixels, alpha, leftoffset, topoffset) {
+  const columns = new Array(width);
+  for (let x = 0; x < width; x++) {
+    const posts = [];
+    let y = 0;
+    while (y < height) {
+      while (y < height && !alpha[y * width + x]) y++;
+      if (y >= height) break;
+      const start = y;
+      while (y < height && alpha[y * width + x]) y++;
+      const data = new Uint8Array(y - start), al = new Uint8Array(y - start);
+      for (let k = start; k < y; k++) { data[k - start] = pixels[k * width + x]; al[k - start] = alpha[k * width + x]; }
+      posts.push({ top: start, len: y - start, pixels: data, alpha: al });
+    }
+    columns[x] = posts;
+  }
+  return { width: width, height: height, leftoffset: leftoffset || 0, topoffset: topoffset || 0, columns: columns, translucent: true };
+}
+
 // Imagen sólida (sin transparencia) a patch.
 function V_MakeSolidPatch(width, height, pixels, leftoffset, topoffset) {
   const columns = new Array(width);

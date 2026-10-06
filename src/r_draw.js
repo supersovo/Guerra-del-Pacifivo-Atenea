@@ -21,6 +21,7 @@ let dc_texturemid = 0;
 let dc_source = null;
 let dc_texheight = 128;
 let dc_translation = null;
+let dc_alpha = null;          // niveles de opacidad del poste (sprites semitransparentes)
 
 // Parámetros de span.
 let ds_y = 0, ds_x1 = 0, ds_x2 = 0;
@@ -155,6 +156,56 @@ function R_DrawMaskedColumn(posts) {
       dc_source = post.pixels;
       dc_texturemid = basetexturemid - post.top;
       R_DrawColumnClamped();
+    }
+  }
+  dc_texturemid = basetexturemid;
+}
+
+// Columna semitransparente: cada texel se mezcla con el framebuffer según su
+// nivel de opacidad (PAL_TRAN), después de la luz y la bruma del COLORMAP.
+function R_DrawColumnAlpha() {
+  let count = dc_yh - dc_yl;
+  if (count < 0) return;
+  const fb = screens[0];
+  const W = SCREENWIDTH;
+  let dest = ylookup[dc_yl] + columnofs[dc_x];
+  const step = dc_iscale;
+  let frac = dc_texturemid + (dc_yl - centery) * step;
+  const src = dc_source, al = dc_alpha;
+  const cm = colormaps;
+  const cmb = dc_colormap;
+  const last = src.length - 1;
+  const t1 = PAL_TRAN[0], t2 = PAL_TRAN[1], t3 = PAL_TRAN[2];
+  do {
+    let t = frac | 0;
+    if (t < 0) t = 0; else if (t > last) t = last;
+    const a = al[t];
+    if (a) {
+      const k = (cm[cmb + src[t]] << 8) | fb[dest];
+      fb[dest] = a === 1 ? t1[k] : a === 2 ? t2[k] : t3[k];
+    }
+    dest += W;
+    frac += step;
+  } while (count--);
+}
+
+function R_DrawMaskedColumnAlpha(posts) {
+  const basetexturemid = dc_texturemid;
+  const fclip = mfloorclip[dc_x + mfloorofs];
+  const cclip = mceilingclip[dc_x + mceilingofs];
+  for (let i = 0; i < posts.length; i++) {
+    const post = posts[i];
+    const topscreen = sprtopscreen + spryscale * post.top;
+    const bottomscreen = topscreen + spryscale * post.len;
+    dc_yl = Math.ceil(topscreen);
+    dc_yh = Math.ceil(bottomscreen) - 1;
+    if (dc_yh >= fclip) dc_yh = fclip - 1;
+    if (dc_yl <= cclip) dc_yl = cclip + 1;
+    if (dc_yl <= dc_yh) {
+      dc_source = post.pixels;
+      dc_alpha = post.alpha;
+      dc_texturemid = basetexturemid - post.top;
+      R_DrawColumnAlpha();
     }
   }
   dc_texturemid = basetexturemid;

@@ -204,6 +204,8 @@ function P_SetupLevel(mapname, skill) {
   if (!playerstarts.length) throw new Error('P_SetupLevel: el mapa no tiene inicio de jugador');
   P_SpawnSpecials();
   R_SetSky(levelinfo.sky || 'CIELO1', levelinfo.skyhorizon);
+  R_SetupHaze(levelinfo);
+  R_ClearSmoke();
 }
 
 let wminfo_maxfrags = 0;
