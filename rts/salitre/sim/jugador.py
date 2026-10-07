@@ -1,4 +1,8 @@
-"""Estado de cada jugador: recursos, población, tecnología e investigaciones."""
+"""Estado de cada jugador: dinero, agua, población, tecnología e investigaciones.
+
+El salitre no se guarda: los trabajadores lo venden en el cuartel general a
+1 $ por unidad y con ese dinero se paga todo (tropas, edificios, mejoras).
+"""
 
 from . import stats as mod_stats
 
@@ -13,7 +17,7 @@ class Jugador:
         self.es_ia = es_ia
         self.vivo = True
         self.rendido = False
-        self.salitre, self.agua = catalogo.recursos_iniciales
+        self.dinero, self.agua = catalogo.recursos_iniciales
         self.pob_usada = 0
         self.pob_max = 0
         self.mejoras = set()
@@ -28,8 +32,8 @@ class Jugador:
         self.est = {
             "unidades_creadas": 0, "unidades_perdidas": 0, "enemigos_abatidos": 0,
             "edificios_construidos": 0, "edificios_perdidos": 0, "edificios_destruidos": 0,
-            "salitre_recolectado": 0, "agua_recolectada": 0, "salitre_gastado": 0,
-            "agua_gastada": 0,
+            "salitre_recolectado": 0, "agua_recolectada": 0, "dinero_gastado": 0,
+            "agua_gastada": 0, "heridos_recuperados": 0,
         }
         self.aviso_poblacion_t = -9999
         self.aviso_ataque_t = -9999
@@ -44,21 +48,32 @@ class Jugador:
         return True
 
     def puede_pagar(self, costo):
-        return self.salitre >= costo[0] and self.agua >= costo[1]
+        return self.dinero >= costo[0] and self.agua >= costo[1]
+
+    def falta(self, costo):
+        """Qué recurso falta para pagar el costo ("" si alcanza)."""
+        if self.dinero < costo[0]:
+            return "Falta dinero" if self.agua >= costo[1] else "Faltan dinero y agua"
+        return "Falta agua" if self.agua < costo[1] else ""
 
     def pagar(self, costo):
-        self.salitre -= costo[0]
+        self.dinero -= costo[0]
         self.agua -= costo[1]
-        self.est["salitre_gastado"] += costo[0]
+        self.est["dinero_gastado"] += costo[0]
         self.est["agua_gastada"] += costo[1]
 
     def reembolsar(self, costo, pct=100):
         s = costo[0] * pct // 100
         a = costo[1] * pct // 100
-        self.salitre += s
+        self.dinero += s
         self.agua += a
-        self.est["salitre_gastado"] -= s
+        self.est["dinero_gastado"] -= s
         self.est["agua_gastada"] -= a
+
+    def vender_salitre(self, cantidad):
+        """El cuartel general compra el salitre al contado: 1 $ por unidad."""
+        self.dinero += cantidad
+        self.est["salitre_recolectado"] += cantidad
 
     def aplicar_mejora(self, mejora):
         self.mejoras.add(mejora.id)

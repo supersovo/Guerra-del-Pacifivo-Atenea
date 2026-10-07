@@ -519,13 +519,14 @@ def _minero_valido(m, r):
         and w.orden.obj == r.id and w.fase == 2
 
 
-def depositar(m, u):
+def depositar(m, u, dep):
     if not u.carga:
         return
     j = m.jugadores[u.dueno]
     if u.carga_tipo == 1:
-        j.salitre += u.carga
-        j.est["salitre_recolectado"] += u.carga
+        # el cuartel general compra el salitre en el acto: sale el signo $ sobre el edificio
+        j.vender_salitre(u.carga)
+        m.ev_pos(dep.x, dep.y, "venta", dep.id, u.carga)
     else:
         j.agua += u.carga
         j.est["agua_recolectada"] += u.carga
@@ -544,7 +545,7 @@ def recolectar(m, u, o):
             return
         r = acercarse_rect(m, u, dep)
         if r == 1:
-            depositar(m, u)
+            depositar(m, u, dep)
             u.fase = 0
             u.ruta = []
             u.ruta_meta = None
@@ -678,7 +679,7 @@ def regresar(m, u, o):
         return
     r = acercarse_rect(m, u, dep)
     if r == 1:
-        depositar(m, u)
+        depositar(m, u, dep)
         res = m.entidad(u.recurso_id)
         if res is not None:
             u.orden = Orden(RECOLECTAR, obj=res.id, dato=res.rtipo)
@@ -812,11 +813,11 @@ def reparar(m, u, o):
     o.y += deuda_a
     pagar_s = o.x // 1000
     pagar_a = o.y // 1000
-    if j.salitre < pagar_s or j.agua < pagar_a:
-        m.ev_jugador(u.dueno, "err", "Faltan recursos para reparar")
+    if j.dinero < pagar_s or j.agua < pagar_a:
+        m.ev_jugador(u.dueno, "err", ("Falta dinero" if j.dinero < pagar_s else "Falta agua") + " para reparar")
         siguiente_orden(u)
         return
-    j.salitre -= pagar_s
+    j.dinero -= pagar_s
     j.agua -= pagar_a
     o.x -= pagar_s * 1000
     o.y -= pagar_a * 1000
@@ -855,14 +856,15 @@ def cargar(m, u, o):
             else:
                 siguiente_orden(u)
         return
-    # trinchera
+    # trinchera, barracas o cuartel general
     t = cont.tipo
     if not cont.construido or not t.guarnicion or u.tipo.categoria not in t.guarnicion_categorias \
             or u.tipo.clase not in t.guarnicion_clases:
         siguiente_orden(u)
         return
     if m.espacio_usado(cont.guarnicion) + u.tipo.espacio > t.guarnicion:
-        m.ev_jugador(u.dueno, "err", "La trinchera está completa")
+        nombre = m.cat.nombre(m.jugadores[cont.dueno].faccion.id, t.id)
+        m.ev_jugador(u.dueno, "err", f"No queda lugar en {nombre}")
         siguiente_orden(u)
         return
     r = acercarse_rect(m, u, cont)
@@ -914,6 +916,10 @@ def actualizar(m, u):
         if u.emplazando == 0:
             u.emplazada = not u.emplazada
             m.ev_pos(u.x, u.y, "emplaza", u.id, 1 if u.emplazada else 0)
+        _fin_tick(m, u, t)
+        return
+    if tipo.autonomo:
+        camilleros(m, u)
         _fin_tick(m, u, t)
         return
     o = u.orden
@@ -970,6 +976,96 @@ def actualizar(m, u):
         else:
             siguiente_orden(u)
     _fin_tick(m, u, t)
+
+
+# ----------------------------------------------------------------------
+# Camilleros
+def _hospital_de(m, u):
+    """El hospital de los camilleros (si cayó, el hospital propio más cercano)."""
+    b = m.entidad(u.base_id) if u.base_id else None
+    if b is not None and b.es_edificio and b.construido and b.tipo.camilleros:
+        return b
+    mejor = None
+    mejor_d = None
+    for e in m.edificios.values():
+        if e.dueno != u.dueno or not e.vivo or not e.construido or not e.tipo.camilleros:
+            continue
+        d = (e.x - u.x) ** 2 + (e.y - u.y) ** 2
+        if mejor_d is None or d < mejor_d:
+            mejor, mejor_d = e, d
+    u.base_id = mejor.id if mejor is not None else 0
+    return mejor
+
+
+def _herido_libre(m, h, u):
+    if h.camillero in (0, u.id):
+        return True
+    c = m.entidad(h.camillero)
+    return c is None or c.objetivo != h.id
+
+
+def _buscar_caido(m, u, hosp):
+    radio2 = hosp.tipo.camilleros_radio ** 2
+    mejor = None
+    mejor_k = None
+    for h in m.heridos.values():
+        if not h.vivo or h.dueno != u.dueno or h.camillero < 0 or not _herido_libre(m, h, u):
+            continue
+        if (h.x - hosp.x) ** 2 + (h.y - hosp.y) ** 2 > radio2:
+            continue
+        k = ((h.x - u.x) ** 2 + (h.y - u.y) ** 2, h.id)
+        if mejor_k is None or k < mejor_k:
+            mejor, mejor_k = h, k
+    return mejor
+
+
+def camilleros(m, u):
+    """Sin órdenes del jugador: buscan a los heridos propios cerca de su hospital, los cargan en
+    la camilla y los llevan a curar; si no hay nadie que recoger, esperan junto al hospital."""
+    u.fantasma = True
+    hosp = _hospital_de(m, u)
+    if hosp is None:
+        u.ruta = []
+        u.ruta_meta = None
+        return
+    if u.paciente:
+        r = acercarse_rect(m, u, hosp)
+        if r == 1:
+            hosp.pacientes.append([u.paciente, hosp.tipo.recuperacion])
+            m.ev_pos(hosp.x, hosp.y, "ingresa", hosp.id, m.cat.unidades[u.paciente].idx)
+            u.paciente = None
+            u.ruta = []
+            u.ruta_meta = None
+        return
+    h = m.ent.get(u.objetivo) if u.objetivo else None
+    if h is None or not h.vivo or not h.es_herido or not _herido_libre(m, h, u):
+        h = _buscar_caido(m, u, hosp)
+        u.objetivo = h.id if h is not None else 0
+        if h is None:
+            # esperan junto al hospital, cada equipo en su lugar (a un lado y al otro de la puerta)
+            lado = 1 if u.id % 2 else -1
+            ex, ey = hosp.x + lado * (hosp.w * TILE // 2 - TILE // 2), hosp.y + hosp.h * TILE // 2 + TILE
+            if (u.x - ex) ** 2 + (u.y - ey) ** 2 > TILE * TILE:
+                if ir_a(m, u, ex, ey, cerca=TILE // 2) == -1:
+                    u.ruta = []
+                    u.ruta_meta = None
+            else:
+                u.ruta = []
+                u.ruta_meta = None
+            return
+        h.camillero = u.id
+    r = ir_a(m, u, h.x, h.y, cerca=TILE // 2)
+    if r == 1:
+        u.paciente = h.tipo.id
+        h.vivo = False
+        m.muertos.append(h)
+        m.ev_pos(h.x, h.y, "recogido", h.id, u.id)
+        u.objetivo = 0
+        u.ruta = []
+        u.ruta_meta = None
+    elif r == -1:
+        h.camillero = -1        # no se llega hasta él (otra isla, quebrada): nadie más lo intenta
+        u.objetivo = 0
 
 
 def _curar_en_marcha(m, u):

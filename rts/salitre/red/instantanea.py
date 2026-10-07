@@ -6,7 +6,7 @@ lo que cambió desde la instantánea anterior. Cada entidad viaja como una lista
 
     [id, tipo, dueño, x, y, vida, dirección, banderas, extra]
 
-tipo es el índice del catálogo (o -1 salitre, -2 agua, -3 mina); x, y en
+tipo es el índice del catálogo (o -1 salitre, -2 agua, -3 mina, -4 herido); x, y en
 píxeles; extra es 0 o un diccionario con datos propios (cola de producción,
 energía, avance de obra...). Las bajas y lo que sale de la vista llegan en
 "q" como [id, motivo] (motivo "m" = muerto, "v" = fuera de vista).
@@ -29,10 +29,12 @@ F_TRABAJA = 512
 F_POTENCIADO = 1024
 F_EMPLAZANDO = 2048
 F_DETECTADO = 4096
+F_CAMILLA = 8192          # camilleros que llevan a un herido
 
 TIPO_SALITRE = -1
 TIPO_AGUA = -2
 TIPO_MINA = -3
+TIPO_HERIDO = -4
 
 
 def registro(m, e, propio, t, detectado=False):
@@ -58,6 +60,8 @@ def registro(m, e, propio, t, detectado=False):
             fl |= F_TRABAJA
         if e.aura or any(b[1] > t for b in e.buffs.values()):
             fl |= F_POTENCIADO
+        if e.paciente:
+            fl |= F_CAMILLA
         extra = 0
         if propio:
             ex = {}
@@ -84,6 +88,16 @@ def registro(m, e, propio, t, detectado=False):
             fl |= F_PRODUCE
         if e.sabotaje_hasta > t:
             fl |= F_SABOTAJE
+        if e.guarnicion:
+            # todos ven a los soldados en la trinchera o en el techo; el dueño también su vida y quiénes son
+            gu = [m.ent[i] for i in e.guarnicion if i in m.ent]
+            ex["g"] = [u.tipo.idx for u in gu]
+            if propio:
+                ex["gv"] = [u.vida * 100 // max(1, u.st.vida) for u in gu]
+                ex["gid"] = [u.id for u in gu]
+            disparos = [k for k, u in enumerate(gu) if t - u.disparo_t <= 3]
+            if disparos:
+                ex["gf"] = disparos
         if propio:
             if e.cola:
                 ex["q"] = [[it[0], it[1], it[2] * 100 // max(1, it[3])] for it in e.cola]
@@ -91,10 +105,13 @@ def registro(m, e, propio, t, detectado=False):
                 ex["r"] = [e.reunion[0] >> 4, e.reunion[1] >> 4]
             if e.st.energia_max:
                 ex["en"] = e.energia // EFP
-            if e.guarnicion:
-                ex["g"] = [m.ent[i].tipo.idx for i in e.guarnicion if i in m.ent]
             if e.ocupante:
                 ex["oc"] = 1
+            if e.tipo.camilleros:
+                ex["cm"] = len(e.camilleros)
+                if e.pacientes:
+                    total = max(1, e.tipo.recuperacion)
+                    ex["pc"] = [[m.cat.unidades[p[0]].idx, 100 - p[1] * 100 // total] for p in e.pacientes]
             if e.cd:
                 cds = {h: c - t for h, c in e.cd.items() if c > t}
                 if cds:
@@ -103,6 +120,10 @@ def registro(m, e, propio, t, detectado=False):
     if e.es_recurso:
         return [e.id, TIPO_SALITRE if e.rtipo == "salitre" else TIPO_AGUA, -1, e.x >> 4, e.y >> 4,
                 e.cantidad, 0, 0, 0]
+    if e.es_herido:
+        # "u": tipo de la unidad caída; "h": tick en que muere si nadie lo recoge; "c": ya va un camillero
+        return [e.id, TIPO_HERIDO, e.dueno, e.x >> 4, e.y >> 4, 1, e.dir, 0,
+                {"u": e.tipo.idx, "h": e.hasta, "c": 1 if e.camillero > 0 else 0}]
     return [e.id, TIPO_MINA, e.dueno, e.x >> 4, e.y >> 4, 1, 0, 0, 0]
 
 
@@ -148,6 +169,11 @@ class Emisor:
         p = self.p
         if p is None:
             return not (e.es_unidad and e.dentro), False
+        if e.es_herido:
+            if m.aliados(p, e.dueno):
+                return True, False
+            eq = m.jugadores[p].equipo
+            return m.vis[eq][m.mapa.idx_de(e.x, e.y)] == 1, False
         if e.es_recurso:
             eq = m.jugadores[p].equipo
             return m.vis[eq][m.mapa.idx_de(e.x, e.y)] == 1, False
@@ -206,13 +232,13 @@ class Emisor:
             self.completa = False
         if p is not None:
             j = m.jugadores[p]
-            est = (j.salitre, j.agua, j.pob_usada, j.pob_max, tuple(sorted(j.mejoras)),
+            est = (j.dinero, j.agua, j.pob_usada, j.pob_max, tuple(sorted(j.mejoras)),
                    tuple(sorted(j.investigando)), tuple(sorted(j.heroes)), j.minas)
             if est != self.estado:
                 self.estado = est
-                msg["j"] = {"s": j.salitre, "a": j.agua, "p": j.pob_usada, "pm": j.pob_max,
+                msg["j"] = {"d": j.dinero, "a": j.agua, "p": j.pob_usada, "pm": j.pob_max,
                             "m": list(est[4]), "i": list(est[5]), "h": list(est[6]), "mi": j.minas}
         else:
-            msg["js"] = [{"s": j.salitre, "a": j.agua, "p": j.pob_usada, "pm": j.pob_max}
+            msg["js"] = [{"d": j.dinero, "a": j.agua, "p": j.pob_usada, "pm": j.pob_max}
                          for j in m.jugadores]
         return msg

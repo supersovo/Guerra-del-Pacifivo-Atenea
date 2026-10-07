@@ -28,8 +28,8 @@ def crudo(nombre):
 
 
 def costo(c):
-    s, a = c.get("salitre", 0), c.get("agua", 0)
-    return f"{s}" + (f" / {a}" if a else "")
+    s, a = c.get("dinero", c.get("salitre", 0)), c.get("agua", 0)
+    return f"$ {s}" + (f" / {a}" if a else "")
 
 
 def tabla(encabezados, filas):
@@ -47,7 +47,8 @@ def main():
     nombre_ed = {k: v["nombre"] for k, v in E.items()}
     partes = ["# Tablas del juego", "",
               "Generadas con `python herramientas/generar_tablas.py` a partir de `datos/` y `mapas/`.",
-              "Costos en salitre / agua; tiempos en segundos; distancias en casillas.", ""]
+              "Costos en dinero ($) / agua: el salitre se vende en el Cuartel General a 1 $ por unidad. "
+              "Tiempos en segundos; distancias en casillas.", ""]
 
     partes += ["## Economía", "", tabla(["Parámetro", "Valor"], [
         ("Población máxima por jugador", t["poblacion_maxima"]),

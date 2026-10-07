@@ -13,7 +13,7 @@ from .base import Escena, FondoMenu
 COLUMNAS = [
     ("Formadas", "unidades_creadas"), ("Perdidas", "unidades_perdidas"), ("Abatidos", "enemigos_abatidos"),
     ("Obras", "edificios_construidos"), ("Edif. perdidos", "edificios_perdidos"),
-    ("Edif. destruidos", "edificios_destruidos"), ("Salitre", "salitre_recolectado"), ("Agua", "agua_recolectada"),
+    ("Edif. destruidos", "edificios_destruidos"), ("Salitre vendido", "salitre_recolectado"), ("Agua", "agua_recolectada"),
 ]
 
 

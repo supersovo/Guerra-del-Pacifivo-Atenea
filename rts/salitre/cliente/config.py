@@ -22,6 +22,8 @@ PREDETERMINADA = {
     "desplazar_con_borde": True,
     "encerrar_raton": True,
     "barras_siempre": False,
+    "sangre": True,
+    "voces": True,
     "ultimo_servidor": "127.0.0.1:47800",
     "faccion": "chile",
     "mapa": "pampa_del_tamarugal",

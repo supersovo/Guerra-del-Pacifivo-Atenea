@@ -177,8 +177,13 @@ def atacable(m, dueno, e):
 
 
 def disparar(m, atacante, objetivo, ox, oy, st, arma, danio_pct, nivel_origen, ignora_altura,
-             bonus_carga=0):
-    """Efectúa un disparo de 'atacante' desde (ox, oy) contra 'objetivo'."""
+             bonus_carga=0, desde=None):
+    """Efectúa un disparo de 'atacante' desde (ox, oy) contra 'objetivo'.
+
+    desde = (id del edificio, puesto) cuando dispara un soldado guarnecido: los clientes
+    no lo ven (está dentro) y dibujan el fogonazo en su puesto de la trinchera o del techo.
+    """
+    lugar = desde or ()
     t = m.tick
     cat = m.cat
     base = st.danio
@@ -203,9 +208,9 @@ def disparar(m, atacante, objetivo, ox, oy, st, arma, danio_pct, nivel_origen, i
         m.proyectiles.append(Proyectil(ox, oy, tx, ty, t + vuelo, base, arma.tipo, st.salpicadura,
                                        dueno, atacante.id, 0 if st.salpicadura else objetivo.id,
                                        bonus_edif, danio_pct))
-        m.ev_pos(ox, oy, EV_PROYECTIL, atacante.id, ox >> 4, oy >> 4, tx >> 4, ty >> 4, vuelo, arma.tipo)
+        m.ev_pos(ox, oy, EV_PROYECTIL, atacante.id, ox >> 4, oy >> 4, tx >> 4, ty >> 4, vuelo, arma.tipo, *lugar)
         return
-    m.ev_pos(ox, oy, EV_DISPARO, atacante.id, objetivo.id, arma.tipo, 1 if falla else 0)
+    m.ev_pos(ox, oy, EV_DISPARO, atacante.id, objetivo.id, arma.tipo, 1 if falla else 0, *lugar)
     if falla:
         return
     d = calcular_danio(cat, base, arma.tipo, danio_pct, bonus_edif, objetivo, t)

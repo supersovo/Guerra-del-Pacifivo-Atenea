@@ -279,7 +279,7 @@ class Archivo(Escena):
         y = self._titulo(nombre, sub, x, y, caja + 20)
         y = self._texto(tp.descripcion, x, y, w - 180, fuentes.negrita(17))
         y = max(y, y_ini + 170)
-        filas = [("Costo", f"{tp.costo[0]} salitre" + (f", {tp.costo[1]} agua" if tp.costo[1] else "")),
+        filas = [("Costo", f"$ {tp.costo[0]}" + (f", {tp.costo[1]} agua" if tp.costo[1] else "")),
                  ("Población", tp.poblacion), ("Tiempo", f"{tp.tiempo / TICKS:.0f} s"),
                  ("Vida", tp.vida), ("Armadura", f"{tp.armadura} ({cat.nombres_armadura.get(tp.clase, tp.clase)})"),
                  ("Velocidad", f"{tp.velocidad * TICKS / TILE:.1f} casillas/s"), ("Visión", f"{tp.vision:g}")]
@@ -333,7 +333,7 @@ class Archivo(Escena):
         y = self._titulo(te.nombre, f"Edificio de {te.ancho}×{te.alto} casillas", x, y, caja + 10)
         y = self._texto(te.descripcion, x, y, w - 190, fuentes.negrita(17))
         y = max(y, y_ini + 180)
-        filas = [("Costo", f"{te.costo[0]} salitre" + (f", {te.costo[1]} agua" if te.costo[1] else "")),
+        filas = [("Costo", f"$ {te.costo[0]}" + (f", {te.costo[1]} agua" if te.costo[1] else "")),
                  ("Tiempo", f"{te.tiempo / TICKS:.0f} s"), ("Vida", te.vida), ("Armadura", te.armadura)]
         if te.poblacion:
             filas.append(("Población", f"+{te.poblacion}"))

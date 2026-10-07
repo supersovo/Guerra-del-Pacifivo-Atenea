@@ -110,7 +110,7 @@ class IA:
 
     def _puedo(self, costo):
         """¿Alcanza el dinero, descontando lo ya comprometido en esta actualización?"""
-        return (self.j.salitre - self.gasto[0] >= costo[0]
+        return (self.j.dinero - self.gasto[0] >= costo[0]
                 and self.j.agua - self.gasto[1] >= costo[1])
 
     def _gastar(self, costo):
@@ -185,7 +185,7 @@ class IA:
                 else:
                     en_salitre[o.obj] = en_salitre.get(o.obj, 0) + 1
         cupo = self.dif["agua"]
-        if self.j.agua > 900 and self.j.salitre < 400:
+        if self.j.agua > 900 and self.j.dinero < 400:
             cupo = 1
             # sobra agua: los aguateros de más vuelven al salitre
             for mol in molinos:
@@ -304,7 +304,7 @@ class IA:
                 if self._expandir():
                     return
         # más barracas si sobra salitre
-        if j.salitre > 700 and self._contar("barracas") < self.dif["barracas"] + 1:
+        if j.dinero > 700 and self._contar("barracas") < self.dif["barracas"] + 1:
             self._construir("barracas")
         if "fortin" in j.faccion.edificios and self._contar("fortin") < 2 and n_trab >= 14:
             self._construir("fortin")
@@ -520,7 +520,7 @@ class IA:
                     self.reserva = j.stats[h].costo
                     break
         inf = len(self.por_tipo.get("infante", [])) + self.en_cola.get("infante", 0)
-        planifica = j.salitre < 150 and len(self.obras) == 0 and self._contar("barracas") == 0
+        planifica = j.dinero < 150 and len(self.obras) == 0 and self._contar("barracas") == 0
         if planifica:
             return
         for b in self.edificios:
@@ -584,7 +584,7 @@ class IA:
 
     def _investigar(self):
         j = self.j
-        if j.salitre < 300 or j.agua < 150:
+        if j.dinero < 300 or j.agua < 150:
             return
         cat = self.m.cat
         for mid in INVESTIGACIONES:

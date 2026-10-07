@@ -1,9 +1,12 @@
 """Lógica de los edificios: colas de producción e investigación, defensas,
-guarniciones de trinchera y el ir y venir de los trabajadores del molino."""
+guarniciones (en la trinchera o en el techo de las barracas y del cuartel
+general) y el ir y venir de los trabajadores del molino."""
 
 from . import combate
 from .comportamiento import deposito_cercano, direccion
 from .constantes import TICKS, TIERRA, TILE
+
+ARRANQUE_CAMILLEROS = TICKS * 4     # entre los primeros equipos de un hospital nuevo
 
 
 def actualizar(m, b):
@@ -21,6 +24,48 @@ def actualizar(m, b):
         _defender(m, b)
     if b.guarnicion:
         _fuego_guarnicion(m, b)
+    if tipo.camilleros:
+        _hospital(m, b)
+
+
+def _hospital(m, b):
+    """Equipos de camilleros (se reponen si caen) y pacientes que se recuperan y vuelven a filas."""
+    t = m.tick
+    tipo = b.tipo
+    vivos = [i for i in b.camilleros if m.entidad(i) is not None]
+    if len(vivos) < len(b.camilleros):
+        b.camilleros_t = max(b.camilleros_t, t + tipo.reposicion)     # cayó un equipo: tarda en reponerse
+    b.camilleros = vivos
+    if len(vivos) < tipo.camilleros and t >= b.camilleros_t:
+        x, y = m.punto_salida(b, TIERRA)
+        u = m.crear_unidad(b.dueno, "camilleros", x, y)
+        u.base_id = b.id
+        u.fantasma = True
+        b.camilleros.append(u.id)
+        b.camilleros_t = t + ARRANQUE_CAMILLEROS
+    if not b.pacientes:
+        return
+    j = m.jugadores[b.dueno]
+    quedan = []
+    for pac in b.pacientes:
+        if pac[1] > 0:
+            pac[1] -= 1
+            quedan.append(pac)
+            continue
+        ut = m.cat.unidades[pac[0]]
+        if j.pob_usada + ut.poblacion > j.pob_max:
+            if t - j.aviso_poblacion_t >= TICKS * 10:
+                j.aviso_poblacion_t = t
+                m.ev_jugador(j.idx, "pob")
+            quedan.append(pac)
+            continue
+        x, y = m.punto_salida(b, TIERRA)
+        u = m.crear_unidad(b.dueno, ut.id, x, y)
+        u.vida = max(1, u.st.vida * tipo.vida_al_volver // 100)
+        j.pob_usada += ut.poblacion
+        j.est["heridos_recuperados"] = j.est.get("heridos_recuperados", 0) + 1
+        m.ev_pos(b.x, b.y, "recuperado", b.id, u.id, ut.idx)
+    b.pacientes = quedan
 
 
 def _salir_molino(m, b):
@@ -123,7 +168,9 @@ def _fuego_guarnicion(m, b):
     t = m.tick
     extra = b.tipo.guarnicion_alcance
     nivel = m.mapa.nivel_en(b.x, b.y)
-    for uid in b.guarnicion:
+    if b.tipo.guarnicion_vista == "techo":
+        nivel = min(2, nivel + 1)       # desde el techo se dispara como desde una loma
+    for k, uid in enumerate(b.guarnicion):
         u = m.ent.get(uid)
         if u is None or not u.vivo or u.tipo.arma is None:
             continue
@@ -139,5 +186,7 @@ def _fuego_guarnicion(m, b):
             obj = _buscar(m, b, u.tipo.arma, alc)
         u.objetivo = obj.id if obj is not None else 0
         if obj is not None:
-            combate.disparar(m, u, obj, b.x, b.y, u.st, u.tipo.arma, u.mod("danio_pct", t), nivel, False)
+            combate.disparar(m, u, obj, b.x, b.y, u.st, u.tipo.arma, u.mod("danio_pct", t), nivel, False,
+                             desde=(b.id, k))
             u.enfr = combate.enfriamiento_unidad(u, t)
+            u.disparo_t = t

@@ -27,6 +27,7 @@ TAM = {
     "montado": (48, 46, 24, 43),
     "artilleria": (52, 38, 26, 34),
     "buque": (80, 44, 40, 22),
+    "camilla": (50, 38, 25, 35),
 }
 FORMA_TAM = {
     "trabajador": "pie", "infante": "pie", "cantinera": "pie", "ingeniero": "pie", "espia": "pie",
@@ -34,7 +35,10 @@ FORMA_TAM = {
     "heroina": "pie", "jinete_sable": "montado", "jinete_carabina": "montado", "baqueano": "montado",
     "heroe_montado": "montado", "canon_montana": "artilleria", "canon_campana": "artilleria",
     "gatling": "artilleria", "transporte": "buque", "canonera": "buque", "monitor": "buque", "corbeta": "buque",
+    "camilleros": "camilla",
 }
+LONA_CAMILLA = (226, 220, 200)
+CRUZ_ROJA = (200, 30, 30)
 
 
 def oscuro(c, f=0.7):
@@ -335,6 +339,49 @@ def figura(nombre_forma, ropa, vista, frame, insignia=None):
 
 
 # ----------------------------------------------------------------------
+def camilleros(ropa, frame, con_herido):
+    """Dos sanitarios con brazal de la cruz roja y una camilla (de perfil, hacia la derecha)."""
+    w, h, fx, fy = TAM["camilla"]
+    p = Pintor(w, h)
+    pie = fy
+    casaca = oscuro(ropa["casaca"], 0.9)
+    pant = ropa["pantalon"]
+    paso = {1: 2.0, 2: -2.0}.get(frame, 0.0)
+    altura_mano = pie - 13.5
+    # camilla: dos varas y la lona, a la altura de las manos
+    p.linea(fx - 20, altura_mano, fx + 20, altura_mano, MADERA_FUSIL, 1.2)
+    p.rect(fx - 13, altura_mano - 1.6, 26, 2.6, LONA_CAMILLA)
+    if con_herido:
+        # el herido acostado, con la cabeza hacia adelante y una venda
+        p.rect(fx - 12, altura_mano - 4.2, 17, 3.4, ropa["casaca"], 1)
+        p.rect(fx - 14, altura_mano - 3.6, 4, 2.6, pant)
+        p.circ(fx + 7.6, altura_mano - 3.0, 2.3, ropa["piel"])
+        p.rect(fx + 6.2, altura_mano - 5.2, 3, 1.2, (240, 240, 236))
+        p.rect(fx - 5, altura_mano - 4.6, 3, 1.2, CRUZ_ROJA)
+    for k, x in enumerate((fx - 15, fx + 15)):
+        d = paso if k == 0 else -paso
+        cadera = pie - 8.2
+        hombro = cadera - 8.2
+        p.poli([(x - 1.4, cadera), (x + 0.8, cadera), (x - d + 0.6, pie - 1), (x - d - 1.4, pie - 1)], oscuro(pant, 0.82))
+        p.poli([(x - 1.2, cadera), (x + 1.4, cadera), (x + d + 1.2, pie - 1), (x + d - 1, pie - 1)], pant)
+        p.rect(x - d - 1.8, pie - 1.6, 3, 1.6, BOTAS)
+        p.rect(x + d - 1.1, pie - 1.6, 3.2, 1.6, BOTAS)
+        p.poli([(x - 3, hombro), (x + 2.6, hombro), (x + 3, cadera + 1.4), (x - 3.2, cadera + 1.4)], casaca)
+        p.linea(x - 3, cadera - 0.6, x + 2.9, cadera - 0.6, CUERO, 0.8)
+        # brazos hacia las varas y brazal blanco con la cruz roja
+        mano = x + (3.5 if k == 0 else -3.5)
+        p.linea(x + 0.4, hombro + 1.4, mano, altura_mano, casaca, 1.6)
+        p.rect(x - 0.6, hombro + 1.2, 2.4, 2.2, (244, 244, 240))
+        p.rect(x + 0.1, hombro + 1.4, 1, 1.8, CRUZ_ROJA)
+        p.rect(x - 0.4, hombro + 1.9, 2, 0.8, CRUZ_ROJA)
+        p.rect(x - 2.4, hombro + 1.2, 1.4, 1.2, ropa["jugador"])
+        r = dict(ropa)
+        r["cubre"] = True
+        r["cubrenuca"] = (244, 242, 236)
+        _cabeza_lado(p, x + 0.4, hombro - 3.2, r, "kepi")
+    return p.resultado()
+
+
 def caballo(p, x, base, frame, color=(110, 72, 44), mirar=1):
     """Caballo de perfil con las patas según el cuadro."""
     m = mirar
@@ -537,6 +584,9 @@ class Sprites:
     def superficie(self, tipo, faccion, color_jugador, vista, frame, emplazada=False):
         if tipo.id in self.propios:
             return self.propios[tipo.id]
+        if tipo.sprite.get("forma") == "camilleros":
+            # en los camilleros, 'emplazada' indica que llevan a un herido en la camilla
+            return camilleros(_ropa(faccion.uniforme, color_jugador), frame, emplazada)
         forma = tipo.sprite.get("forma", "infante")
         insignia = tipo.sprite.get("insignia")
         especial = forma if forma in ("colorado", "trabajador", "espia", "montonero", "baqueano") else None
@@ -553,7 +603,7 @@ class Sprites:
     def textura(self, tipo, faccion, color_jugador, vista, frame, emplazada=False):
         forma = tipo.sprite.get("forma", "infante")
         tam = FORMA_TAM.get(forma, "pie")
-        if tam in ("montado", "artilleria", "buque"):
+        if tam in ("montado", "artilleria", "buque", "camilla"):
             vista = "lado"
         if tam == "buque":
             frame = 0
@@ -562,13 +612,26 @@ class Sprites:
         clave = ("spr", tipo.id, faccion.id, color_jugador, vista, frame, emplazada)
         return self.lz.textura(clave, lambda: self.superficie(tipo, faccion, color_jugador, vista, frame, emplazada))
 
+    def herido(self, tipo, faccion, color_jugador, frame=0):
+        """Soldado herido tendido en el suelo, todavía con vida (frame 1: levanta el brazo)."""
+        clave = ("herido", tipo.id, faccion.id, color_jugador, frame)
+
+        def gen():
+            s = self.superficie(tipo, faccion, color_jugador, "lado", 4 if frame else 0)
+            return pygame.transform.rotate(s, 90)
+        return self.lz.textura(clave, gen)
+
     def caido(self, tipo, faccion, color_jugador):
         """Cuerpo caído (o pieza destruida) para dejar en el terreno."""
         clave = ("caido", tipo.id, faccion.id, color_jugador)
 
         def gen():
-            s = self.superficie(tipo, faccion, color_jugador, "lado", 0)
             forma = tipo.sprite.get("forma", "infante")
+            if FORMA_TAM.get(forma, "pie") == "camilla":
+                # los camilleros caídos: un sanitario tendido junto a la camilla
+                s = figura("infante", _ropa(faccion.uniforme, color_jugador), "lado", 0)
+            else:
+                s = self.superficie(tipo, faccion, color_jugador, "lado", 0)
             if FORMA_TAM.get(forma, "pie") in ("artilleria", "buque"):
                 r = s.copy()
                 r.fill((120, 110, 100, 255), special_flags=pygame.BLEND_RGBA_MULT)

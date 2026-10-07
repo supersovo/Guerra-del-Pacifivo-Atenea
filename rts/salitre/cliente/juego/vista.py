@@ -7,6 +7,7 @@ import time
 import pygame
 
 from ...red import instantanea as I
+from .. import fuentes
 from ..graficos import edificios as G_E
 from ..graficos import naturaleza as N
 from ..graficos.efectos import Efectos
@@ -18,6 +19,34 @@ from ..graficos.terreno import Terreno
 VISTA_DIR = {0: ("lado", False), 1: ("lado", False), 2: ("frente", False), 3: ("lado", True),
              4: ("lado", True), 5: ("lado", True), 6: ("espalda", False), 7: ("lado", False)}
 TABLA_NIEBLA = bytes([255, 150, 0, 0] + [0] * 252)
+
+# Puestos de la guarnición: dónde quedan los pies de cada soldado, en píxeles desde la
+# esquina superior izquierda de la huella del edificio. En la trinchera solo asoman
+# por encima del parapeto (CORTE_TRINCHERA); en los techos se los ve de cuerpo entero.
+PUESTOS = {
+    "trinchera": [(18, 58), (38, 58), (58, 58), (78, 58)],
+    "barracas": [(22, 22), (48, 22), (74, 22), (22, 50), (48, 50), (74, 50)],
+    "cuartel_general": [(18, 14), (38, 14), (92, 14), (112, 14), (22, 44), (46, 44), (82, 44), (106, 44)],
+}
+CORTE_TRINCHERA = 47
+
+
+def puestos(tipo):
+    forma = tipo.sprite.get("forma", tipo.id)
+    if forma in PUESTOS:
+        return PUESTOS[forma]
+    # cualquier otro edificio con guarnición: dos filas sobre la huella
+    w, h = tipo.ancho * 32, tipo.alto * 32
+    n = max(1, tipo.guarnicion)
+    por_fila = (n + 1) // 2
+    return [((k % por_fila + 1) * w / (por_fila + 1), h * (0.35 if k < por_fila else 0.7)) for k in range(n)]
+
+
+def pos_puesto(e, k):
+    """Posición en el mapa (píxeles) de los pies del soldado del puesto k del edificio e."""
+    lista = puestos(e.tipo)
+    dx, dy = lista[k % len(lista)]
+    return e.x - e.tipo.ancho * 16 + dx, e.y - e.tipo.alto * 16 + dy
 
 
 class Vista:
@@ -47,6 +76,8 @@ class Vista:
         self._niebla_ver = -1
         self.t = 0.0
         self.mostrar_barras = False
+        # (edificio, puesto) -> (momento, dx, dy) del último disparo de ese soldado guarnecido
+        self.fuego_puesto = {}
 
     # ------------------------------------------------------------------
     def actualizar_niebla(self):
@@ -82,6 +113,7 @@ class Vista:
             if extra is not None:
                 extra(cam)
             self._dibujar_niebla(cam)
+            self._dibujar_agua_pozos(cam, seleccion)
             self._dibujar_barras(cam, seleccion)
         finally:
             cam.vista = guardada
@@ -135,6 +167,9 @@ class Vista:
         # sombras y anillos debajo de todas las tropas
         ahora = time.monotonic()
         for _y, clase, e in cosas:
+            if clase == 0 and e.t == I.TIPO_HERIDO:
+                self._herido(cam, e, ahora)
+                continue
             if clase != 0 or e.tipo is None:
                 continue
             sx, sy = cam.a_pantalla(e.x, e.y)
@@ -162,8 +197,33 @@ class Vista:
                 sx, sy = cam.a_pantalla(e.x, e.y)
                 tm = lz.textura(("n", "mina", e.dueno), lambda: N.mina((220, 40, 30)))
                 lz.dibujar(tm, sx - 8 * z, sy - 6 * z, 16 * z, 12 * z, alpha=200)
+            elif e.t == I.TIPO_HERIDO:
+                pass            # ya dibujado en el suelo, debajo de las tropas
             else:
                 self._unidad(cam, e, ahora)
+
+    def _herido(self, cam, e, ahora):
+        """Herido tendido: de vez en cuando levanta el brazo pidiendo ayuda. A los suyos se les
+        marca con una cruz roja (fija si ya va un camillero a buscarlo)."""
+        lz = self.lz
+        est = self.est
+        z = cam.zoom
+        ex = e.ex if isinstance(e.ex, dict) else {}
+        tipo = est.tipo_por_idx(ex.get("u"))
+        fac = est.faccion(e.dueno)
+        if tipo is None or fac is None:
+            return
+        col = color_jugador(est.jugadores[e.dueno]["color"])
+        frame = 1 if int(ahora * 1.5 + e.id) % 4 == 0 else 0
+        tex = self.sprites.herido(tipo, fac, col, frame)
+        sx, sy = cam.a_pantalla(e.x, e.y)
+        lz.dibujar(tex, sx - tex.width * z / 2, sy - tex.height * z / 2 - 2 * z, tex.width * z, tex.height * z,
+                   espejo=bool(e.id % 2))
+        if est.aliado(e.dueno):
+            viene = ex.get("c")
+            if viene or int(ahora * 2) % 2 == 0:
+                lz.dibujar(self.efx.t_cruz, sx - 5 * z, sy - 24 * z, 10 * z, 10 * z,
+                           color=(220, 40, 40) if viene else (240, 70, 60), alpha=230)
 
     def _recurso(self, cam, e, sel):
         lz = self.lz
@@ -217,6 +277,8 @@ class Vista:
             ax, ay = cam.a_pantalla(e.x, y0 + G_E.ALTO - 31)
             ang = (self.t * 90) % 360
             lz.dibujar(self.t_aspas, ax - 15 * z, ay - 15 * z, 30 * z, 30 * z, angulo=ang)
+        if not e.fantasma and isinstance(e.ex, dict) and e.ex.get("g"):
+            self._guarnicion(cam, e, ahora)
         if not e.fantasma:
             st = est.stats_de(tipo)
             vmax = st.vida if e.dueno == est.yo else tipo.vida
@@ -225,6 +287,49 @@ class Vista:
                 self.efx.humo_incendio(e.x + ((e.id * 37) % 40 - 20), e.y - tipo.alto * 8, fuego=frac < 0.3)
             if tipo.id == "maestranza" and int(self.t * 4 + e.id) % 5 == 0:
                 self.efx.humo_chimenea(x0 + G_E.MARGEN + tipo.ancho * 32 - 16, y0 + G_E.ALTO - 22)
+
+    def disparo_en_puesto(self, b, k, tx, ty):
+        """Recuerda hacia dónde disparó el soldado del puesto k (para girarlo y animarlo)."""
+        x, y = pos_puesto(b, k)
+        self.fuego_puesto[(b.id, k)] = (time.monotonic(), tx - x, ty - y)
+        return x, y
+
+    def _guarnicion(self, cam, e, ahora):
+        """Soldados guarnecidos: asomados tras el parapeto de la trinchera o de pie en el techo."""
+        lz = self.lz
+        est = self.est
+        z = cam.zoom
+        tipo = e.tipo
+        trinchera = tipo.guarnicion_vista == "trinchera"
+        fac = est.faccion(e.dueno)
+        col = color_jugador(est.jugadores[e.dueno]["color"])
+        tops = e.y - tipo.alto * 16
+        disparando = set(e.ex.get("gf", ()))
+        for k, idx in enumerate(e.ex["g"]):
+            ut = est.tipo_por_idx(idx)
+            if ut is None:
+                continue
+            x, y = pos_puesto(e, k)
+            frame = 0
+            vista, espejo = "frente", False
+            ultimo = self.fuego_puesto.get((e.id, k))
+            if ultimo is not None and ahora - ultimo[0] < 2.5:
+                d = math.degrees(math.atan2(ultimo[2], ultimo[1])) % 360
+                vista, espejo = VISTA_DIR.get(int((d + 22.5) // 45) % 8, ("lado", False))
+                if ahora - ultimo[0] < 0.25 or k in disparando:
+                    frame = 3
+            tex = self.sprites.textura(ut, fac, col, vista, frame)
+            w, h, fx, fy = tam_sprite(ut)
+            sx, sy = cam.a_pantalla(x, y)
+            dx = sx - ((w - fx) if espejo else fx) * z
+            dy = sy - fy * z
+            if trinchera:
+                # solo la cabeza, los hombros y el fusil por encima de los sacos
+                alto_src = max(1, int(tops + CORTE_TRINCHERA - (y - fy)))
+                lz.dibujar(tex, dx, dy, w * z, alto_src * z, espejo=espejo, src=(0, 0, tex.width, alto_src))
+            else:
+                lz.dibujar(self.t_sombra, sx - 7 * z, sy - 2 * z, 14 * z, 5 * z, alpha=150)
+                lz.dibujar(tex, dx, dy, w * z, h * z, espejo=espejo)
 
     def _unidad(self, cam, e, ahora):
         lz = self.lz
@@ -246,7 +351,8 @@ class Vista:
             frame = 3
         elif e.fl & I.F_TRABAJA:
             frame = 4 if int(ahora * 3 + e.id) % 2 else 0
-        emplazada = bool(e.fl & I.F_EMPLAZADA)
+        # en los camilleros la variante «emplazada» es la camilla con un herido
+        emplazada = bool(e.fl & (I.F_EMPLAZADA | I.F_CAMILLA))
         tex = self.sprites.textura(tipo, fac, col, vista, frame, emplazada)
         w, h, fx, fy = tam_sprite(tipo)
         sx, sy = cam.a_pantalla(e.x, e.y)
@@ -273,6 +379,28 @@ class Vista:
                 lz.linea((sx - 7 * z, sy - 20 * z), (sx + 7 * z, sy - 20 * z), (110, 80, 50))
         if e.fl & I.F_POTENCIADO and int(ahora * 4) % 2 == 0:
             lz.dibujar(self.t_anillo, sx - 9 * z, sy - 3 * z, 18 * z, 7 * z, alpha=150, color=(250, 220, 90))
+
+    def _dibujar_agua_pozos(self, cam, seleccion):
+        """Cuánta agua le queda a cada pozo explorado: una barra azul y la cantidad."""
+        lz = self.lz
+        est = self.est
+        z = cam.zoom
+        rm = cam.rect_mapa().inflate(120, 120)
+        for e in est.ents.values():
+            if e.t != I.TIPO_AGUA or not rm.collidepoint(e.x, e.y) or not est.explorado_px(e.x, e.y):
+                continue
+            inicial = max(1, est.inicial.get(e.id, 2500))
+            frac = max(0.0, min(1.0, e.vida / inicial))
+            ancho = 64 * z
+            bx, by = cam.a_pantalla(e.x, e.y + 60)
+            x0 = bx - ancho / 2
+            lz.rect((x0 - 2, by - 2, ancho + 4, 9 * z + 4), (20, 14, 10), 200)
+            lz.rect((x0, by, ancho, 9 * z), (54, 44, 36))
+            col = (70, 150, 230) if frac > 0.25 else ((230, 190, 60) if frac > 0 else (150, 60, 50))
+            lz.rect((x0, by, ancho * frac, 9 * z), col)
+            if z >= 0.6 or e.id in seleccion:
+                lz.texto(f"{e.vida}" if e.vida > 0 else "seco", bx, by + 9 * z + 3, fuentes.negrita(13),
+                         (236, 240, 250), "centro", sombra=(10, 20, 40))
 
     def _dibujar_barras(self, cam, seleccion):
         lz = self.lz

@@ -21,6 +21,7 @@ UNIDAD = 1
 EDIFICIO = 2
 RECURSO = 3
 MINA = 4
+HERIDO = 5
 
 # Capas de movimiento
 TIERRA = 0

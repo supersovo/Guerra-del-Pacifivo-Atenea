@@ -149,9 +149,29 @@ def icono_habilidad(h):
     return p.resultado()
 
 
+def signo_peso(tam=22, color=(255, 255, 255), borde=(40, 26, 10)):
+    """Signo $ con contorno oscuro (en blanco se tiñe en la GPU del color que se quiera)."""
+    from .. import fuentes
+    f = fuentes.negrita(tam)
+    letra = f.render("$", True, color)
+    fondo = f.render("$", True, borde)
+    s = pygame.Surface((letra.get_width() + 2, letra.get_height() + 2), pygame.SRCALPHA)
+    for dx, dy in ((0, 1), (2, 1), (1, 0), (1, 2)):
+        s.blit(fondo, (dx, dy))
+    s.blit(letra, (1, 1))
+    return s
+
+
 def recurso(tipo, tam=18):
     s = pygame.Surface((tam, tam), pygame.SRCALPHA)
-    if tipo == "salitre":
+    if tipo == "dinero":
+        # moneda de oro con el signo de peso
+        pygame.draw.circle(s, (150, 104, 30), (tam // 2, tam // 2), tam // 2)
+        pygame.draw.circle(s, (236, 192, 72), (tam // 2, tam // 2), tam // 2 - 1)
+        pygame.draw.circle(s, (250, 220, 120), (tam // 2 - 1, tam // 2 - 1), tam // 2 - 4)
+        signo = signo_peso(int(tam * 0.85), (120, 76, 14), (250, 226, 140))
+        s.blit(signo, ((tam - signo.get_width()) // 2, (tam - signo.get_height()) // 2))
+    elif tipo == "salitre":
         pygame.draw.polygon(s, (240, 240, 244), [(2, tam - 3), (tam // 2, 2), (tam - 2, tam - 3)])
         pygame.draw.polygon(s, (180, 186, 200), [(tam // 2, 2), (tam - 2, tam - 3), (tam // 2 + 2, tam - 3)])
     elif tipo == "agua":

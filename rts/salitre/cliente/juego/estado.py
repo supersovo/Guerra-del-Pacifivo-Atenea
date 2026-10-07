@@ -83,13 +83,16 @@ class EstadoJuego:
         self._recalcular_stats()
         # yacimientos conocidos desde el comienzo (los ids son los primeros, en el orden del mapa)
         ahora = time.monotonic()
+        self.inicial = {}       # id del yacimiento -> cantidad al comenzar (para el nivel de los pozos)
         for k, r in enumerate(self.datos_mapa.recursos):
             rid = k + 1
             tam = (2, 1) if r["tipo"] == "salitre" else (3, 3)
             x = (r["x"] * TILE + tam[0] * TILE // 2) >> 4
             y = (r["y"] * TILE + tam[1] * TILE // 2) >> 4
+            cant = int(r.get("cantidad", 1500 if r["tipo"] == "salitre" else 2500))
+            self.inicial[rid] = cant
             e = Ent([rid, I.TIPO_SALITRE if r["tipo"] == "salitre" else I.TIPO_AGUA, -1, x, y,
-                     r.get("cantidad", 1500), 0, 0, 0], None, ahora)
+                     cant, 0, 0, 0], None, ahora)
             e.fantasma = True
             self.ents[rid] = e
 
@@ -175,7 +178,7 @@ class EstadoJuego:
                 self.cambio_vision = True
         j = msg.get("j")
         if j is not None:
-            self.recursos = (j["s"], j["a"])
+            self.recursos = (j["d"], j["a"])
             self.pob = (j["p"], j["pm"])
             nuevas = set(j.get("m", []))
             if nuevas != self.mejoras:

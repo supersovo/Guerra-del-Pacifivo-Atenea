@@ -38,7 +38,7 @@ class HUD:
         self.rect_sel = pygame.Rect(LADO_MINI + 26, self.rect_inf.y + 10,
                                     self.rect_tarjeta.x - LADO_MINI - 42, ALTO_INF - 20)
         self.tex_mini = lz.textura(("mini", m.id), lambda: superficie_mapa(m, 1, recursos=False, inicios=False))
-        self.t_sal = lz.textura(("ico", "salitre"), lambda: iconos.recurso("salitre"))
+        self.t_sal = lz.textura(("ico", "dinero"), lambda: iconos.recurso("dinero"))
         self.t_agua = lz.textura(("ico", "agua"), lambda: iconos.recurso("agua"))
         self.t_pob = lz.textura(("ico", "pob"), lambda: iconos.recurso("pob"))
         self.mensajes = []
@@ -85,7 +85,7 @@ class HUD:
             for i, j in enumerate(est.jugadores):
                 if est.todos and i < len(est.todos):
                     d = est.todos[i]
-                    txt = f"{j['nombre']}: {d['s']} / {d['a']} / {d['p']}-{d['pm']}"
+                    txt = f"{j['nombre']}: $ {d['d']} / {d['a']} / {d['p']}-{d['pm']}"
                     w, _ = lz.medir(txt, fuentes.cuerpo(14))
                     x -= w + 18
                     lz.rect((x - 12, 10, 8, 8), color_jugador(j["color"]))
@@ -220,7 +220,9 @@ class HUD:
         if e.es_recurso:
             nombre = "Yacimiento de salitre (caliche)" if e.t == I.TIPO_SALITRE else "Pozo de agua"
             lz.texto(nombre, r.x + 12, r.y + 8, fuentes.titulo(22), P.TINTA)
-            lz.texto(f"Queda: {e.vida}", r.x + 12, r.y + 42, fuentes.negrita(17), P.TINTA)
+            inicial = max(1, est.inicial.get(e.id, e.vida))
+            lz.texto(f"Queda: {e.vida} de {inicial} ({e.vida * 100 // inicial} %)", r.x + 12, r.y + 42,
+                     fuentes.negrita(17), P.TINTA)
             txt = ("El caliche de la pampa se procesaba en las oficinas salitreras para obtener nitrato de sodio, "
                    "fertilizante y materia prima de la pólvora.") if e.t == I.TIPO_SALITRE else \
                 ("Construya un molino de agua sobre el pozo para que los trabajadores acarreen agua.")
@@ -244,6 +246,9 @@ class HUD:
         lz.texto(f"{max(0, e.vida)} / {vmax}", x + 208, y - 3, fuentes.negrita(15), P.TINTA)
         y += 20
         ex = e.ex if isinstance(e.ex, dict) else {}
+        self.cajas_guarnicion = []
+        if tipo.es_edificio and tipo.guarnicion and not e.fl & I.F_OBRA:
+            self._guarnicion(e, ex, r)
         if e.es_edificio and e.fl & I.F_OBRA:
             prog = ex.get("o", 0)
             lz.texto(f"En construcción: {prog} %", x, y, fuentes.negrita(16), P.TINTA)
@@ -268,17 +273,67 @@ class HUD:
             lineas.append(f"Enemigos abatidos: {ex['k']}")
         if "en" in ex:
             lineas.append(f"Energía: {ex['en']}")
-        if "c" in ex or "g" in ex:
-            carga = ex.get("c") or ex.get("g") or []
-            lineas.append(f"A bordo: {len(carga)}")
+        if "c" in ex:
+            lineas.append(f"A bordo: {len(ex['c'])}")
         if tipo.es_edificio and tipo.poblacion:
             lineas.append(f"Aloja {tipo.poblacion} de población")
+        if tipo.es_edificio and tipo.camilleros:
+            lineas.append(f"Camilleros: {ex.get('cm', 0)} de {tipo.camilleros}  ·  "
+                          f"pacientes: {len(ex.get('pc', []))}")
+        if not tipo.es_edificio and tipo.autonomo:
+            lineas.append("Actúan solos: recogen a los heridos y los llevan al hospital.")
+        if tipo.es_edificio and tipo.sobre_recurso == "agua":
+            pozo = next((p for p in est.ents.values() if p.t == I.TIPO_AGUA
+                         and abs(p.x - e.x) < 8 and abs(p.y - e.y) < 8), None)
+            if pozo is not None:
+                lineas.append(f"Agua en el pozo: {pozo.vida} de {est.inicial.get(pozo.id, pozo.vida)}")
         f = fuentes.cuerpo(16)
         for i, ln in enumerate(lineas[:5]):
             lz.texto(ln, x, y + i * 19, f, P.TINTA)
         if getattr(tipo, "heroe", False) and tipo.aura_efectos:
             lz.parrafo(tipo.descripcion, r.x + 8, r.bottom - 38, r.w - 16, fuentes.cursiva(14), P.TINTA_SUAVE,
                        max_lineas=2)
+
+    def _guarnicion(self, e, ex, r):
+        """Soldados guarnecidos: retrato, vida y (si son propios) clic para bajarlos."""
+        lz = self.lz
+        esc = self.esc
+        est = esc.est
+        cat = est.cat
+        tipo = e.tipo
+        fac = est.faccion(e.dueno)
+        col = color_jugador(est.jugadores[e.dueno]["color"])
+        idxs = ex.get("g", [])
+        usado = sum(cat.tipos[i].espacio for i in idxs)
+        x0, y0 = r.x + 430, r.y + 54
+        donde = "en la trinchera" if tipo.guarnicion_vista == "trinchera" else "en el techo"
+        lz.texto(f"Guarnición {donde}: {usado}/{tipo.guarnicion}", x0, y0, fuentes.negrita(16), P.TINTA)
+        alc = tipo.guarnicion_alcance / 512
+        lz.texto(f"+{alc:g} de alcance", r.right - 10, y0 + 2, fuentes.cursiva(14), P.TINTA_SUAVE, "der")
+        tam, sep = 34, 4
+        propio = est.propio(e)
+        vidas = ex.get("gv", [])
+        ids = ex.get("gid", [])
+        for k in range(tipo.guarnicion):
+            caja = pygame.Rect(x0 + (k % 9) * (tam + sep), y0 + 24 + (k // 9) * (tam + sep), tam, tam)
+            if k >= len(idxs):
+                lz.marco(caja, (150, 120, 90), 1)
+                continue
+            ut = cat.tipos[idxs[k]]
+            encima = propio and caja.collidepoint(esc.ui.raton)
+            lz.rect(caja, (226, 210, 176) if encima else (240, 230, 206))
+            tex = esc.vista.sprites.textura(ut, fac, col, "frente", 0)
+            f = min((tam - 4) / tex.width, (tam - 6) / tex.height)
+            lz.dibujar(tex, caja.x + (tam - tex.width * f) / 2, caja.y + 1, tex.width * f, tex.height * f)
+            if k < len(vidas):
+                frac = max(0.0, min(1.0, vidas[k] / 100))
+                lz.rect((caja.x + 2, caja.bottom - 5, (tam - 4) * frac, 3),
+                        (70, 200, 60) if frac > 0.6 else ((230, 200, 40) if frac > 0.3 else (220, 50, 40)))
+            lz.marco(caja, (120, 90, 60), 1)
+            if propio and k < len(ids):
+                self.cajas_guarnicion.append((caja, ids[k]))
+                if encima:
+                    esc.ui.poner_tooltip(cat.nombre(fac.id, ut.id), "Clic: que baje y salga del edificio.")
 
     def _cola(self, e, cola, x, y, r):
         lz = self.lz
@@ -375,7 +430,7 @@ class HUD:
         extra = None
         if b.costo is not None:
             col = P.CREMA if alcanza else (240, 110, 90)
-            extra = [(f"Salitre {b.costo[0]}", col), (f"Agua {b.costo[1]}", col)]
+            extra = [(f"Dinero $ {b.costo[0]}", col), (f"Agua {b.costo[1]}", col)]
         texto = b.descripcion
         if not b.activo and b.falta:
             texto = f"Requiere: {b.falta}. " + texto if b.falta != "en curso" and "campaña" not in b.falta else \
@@ -397,6 +452,9 @@ class HUD:
             return None
         sel = [i for i in self.esc.seleccion if i in self.esc.est.ents]
         if len(sel) == 1:
+            for caja, uid in getattr(self, "cajas_guarnicion", []):
+                if caja.collidepoint(pos):
+                    return ("guarnicion", uid)
             for caja, k in getattr(self, "cajas_cola", []):
                 if caja.collidepoint(pos):
                     return ("cola", k)

@@ -1,7 +1,7 @@
 {
   "_comentario": "Naciones jugables. 'unidades' y 'edificios' son los que cada país puede formar o construir. 'nombres' cambia el nombre que se muestra de una unidad. 'bonificaciones' son ventajas permanentes con el mismo formato de efectos que las investigaciones (más 'costo_pct').",
   "_comunes": {
-    "unidades": ["trabajador", "infante", "cantinera", "ingeniero", "granadero", "cazador", "artilleria_montana", "canon_campana", "gatling", "espia", "transporte", "canonera"],
+    "unidades": ["trabajador", "infante", "cantinera", "camilleros", "ingeniero", "granadero", "cazador", "artilleria_montana", "canon_campana", "gatling", "espia", "transporte", "canonera"],
     "edificios": ["cuartel_general", "deposito", "molino_agua", "barracas", "maestranza", "hospital_campana", "trinchera", "reducto", "barracon_instruccion", "caballeriza", "central_telegrafos", "parque_artilleria", "estado_mayor", "muelle"]
   },
 

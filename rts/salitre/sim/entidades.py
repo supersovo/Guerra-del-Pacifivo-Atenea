@@ -1,6 +1,6 @@
-"""Entidades de la simulación: unidades, edificios, recursos, minas y órdenes."""
+"""Entidades de la simulación: unidades, edificios, recursos, minas, heridos y órdenes."""
 
-from .constantes import EDIFICIO, MINA, RECURSO, TILE, UNIDAD
+from .constantes import EDIFICIO, HERIDO, MINA, RECURSO, TILE, UNIDAD
 
 # Tipos de orden
 MOVER = 1
@@ -49,6 +49,7 @@ class Entidad:
     es_edificio = False
     es_recurso = False
     es_mina = False
+    es_herido = False
 
 
 class Unidad(Entidad):
@@ -58,7 +59,7 @@ class Unidad(Entidad):
         "emplazando", "quieto", "dentro", "cargamento", "abatidos", "mov_ticks", "atasco",
         "casa_x", "casa_y", "cd", "regen", "acum", "oculta", "ataco_t", "golpeado_por",
         "golpeado_t", "fantasma", "recurso_id", "moviendo", "disparo_t", "espera", "creada_t",
-        "buscar_t", "ultimo_x", "ultimo_y",
+        "buscar_t", "ultimo_x", "ultimo_y", "base_id", "paciente",
     )
     es_unidad = True
 
@@ -115,6 +116,8 @@ class Unidad(Entidad):
         self.buscar_t = (uid * 7) % 8
         self.ultimo_x = x
         self.ultimo_y = y
+        self.base_id = 0         # camilleros: su hospital
+        self.paciente = None     # camilleros: tipo del herido que llevan en la camilla
 
     def mod(self, campo, tick):
         v = self.aura.get(campo, 0)
@@ -132,7 +135,7 @@ class Edificio(Entidad):
         "tx", "ty", "w", "h", "construido", "progreso", "constructor", "acum_vida", "cola",
         "reunion", "energia", "sabotaje_hasta", "guarnicion", "pozo", "ocupante",
         "ocupante_hasta", "enfr", "objetivo", "cd", "abatidos", "radio", "golpeado_t",
-        "enfr_guarnicion", "dir",
+        "enfr_guarnicion", "dir", "camilleros", "camilleros_t", "pacientes",
     )
     es_edificio = True
 
@@ -170,12 +173,39 @@ class Edificio(Entidad):
         self.golpeado_t = -9999
         self.enfr_guarnicion = {}
         self.dir = 2
+        self.camilleros = []     # hospital: ids de sus equipos de camilleros
+        self.camilleros_t = 0    # hospital: cuándo puede mandar un equipo nuevo
+        self.pacientes = []      # hospital: [tipo de unidad, ticks que le faltan para volver a filas]
 
     def rect(self):
         return (self.tx * TILE, self.ty * TILE, (self.tx + self.w) * TILE, (self.ty + self.h) * TILE)
 
     def __repr__(self):
         return f"<{self.tipo.id}#{self.id} j{self.dueno} ({self.tx},{self.ty}) {self.vida}hp{'' if self.construido else ' en obra'}>"
+
+
+class Herido(Entidad):
+    """Soldado caído que todavía vive: espera a los camilleros hasta 'hasta' (tick)."""
+    __slots__ = ("hasta", "camillero", "radio", "dir")
+    es_herido = True
+
+    def __init__(self, uid, tipo, dueno, x, y, hasta, direccion=2):
+        self.id = uid
+        self.clase = HERIDO
+        self.tipo = tipo
+        self.dueno = dueno
+        self.x = x
+        self.y = y
+        self.vida = 1
+        self.vivo = True
+        self.st = None
+        self.hasta = hasta
+        self.camillero = 0
+        self.radio = TILE // 4
+        self.dir = direccion
+
+    def __repr__(self):
+        return f"<herido {self.tipo.id}#{self.id} j{self.dueno} ({self.x // TILE},{self.y // TILE})>"
 
 
 class Recurso(Entidad):

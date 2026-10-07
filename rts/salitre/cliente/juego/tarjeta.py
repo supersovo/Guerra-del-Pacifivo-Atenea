@@ -55,7 +55,9 @@ def tarjeta(est, seleccion, submenu=None):
         faltan = [cat.nombre(fac.id, r) for r in tipo.requisitos if not terminados.get(r)]
         return ", ".join(faltan)
 
-    unidades = [e for e in propios if e.es_unidad]
+    unidades = [e for e in propios if e.es_unidad and not e.tipo.autonomo]
+    if not unidades and any(e.es_unidad for e in propios):
+        return slots        # los camilleros actúan solos: no hay órdenes que darles
     if unidades:
         # menú de construcción de los trabajadores (o de los zapadores)
         if submenu in ("basico", "avanzado", "campana"):
@@ -99,7 +101,7 @@ def tarjeta(est, seleccion, submenu=None):
                          descripcion="No moverse: disparar solo a lo que esté a su alcance.")
         if trabajadores:
             slots[5] = Boton("recolectar", "Recolectar", "G", ("orden", "recolectar"), "objetivo", "recolectar",
-                             descripcion="Extraer salitre o acarrear agua desde un molino.")
+                             descripcion="Extraer salitre (el Cuartel General lo compra a 1 $ por unidad) o acarrear agua desde un molino.")
             slots[6] = Boton("regresar", "Entregar carga", "D", ("orden", "regresar"), "orden", {"c": "regresar"},
                              descripcion="Llevar lo que carga al Cuartel General.")
             slots[7] = Boton("reparar", "Reparar", "R", ("orden", "reparar"), "objetivo", "reparar",
@@ -189,8 +191,13 @@ def tarjeta(est, seleccion, submenu=None):
                                "hab:" + hid if h.objetivo != "ninguno" else {"c": "habilidad", "h": hid},
                                descripcion=h.descripcion + (f" Energía: {h.energia // 256}." if h.energia else "")))
     if tipo.guarnicion:
-        _poner(slots, 8, Boton("vaciar", "Salir de la trinchera", "D", ("orden", "descargar"), "orden",
-                               {"c": "descargar"}, descripcion="La tropa sale de la trinchera."))
+        if tipo.guarnicion_vista == "trinchera":
+            texto, desc = "Salir de la trinchera", "La tropa sale de la trinchera."
+        else:
+            texto, desc = "Bajar del techo", "Los tiradores del techo bajan y salen del edificio."
+        _poner(slots, 8, Boton("vaciar", texto, "D", ("orden", "descargar"), "orden", {"c": "descargar"},
+                               descripcion=desc + " Para guarnecer: seleccione infantería y haga clic derecho "
+                                                  "sobre el edificio."))
     if tipo.produce:
         slots[-2] = Boton("reunion", "Punto de reunión", "Y", ("orden", "reunion"), "objetivo", "reunion",
                           descripcion="Adónde marchan las tropas recién formadas (sobre un yacimiento: a trabajar).")

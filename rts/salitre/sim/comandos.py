@@ -16,7 +16,7 @@ la visibilidad de los blancos, los requisitos, la población y los recursos.
     {"c": "cancelar", "e": id, "i": indice}    {"c": "cancelar_obra", "e": id}
     {"c": "reunion", "e": [ids], "x", "y", "t": id|null}
     {"c": "habilidad", "u": [ids], "h": habilidad, "x", "y", "t": id|null}
-    {"c": "descargar", "u": [ids], "x", "y"}
+    {"c": "descargar", "u": [ids], "x", "y"}     (en un edificio, "g": id saca a un solo soldado)
     {"c": "senal", "x", "y"}      {"c": "rendirse"}
 
 Las coordenadas x, y van en píxeles del mapa.
@@ -51,7 +51,7 @@ def _propias(m, p, ids):
             continue
         vistos.add(i)
         e = m.ent.get(i)
-        if e is not None and e.vivo and e.es_unidad and e.dueno == p and not e.dentro:
+        if e is not None and e.vivo and e.es_unidad and e.dueno == p and not e.dentro and not e.tipo.autonomo:
             out.append(e)
     return out
 
@@ -196,6 +196,24 @@ def c_patrullar(m, p, cmd):
     c_mover(m, p, cmd, PATRULLAR)
 
 
+def _sanitaria(u):
+    """Cantineras y enfermeras: curan a la tropa propia, no combaten."""
+    return bool(u.tipo.curar_ritmo) and u.tipo.arma is None
+
+
+def _acompanar(m, p, sanitarias, tropa, cola):
+    """En una orden de ataque las sanitarias no van hacia el enemigo: siguen a la tropa
+    armada más cercana de la misma orden (y la curan); si van solas, se quedan donde están."""
+    if not sanitarias:
+        return
+    if not tropa:
+        m.ev_jugador(p, "err", "La cantinera no combate: solo atiende a la tropa propia")
+        return
+    for u in sanitarias:
+        g = min(tropa, key=lambda v: ((v.x - u.x) ** 2 + (v.y - u.y) ** 2, v.id))
+        dar(m, u, Orden(SEGUIR, obj=g.id), cola)
+
+
 def c_atacar(m, p, cmd):
     us = _propias(m, p, cmd.get("u", []))
     obj = _objetivo(m, p, cmd)
@@ -204,11 +222,17 @@ def c_atacar(m, p, cmd):
             c_mover(m, p, cmd, ATACAR_MOVER)
         return
     cola = bool(cmd.get("cola"))
+    sanitarias = [u for u in us if _sanitaria(u)]
+    tropa = []
     for u in us:
+        if _sanitaria(u):
+            continue
         if u.tipo.arma is not None and combate.arma_puede(u.tipo.arma, obj, m.cat):
             dar(m, u, Orden(ATACAR, obj=obj.id), cola)
+            tropa.append(u)
         elif u.capa == TIERRA or obj.capa == u.capa:
             dar(m, u, Orden(MOVER, obj.x, obj.y), cola)
+    _acompanar(m, p, sanitarias, tropa, cola)
 
 
 def c_detener(m, p, cmd):
@@ -279,10 +303,19 @@ def c_inteligente(m, p, cmd):
     if obj is None:
         c_mover(m, p, cmd)
         return
+    sanitarias = []
+    if obj.es_unidad or obj.es_edificio:
+        if m.enemigos(p, obj.dueno):
+            sanitarias = [u for u in us if _sanitaria(u)]
+            us = [u for u in us if not _sanitaria(u)]
     resto = []
+    tropa = []
     for u in us:
-        if not _inteligente_una(m, p, u, obj, cola):
+        if _inteligente_una(m, p, u, obj, cola):
+            tropa.append(u)
+        else:
             resto.append(u)
+    _acompanar(m, p, sanitarias, tropa, cola)
     if resto:
         if "x" in cmd:
             x, y = _xy(m, cmd)
@@ -382,7 +415,7 @@ def c_entrenar(m, p, cmd):
             return
         costo = j.stats[ut.id].costo
         if not j.puede_pagar(costo):
-            m.ev_jugador(p, "err", "Faltan recursos")
+            m.ev_jugador(p, "err", j.falta(costo))
             return
         b = min(libres, key=lambda e: (len(e.cola), e.id))
         j.pagar(costo)
@@ -411,7 +444,7 @@ def c_investigar(m, p, cmd):
             m.ev_jugador(p, "err", "Requiere: " + m.cat.nombre(j.faccion.id, r))
             return
     if not j.puede_pagar(mej.costo):
-        m.ev_jugador(p, "err", "Faltan recursos")
+        m.ev_jugador(p, "err", j.falta(mej.costo))
         return
     b = min(eds, key=lambda e: (len(e.cola), e.id))
     j.pagar(mej.costo)
@@ -507,9 +540,10 @@ def c_descargar(m, p, cmd):
                 dar(m, u, Orden(DESCARGAR, u.x, u.y), bool(cmd.get("cola")))
             else:
                 dar(m, u, Orden(DESCARGAR, x, y), bool(cmd.get("cola")))
+    solo = cmd.get("g")
     for b in _edificios_propios(m, p, ids):
         if b.guarnicion:
-            m.vaciar_guarnicion(b)
+            m.vaciar_guarnicion(b, int(solo) if solo is not None else None)
 
 
 def c_senal(m, p, cmd):
@@ -527,7 +561,7 @@ def c_truco(m, p, cmd):
     if not m.trucos:
         return
     j = m.jugadores[p]
-    j.salitre += int(cmd.get("salitre", 0))
+    j.dinero += int(cmd.get("dinero", cmd.get("salitre", 0)))
     j.agua += int(cmd.get("agua", 0))
     if cmd.get("revelar"):
         eq = j.equipo

@@ -33,6 +33,15 @@ DOBLE_CLIC = 0.35
 MARGEN_BORDE = 6
 
 
+class _Origen:
+    """Punto de donde sale un disparo cuando el tirador no está a la vista (guarnecido)."""
+    __slots__ = ("x", "y", "ultimo_disparo")
+
+    def __init__(self, x, y):
+        self.x, self.y = x, y
+        self.ultimo_disparo = 0.0
+
+
 class Juego(Escena):
     def __init__(self, app, inicio, origen="multijugador", info=None):
         super().__init__(app)
@@ -103,6 +112,7 @@ class Juego(Escena):
                 self.app.lobby = m
         est = self.est
         est.interpolar()
+        self.vista.efx.sangre = self.app.config["sangre"]
         if est.actualizar_vision():
             self.vista.actualizar_niebla()
         if not self.centrado and est.ents:
@@ -154,6 +164,12 @@ class Juego(Escena):
             a = est.ents.get(ev[2])
             o = est.ents.get(ev[3])
             tipo = ev[4]
+            if a is None and len(ev) > 7 and o is not None:
+                # dispara un soldado guarnecido: el fogonazo sale de su puesto en la trinchera o el techo
+                b = est.ents.get(ev[6])
+                if b is not None and b.tipo is not None and b.tipo.guarnicion:
+                    x, y = self.vista.disparo_en_puesto(b, ev[7], o.x, o.y)
+                    a = _Origen(x, y)
             if a is not None and o is not None:
                 a.ultimo_disparo = time.monotonic()
                 if tipo != "sable":
@@ -166,6 +182,10 @@ class Juego(Escena):
         elif k == "pro":
             a = est.ents.get(ev[2])
             x0, y0, x1, y1, vuelo, tipo = ev[3], ev[4], ev[5], ev[6], ev[7], ev[8]
+            if a is None and len(ev) > 10:
+                b = est.ents.get(ev[9])
+                if b is not None and b.tipo is not None and b.tipo.guarnicion:
+                    x0, y0 = self.vista.disparo_en_puesto(b, ev[10], x1, y1)
             dur = vuelo / (16 * est.inicio.get("velocidad", 1.0) * (self.velocidad_rep if est.inicio.get("repeticion") else 1))
             efx.lanzar(x0, y0 - 8, x1, y1, max(0.1, dur), tipo)
             if tipo != "dinamita":
@@ -179,6 +199,7 @@ class Juego(Escena):
             snd.en_mapa("explosion", x, y, cam, minimo_ms=90)
         elif k == "mue":
             idx, dueno, x, y = ev[3], ev[4], ev[5], ev[6]
+            explosion = len(ev) > 7 and bool(ev[7])
             tipo = est.tipo_por_idx(idx)
             if tipo is None:
                 return
@@ -188,9 +209,39 @@ class Juego(Escena):
                 snd.en_mapa("explosion", x, y, cam, minimo_ms=60)
             else:
                 f = est.faccion(dueno)
-                if f is not None:
-                    tex = self.vista.sprites.caido(tipo, f, color_jugador(est.jugadores[dueno]["color"]))
-                    efx.caido(tex, x, y - 4, bool(ev[2] % 2))
+                if f is None:
+                    return
+                if tipo.biologica and explosion and efx.sangre:
+                    # artillería, dinamita o mina: el cuerpo vuela en pedazos
+                    efx.despedazar(x, y - 6, [f.uniforme.get("casaca", (90, 90, 90)),
+                                              f.uniforme.get("pantalon", (90, 90, 90))])
+                    return
+                tex = self.vista.sprites.caido(tipo, f, color_jugador(est.jugadores[dueno]["color"]))
+                efx.caido(tex, x, y - 4, bool(ev[2] % 2))
+                if tipo.biologica:
+                    efx.herida(x, y - 8)
+                    efx.charco(x, y + 2)
+        elif k == "herido":
+            # cae herido: queda en el suelo (lo dibuja la vista) y espera a los camilleros
+            x, y = ev[6], ev[7]
+            efx.herida(x, y - 8)
+            efx.charco(x, y + 2, 0.9, 40.0)
+        elif k == "recogido":
+            o = est.ents.get(ev[3])
+            if o is not None:
+                efx.polvo_marcha(o.x, o.y)
+        elif k == "ingresa":
+            o = est.ents.get(ev[2])
+            if o is not None:
+                efx.curacion(o.x, o.y - 10)
+        elif k == "recuperado":
+            o = est.ents.get(ev[2])
+            if o is not None:
+                for kk in range(6):
+                    efx.curacion(o.x + (kk - 3) * 8, o.y - 6)
+                if o.dueno == est.yo:
+                    self.hud.mensaje(f"Vuelve a filas, curado en el hospital: {self._nombre(est.yo, ev[4])}",
+                                     (150, 220, 140), 4)
         elif k == "carga":
             o = est.ents.get(ev[2])
             if o is not None:
@@ -201,6 +252,11 @@ class Juego(Escena):
             o = est.ents.get(ev[3])
             if o is not None:
                 efx.curacion(o.x, o.y)
+        elif k == "venta":
+            # el cuartel general compra el salitre: sale un $ dorado sobre el techo
+            o = est.ents.get(ev[2])
+            if o is not None and o.tipo is not None:
+                efx.venta(o.x, o.y - o.tipo.alto * 16 - 18)
         elif k == "repara":
             o = est.ents.get(ev[3])
             if o is not None:
@@ -480,7 +536,10 @@ class Juego(Escena):
             if not (a0 - 6 <= e.x <= a1 + 6 and b0 - 6 <= e.y <= b1 + 16):
                 continue
             if est.propio(e):
-                (edificios if e.es_edificio else propias).append(e.id)
+                if e.es_edificio:
+                    edificios.append(e.id)
+                elif not e.tipo.autonomo:      # los camilleros no entran en el recuadro
+                    propias.append(e.id)
             elif est.aliado(e.dueno) or est.visible_px(e.x, e.y):
                 otras.append(e.id)
         if propias:
@@ -648,7 +707,8 @@ class Juego(Escena):
                 self.hud.mensaje("No hay trabajadores ociosos.", P.CREMA, 2)
             return True
         if k == pygame.K_F2:
-            ids = [e.id for e in est.ents.values() if est.propio(e) and e.es_unidad and not e.tipo.trabajador]
+            ids = [e.id for e in est.ents.values()
+                   if est.propio(e) and e.es_unidad and not e.tipo.trabajador and not e.tipo.autonomo]
             self.seleccionar(ids[:96])
             return True
         if k == pygame.K_SPACE:
@@ -724,6 +784,10 @@ class Juego(Escena):
                         eds = self._ids_edificios_propios()
                         if eds:
                             self.enviar({"c": "cancelar", "e": eds[:1], "i": caja[1]})
+                    elif caja[0] == "guarnicion":
+                        eds = self._ids_edificios_propios()
+                        if eds:
+                            self.enviar({"c": "descargar", "u": eds[:1], "g": caja[1]})
             return True
         mx, my = self.cam.a_mapa(*pos)
         if ev.button == 3:

@@ -2,6 +2,7 @@
 
 import utilidades as U
 from salitre.sim.constantes import AGUA, TICKS, TILE
+from salitre.sim.entidades import ATACAR, SEGUIR
 
 S = TICKS  # un segundo
 
@@ -15,17 +16,24 @@ def _unidad(m, p, tipo, tx, ty):
 def test_recoleccion_de_salitre():
     m = U.mundo()
     trab = U.de(m, 0, "trabajador")
+    cg = U.de(m, 0, "cuartel_general")[0]
     sal = [r for r in m.recursos.values() if r.rtipo == "salitre"]
     m.comando(0, {"c": "inteligente", "u": [u.id for u in trab], "t": sal[0].id})
-    U.avanzar(m, 60 * S)
+    ventas = []
+    for _ in range(60 * S):
+        m.paso()
+        ventas += [ev for _d, ev in m.eventos if ev[0] == "venta"]
     j = m.jugadores[0]
     assert j.est["salitre_recolectado"] >= 200
-    assert j.salitre == 100 + j.est["salitre_recolectado"]
+    # el cuartel general compra el salitre al contado, 1 $ por unidad, y avisa cada venta
+    assert j.dinero == 100 + j.est["salitre_recolectado"]
+    propias = [ev for ev in ventas if ev[1] == cg.id]
+    assert propias and sum(ev[2] for ev in propias) == j.est["salitre_recolectado"]
 
 
 def test_molino_y_agua():
     m = U.mundo()
-    m.comando(0, {"c": "truco", "salitre": 1000})
+    m.comando(0, {"c": "truco", "dinero": 1000})
     U.avanzar(m, 1)
     pozo = [r for r in m.recursos.values() if r.rtipo == "agua"][0]
     w = U.de(m, 0, "trabajador")[0]
@@ -40,7 +48,7 @@ def test_molino_y_agua():
 
 def test_obra_produccion_y_poblacion():
     m = U.mundo()
-    m.comando(0, {"c": "truco", "salitre": 3000})
+    m.comando(0, {"c": "truco", "dinero": 3000})
     U.avanzar(m, 1)
     w = U.de(m, 0, "trabajador")[0]
     m.comando(0, {"c": "construir", "u": [w.id], "e": "barracas", "tx": 6, "ty": 14})
@@ -59,7 +67,7 @@ def test_obra_produccion_y_poblacion():
 
 def test_requisitos_tecnologicos():
     m = U.mundo()
-    m.comando(0, {"c": "truco", "salitre": 5000, "agua": 5000})
+    m.comando(0, {"c": "truco", "dinero": 5000, "agua": 5000})
     U.avanzar(m, 1)
     w = U.de(m, 0, "trabajador")[0]
     m.comando(0, {"c": "construir", "u": [w.id], "e": "caballeriza", "tx": 6, "ty": 14})
@@ -88,6 +96,28 @@ def test_cantinera_cura():
     inf.vida = 10
     U.avanzar(m, 10 * S)
     assert inf.vida == inf.st.vida
+
+
+def test_cantinera_no_va_hacia_el_enemigo():
+    m = U.mundo()
+    can = _unidad(m, 0, "cantinera", 30, 30)
+    enemigo = _unidad(m, 1, "infante", 37, 30)     # a la vista, fuera de su alcance
+    m.comando(1, {"c": "mantener", "u": [enemigo.id]})
+    U.avanzar(m, 5)                                   # la visión se actualiza cada 4 ticks
+    # sola: no avanza y se avisa por qué
+    for c in ("atacar", "inteligente"):
+        x0 = can.x
+        m.comando(0, {"c": c, "u": [can.id], "t": enemigo.id})
+        U.avanzar(m, 1)
+        assert any(d == 0 and ev[0] == "err" and "cantinera" in ev[1] for d, ev in m.eventos)
+        U.avanzar(m, 3 * S)
+        assert abs(can.x - x0) < TILE // 4
+    # con tropa armada, la acompaña (sigue al infante) en lugar de ir por el enemigo
+    inf = _unidad(m, 0, "infante", 30, 32)
+    m.comando(0, {"c": "inteligente", "u": [can.id, inf.id], "t": enemigo.id})
+    U.avanzar(m, 2)
+    assert inf.orden.tipo == ATACAR and inf.orden.obj == enemigo.id
+    assert can.orden.tipo == SEGUIR and can.orden.obj == inf.id
 
 
 def test_aura_de_heroe():
@@ -184,6 +214,81 @@ def test_trinchera_guarnicion():
     enemigo = _unidad(m, 1, "infante", 36, 31)
     U.avanzar(m, 15 * S)
     assert not enemigo.vivo
+
+
+def test_tiradores_en_el_techo_de_las_barracas_y_del_cuartel():
+    m = U.mundo()
+    for tipo_id, cap in (("barracas", 6), ("cuartel_general", 8)):
+        b = m.crear_edificio(0, tipo_id, 40 if tipo_id == "barracas" else 26, 40, construido=True)
+        assert b.tipo.guarnicion == cap and b.tipo.guarnicion_vista == "techo"
+    bar = U.de(m, 0, "barracas")[0]
+    inf = [_unidad(m, 0, "infante", 38 + k, 46) for k in range(6)]
+    m.comando(0, {"c": "inteligente", "u": [u.id for u in inf], "t": bar.id})
+    U.avanzar(m, 8 * S)
+    assert len(bar.guarnicion) == 6 and all(u.dentro == bar.id for u in inf)
+    # un séptimo ya no cabe
+    otro = _unidad(m, 0, "infante", 38, 47)
+    m.comando(0, {"c": "inteligente", "u": [otro.id], "t": bar.id})
+    U.avanzar(m, 6 * S)
+    assert not otro.dentro
+    # desde el techo alcanzan más lejos que a pie (5 + 2 casillas)
+    enemigo = _unidad(m, 1, "infante", 49, 41)
+    m.comando(1, {"c": "mantener", "u": [enemigo.id]})
+    eventos = []
+    for _ in range(12 * S):
+        m.paso()
+        eventos += [ev for _d, ev in m.eventos if ev[0] == "dis" and len(ev) > 6 and ev[5] == bar.id]
+    assert not enemigo.vivo
+    assert eventos and all(0 <= ev[6] < 6 for ev in eventos)
+    # se puede bajar a uno solo
+    m.comando(0, {"c": "descargar", "u": [bar.id], "g": inf[2].id})
+    U.avanzar(m, 1)
+    assert not inf[2].dentro and len(bar.guarnicion) == 5
+
+
+def test_heridos_camilleros_y_hospital():
+    m = U.mundo()
+    j = m.jugadores[0]
+    # sin hospital, la infantería muere en el acto
+    a = _unidad(m, 0, "infante", 20, 24)
+    m.matar(a, 0, 1)
+    U.avanzar(m, 1)
+    assert not m.heridos
+    hosp = m.crear_edificio(0, "hospital_campana", 14, 20, construido=True)
+    U.avanzar(m, 10 * S)
+    cam = U.de(m, 0, "camilleros")
+    assert len(cam) == 2 and all(c.base_id == hosp.id for c in cam)
+    assert j.pob_usada == 6                         # los camilleros no ocupan población
+    # caído por fuego de fusil: queda herido; por artillería: muere
+    b = _unidad(m, 0, "infante", 24, 24)
+    c = _unidad(m, 0, "infante", 25, 25)
+    m.matar(b, 0, 1)
+    m.matar(c, 0, 1, explosion=True)
+    assert len(m.heridos) == 1 and not b.vivo
+    infantes_antes = len(U.de(m, 0, "infante"))
+    # lo recogen, lo curan (20 s) y vuelve a filas con media vida
+    recuperado = None
+    for _ in range(50 * S):
+        m.paso()
+        for _d, ev in m.eventos:
+            if ev[0] == "recuperado":
+                recuperado = m.ent[ev[2]]
+                assert recuperado.vida == recuperado.st.vida // 2
+    assert recuperado is not None and recuperado.tipo.id == "infante"
+    assert not m.heridos and not hosp.pacientes
+    assert len(U.de(m, 0, "infante")) == infantes_antes + 1
+    assert j.est["heridos_recuperados"] == 1
+    # uno que cae lejos del radio del hospital se desangra
+    lejos = _unidad(m, 0, "infante", 60, 60)
+    m.matar(lejos, 0, 1)
+    assert len(m.heridos) == 1
+    U.avanzar(m, 45 * S)
+    assert not m.heridos
+    # las órdenes del jugador no mueven a los camilleros
+    x0 = cam[0].x
+    m.comando(0, {"c": "mover", "u": [cam[0].id], "x": 10, "y": 10})
+    U.avanzar(m, 3 * S)
+    assert abs(cam[0].x - x0) < TILE
 
 
 def test_determinismo():

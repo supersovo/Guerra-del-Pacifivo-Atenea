@@ -46,6 +46,13 @@ def _lista(v):
     return tuple(v)
 
 
+def _costo(d):
+    """(dinero, agua). El salitre se vende en el cuartel general a 1 $ por unidad, así que
+    todo se paga en dinero; se acepta la clave antigua "salitre" de los datos propios."""
+    c = d.get("costo", {})
+    return int(c.get("dinero", c.get("salitre", 0))), int(c.get("agua", 0))
+
+
 class Filtro:
     """A qué unidades o edificios se aplica un efecto."""
 
@@ -135,8 +142,7 @@ class TipoUnidad:
         self.categoria = d.get("categoria", "infanteria")
         self.faccion = d.get("faccion")
         self.heroe = bool(d.get("heroe", False))
-        costo = d.get("costo", {})
-        self.costo = (int(costo.get("salitre", 0)), int(costo.get("agua", 0)))
+        self.costo = _costo(d)
         self.poblacion = int(d.get("poblacion", 1))
         self.espacio = int(d.get("espacio", self.poblacion))
         self.tiempo = max(1, ticks(d.get("tiempo", 10)))
@@ -199,6 +205,8 @@ class TipoUnidad:
             self.carga_ticks = 0
         self.bonus_edificios = int(p["bonus_edificios"].get("pct", 0)) if "bonus_edificios" in p else 0
         self.no_adquiere = "no_adquiere" in p
+        # actúa sola (los camilleros): no recibe órdenes del jugador ni entra en la selección por recuadro
+        self.autonomo = "autonomo" in p
         if "constructor" in p:
             self.construye = tuple(p["constructor"].get("edificios", []))
             self.vel_construccion = int(p["constructor"].get("velocidad", 100))
@@ -229,8 +237,7 @@ class TipoEdificio:
         self.ancho, self.alto = int(tam[0]), int(tam[1])
         self.vida = int(d.get("vida", 500))
         self.armadura = int(d.get("armadura", 1))
-        costo = d.get("costo", {})
-        self.costo = (int(costo.get("salitre", 0)), int(costo.get("agua", 0)))
+        self.costo = _costo(d)
         self.tiempo = max(1, ticks(d.get("tiempo", 30)))
         self.poblacion = int(d.get("poblacion", 0))
         self.deposito = bool(d.get("deposito", False))
@@ -250,11 +257,16 @@ class TipoEdificio:
             self.guarnicion_alcance = sub(g.get("alcance_extra", 1))
             self.guarnicion_categorias = tuple(g.get("categorias", ["infanteria"]))
             self.guarnicion_clases = tuple(g.get("clases", ["infanteria"]))
+            # "trinchera": se ven asomados tras el parapeto; "techo": suben al techo y disparan desde arriba
+            self.guarnicion_vista = g.get("vista", "trinchera")
+            if self.guarnicion_vista not in ("trinchera", "techo"):
+                raise ContenidoError(f"{donde}: 'guarnicion.vista' debe ser 'trinchera' o 'techo'")
         else:
             self.guarnicion = 0
             self.guarnicion_alcance = 0
             self.guarnicion_categorias = ()
             self.guarnicion_clases = ()
+            self.guarnicion_vista = None
         r = d.get("regeneracion")
         if r:
             self.regen_radio = sub(r.get("radio", 5))
@@ -262,6 +274,17 @@ class TipoEdificio:
         else:
             self.regen_radio = 0
             self.regen_hps = 0.0
+        c = d.get("camilleros")
+        if c:
+            self.camilleros = int(c.get("equipos", 2))
+            self.camilleros_radio = sub(c.get("radio", 30))
+            self.recuperacion = max(1, ticks(c.get("recuperacion", 20)))
+            self.reposicion = max(1, ticks(c.get("reposicion", 30)))
+            self.vida_al_volver = max(1, min(100, int(c.get("vida_al_volver", 50))))
+        else:
+            self.camilleros = 0
+            self.camilleros_radio = self.recuperacion = self.reposicion = 0
+            self.vida_al_volver = 100
         en = d.get("energia")
         if en:
             self.energia_max = int(round(en.get("max", 200) * EFP))
@@ -282,8 +305,7 @@ class Mejora:
         self.nombre = d.get("nombre", mid)
         self.descripcion = d.get("descripcion", "")
         self.edificio = d.get("edificio")
-        costo = d.get("costo", {})
-        self.costo = (int(costo.get("salitre", 0)), int(costo.get("agua", 0)))
+        self.costo = _costo(d)
         self.tiempo = max(1, ticks(d.get("tiempo", 60)))
         self.previa = d.get("previa")
         self.requisitos = tuple(d.get("requisitos", []))
@@ -381,7 +403,7 @@ class Catalogo:
         self.fallo_altura = int(t.get("fallo_por_altura", 30))
         self.poblacion_maxima = int(t.get("poblacion_maxima", 200))
         ri = t.get("recursos_iniciales", {})
-        self.recursos_iniciales = (int(ri.get("salitre", 100)), int(ri.get("agua", 0)))
+        self.recursos_iniciales = (int(ri.get("dinero", ri.get("salitre", 100))), int(ri.get("agua", 0)))
         self.trabajadores_iniciales = int(t.get("trabajadores_iniciales", 6))
         self.carga_salitre = int(t.get("carga_salitre", 5))
         self.ticks_salitre = ticks(t.get("tiempo_extraccion_salitre", 2.5))
@@ -389,6 +411,7 @@ class Catalogo:
         self.ticks_agua = ticks(t.get("tiempo_extraccion_agua", 1.5))
         self.carga_agua_agotada = int(t.get("carga_agua_agotada", 1))
         self.minas_maximas = int(t.get("minas_maximas", 15))
+        self.ticks_herido = ticks(t.get("segundos_herido", 40))
         self.dist_recursos_cuartel = int(t.get("distancia_minima_recursos_cuartel", 3))
 
         def sin_comentarios(d):
@@ -422,9 +445,11 @@ class Catalogo:
             raise ContenidoError(f"Ids repetidos entre unidades y edificios: {sorted(set(U) & set(E))}")
         for u in U.values():
             w = f"unidades.json:{u.id}"
-            if u.produce_en not in E:
+            if u.produce_en is None and u.autonomo:
+                pass    # los camilleros los manda el hospital, no se forman a pedido
+            elif u.produce_en not in E:
                 raise ContenidoError(f"{w}: 'produce_en' no es un edificio: {u.produce_en}")
-            if u.id not in E[u.produce_en].produce:
+            elif u.id not in E[u.produce_en].produce:
                 raise ContenidoError(f"{w}: el edificio {u.produce_en} no la incluye en 'produce'")
             for r in u.requisitos:
                 if r not in E:

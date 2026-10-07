@@ -1,5 +1,7 @@
 """Efectos: humo de pólvora negra, fogonazos, granadas en vuelo, explosiones,
-polvo, cruces de curación, marcas en el suelo y caídos.
+polvo, cruces de curación, signos de dinero, marcas en el suelo, caídos, sangre
+y cuerpos despedazados por la artillería (estos dos se pueden desactivar en
+Opciones).
 
 Todas las partículas usan unas pocas texturas (bocanada, chispa, círculo) que
 la GPU tiñe, escala y funde: miles de partículas cuestan muy poco.
@@ -16,6 +18,14 @@ TIPO_FUEGO = 2
 TIPO_POLVO = 3
 TIPO_CRUZ = 4
 TIPO_CHISPA = 5
+TIPO_DINERO = 6
+TIPO_GOTA = 7
+TIPO_TROZO = 8
+DORADO = (255, 206, 64)
+SANGRE = (120, 10, 12)
+SANGRE_VIVA = (176, 18, 20)
+PIEL_TROZO = (196, 140, 110)
+HUESO = (232, 224, 204)
 
 
 def _bocanada(r=32):
@@ -41,6 +51,53 @@ def _cruz():
     return s
 
 
+def _charco(semilla=0, lado=48):
+    """Charco de sangre irregular (blanco sobre transparente no: color propio, ya oscuro)."""
+    rnd = random.Random(semilla)
+    s = pygame.Surface((lado, lado // 2), pygame.SRCALPHA)
+    c = lado // 2
+    for _ in range(9):
+        w = rnd.uniform(0.35, 0.8) * lado
+        h = w * rnd.uniform(0.32, 0.5)
+        x = c + rnd.uniform(-0.18, 0.18) * lado - w / 2
+        y = lado / 4 + rnd.uniform(-0.08, 0.08) * lado - h / 2
+        pygame.draw.ellipse(s, (*SANGRE, 210), (x, y, w, h))
+    for _ in range(6):
+        r = rnd.uniform(1.0, 2.6)
+        pygame.draw.circle(s, (*SANGRE, 220), (c + rnd.uniform(-0.45, 0.45) * lado,
+                                               lado / 4 + rnd.uniform(-0.2, 0.2) * lado), r)
+    pygame.draw.ellipse(s, (*SANGRE_VIVA, 90), (c - lado * 0.18, lado / 4 - lado * 0.06, lado * 0.3, lado * 0.1))
+    return s
+
+
+def _salpicadura(semilla=0, lado=40):
+    """Manchas sueltas alrededor de un punto (sangre esparcida por una explosión)."""
+    rnd = random.Random(semilla)
+    s = pygame.Surface((lado, lado // 2), pygame.SRCALPHA)
+    for _ in range(26):
+        a = rnd.uniform(0, 2 * math.pi)
+        d = rnd.uniform(0.05, 0.48) * lado
+        r = rnd.uniform(0.6, 2.2) * (1.4 - d / lado)
+        pygame.draw.circle(s, (*SANGRE, 225), (lado / 2 + math.cos(a) * d, lado / 4 + math.sin(a) * d * 0.45), r)
+    return s
+
+
+def _trozo(forma, color):
+    """Pedazo de un cuerpo despedazado: miembro, jirón de uniforme o hueso."""
+    s = pygame.Surface((10, 8), pygame.SRCALPHA)
+    if forma == 0:      # miembro con manga
+        pygame.draw.line(s, color, (1, 5), (7, 3), 3)
+        pygame.draw.circle(s, PIEL_TROZO, (8, 3), 1.6)
+        pygame.draw.circle(s, SANGRE_VIVA, (1, 5), 1.5)
+    elif forma == 1:    # jirón de casaca
+        pygame.draw.polygon(s, color, [(1, 2), (8, 1), (7, 6), (2, 7)])
+        pygame.draw.circle(s, SANGRE, (4, 4), 1.4)
+    else:               # hueso y carne
+        pygame.draw.line(s, HUESO, (2, 4), (8, 4), 2)
+        pygame.draw.circle(s, SANGRE_VIVA, (5, 4), 2)
+    return s
+
+
 def _crater():
     s = pygame.Surface((48, 30), pygame.SRCALPHA)
     pygame.draw.ellipse(s, (60, 44, 32, 120), (2, 2, 44, 26))
@@ -49,9 +106,11 @@ def _crater():
 
 
 class Particula:
-    __slots__ = ("tipo", "x", "y", "z", "vx", "vy", "vz", "t", "vida", "tam", "crece", "color", "alpha")
+    __slots__ = ("tipo", "x", "y", "z", "vx", "vy", "vz", "t", "vida", "tam", "crece", "color", "alpha",
+                 "tex", "giro")
 
-    def __init__(self, tipo, x, y, vida, tam, color, vx=0.0, vy=0.0, vz=0.0, z=0.0, crece=0.0, alpha=255):
+    def __init__(self, tipo, x, y, vida, tam, color, vx=0.0, vy=0.0, vz=0.0, z=0.0, crece=0.0, alpha=255,
+                 tex=None, giro=0.0):
         self.tipo = tipo
         self.x = x
         self.y = y
@@ -65,6 +124,8 @@ class Particula:
         self.crece = crece
         self.color = color
         self.alpha = alpha
+        self.tex = tex          # textura propia (pedazos de un cuerpo)
+        self.giro = giro        # grados por segundo mientras vuela
 
 
 class Proyectil:
@@ -80,15 +141,18 @@ class Proyectil:
 
 
 class Marca:
-    """Marca en el suelo: cráter o caído; se desvanece."""
-    __slots__ = ("tex", "x", "y", "w", "h", "t", "vida", "espejo")
+    """Marca en el suelo: cráter, caído o sangre; se desvanece. Con 'crece' (segundos) se
+    extiende desde el centro, como un charco que se agranda."""
+    __slots__ = ("tex", "x", "y", "w", "h", "t", "vida", "espejo", "crece", "angulo")
 
-    def __init__(self, tex, x, y, w, h, vida, espejo=False):
+    def __init__(self, tex, x, y, w, h, vida, espejo=False, crece=0.0, angulo=0.0):
         self.tex = tex
         self.x, self.y, self.w, self.h = x, y, w, h
         self.t = 0.0
         self.vida = vida
         self.espejo = espejo
+        self.crece = crece
+        self.angulo = angulo
 
 
 class Efectos:
@@ -100,9 +164,14 @@ class Efectos:
         self.proyectiles = []
         self.marcas = []
         self.rnd = random.Random(5)
+        self.sangre = True       # Opciones → «Sangre en las bajas»
+        self.t_charcos = [lz.textura(("efx", "charco", k), lambda k=k: _charco(k)) for k in range(4)]
+        self.t_salpicaduras = [lz.textura(("efx", "salpicadura", k), lambda k=k: _salpicadura(k)) for k in range(3)]
         self.t_bocanada = lz.textura(("efx", "bocanada"), _bocanada)
         self.t_chispa = lz.textura(("efx", "chispa"), _chispa)
         self.t_cruz = lz.textura(("efx", "cruz"), _cruz)
+        from .iconos import signo_peso
+        self.t_peso = lz.textura(("efx", "peso"), signo_peso)
         self.t_crater = lz.textura(("efx", "crater"), _crater)
         self.viento = (6.0, -2.0)
 
@@ -176,6 +245,12 @@ class Efectos:
         self._agregar(Particula(TIPO_CRUZ, x + r.uniform(-6, 6), y - r.uniform(6, 16), 0.9, 7, (90, 230, 90),
                                 vy=-14))
 
+    def venta(self, x, y):
+        """Signo $ dorado que sube del cuartel general al vender el salitre."""
+        r = self.rnd
+        self._agregar(Particula(TIPO_DINERO, x + r.uniform(-14, 14), y - r.uniform(0, 8), 1.3, 18, DORADO,
+                                vy=-22))
+
     def polvo_obra(self, x, y):
         r = self.rnd
         self._agregar(Particula(TIPO_POLVO, x + r.uniform(-10, 10), y + r.uniform(-4, 4), 0.8, 6,
@@ -185,6 +260,55 @@ class Efectos:
         r = self.rnd
         self._agregar(Particula(TIPO_POLVO, x + r.uniform(-4, 4), y + r.uniform(-1, 2), 0.7, 4,
                                 (206, 182, 140), vy=-3, crece=7, alpha=90))
+
+    # -- sangre ----------------------------------------------------------------
+    def _marca(self, m):
+        self.marcas.append(m)
+        if len(self.marcas) > 400:
+            del self.marcas[:60]
+
+    def charco(self, x, y, tam=1.0, vida=30.0):
+        """Charco que se agranda debajo de un caído o de un herido."""
+        if not self.sangre:
+            return
+        t = self.t_charcos[self.rnd.randrange(len(self.t_charcos))]
+        w, h = 30 * tam, 15 * tam
+        self._marca(Marca(t, x - w / 2, y - h / 2, w, h, vida, self.rnd.random() < 0.5, crece=2.5))
+
+    def herida(self, x, y, fuerza=1.0):
+        """Salpicadura de sangre al recibir el balazo o el sablazo que lo derriba."""
+        if not self.sangre:
+            return
+        r = self.rnd
+        for _ in range(int(7 * fuerza)):
+            a = r.uniform(0, 2 * math.pi)
+            v = r.uniform(12, 40) * fuerza
+            self._agregar(Particula(TIPO_GOTA, x, y, r.uniform(0.4, 0.8), r.uniform(1.4, 2.4), SANGRE_VIVA,
+                                    vx=math.cos(a) * v, vy=math.sin(a) * v * 0.5, vz=r.uniform(30, 80), z=10))
+
+    def despedazar(self, x, y, colores):
+        """Muerte por artillería, dinamita o mina: el cuerpo vuela en pedazos."""
+        if not self.sangre:
+            return
+        r = self.rnd
+        texs = [self.lz.textura(("efx", "trozo", f, c), lambda f=f, c=c: _trozo(f, c))
+                for f in range(3) for c in colores[:2]]
+        for k in range(9):
+            a = r.uniform(0, 2 * math.pi)
+            v = r.uniform(30, 90)
+            self._agregar(Particula(TIPO_TROZO, x, y, 3.0, 8, (255, 255, 255),
+                                    vx=math.cos(a) * v, vy=math.sin(a) * v * 0.55, vz=r.uniform(80, 170), z=8,
+                                    tex=texs[k % len(texs)], giro=r.uniform(-400, 400)))
+        for _ in range(14):
+            a = r.uniform(0, 2 * math.pi)
+            v = r.uniform(20, 70)
+            self._agregar(Particula(TIPO_GOTA, x, y, r.uniform(0.5, 0.9), r.uniform(1.6, 2.8), SANGRE_VIVA,
+                                    vx=math.cos(a) * v, vy=math.sin(a) * v * 0.5, vz=r.uniform(40, 120), z=8))
+        for _ in range(5):
+            self._agregar(Particula(TIPO_HUMO, x + r.uniform(-6, 6), y - r.uniform(4, 12), r.uniform(0.6, 1.0),
+                                    r.uniform(8, 13), (150, 26, 24), vy=-6, crece=14, alpha=150))
+        t = self.t_salpicaduras[r.randrange(len(self.t_salpicaduras))]
+        self._marca(Marca(t, x - 24, y - 12, 48, 24, 45.0, r.random() < 0.5))
 
     def lanzar(self, x0, y0, x1, y1, dur, tipo):
         self.proyectiles.append(Proyectil(x0, y0, x1, y1, dur, tipo))
@@ -205,14 +329,23 @@ class Efectos:
             if p.tipo == TIPO_HUMO:
                 p.vx *= 0.96
                 p.vy *= 0.96
-            if p.tipo == TIPO_CHISPA:
+            if p.tipo in (TIPO_CHISPA, TIPO_GOTA, TIPO_TROZO):
                 p.z += p.vz * dt
                 p.vz -= 260 * dt
                 if p.z < 0:
                     p.z = 0
                     p.vz = 0
-                    p.vx *= 0.5
-                    p.vy *= 0.5
+                    p.vx *= 0.5 if p.tipo == TIPO_CHISPA else 0.0
+                    p.vy *= 0.5 if p.tipo == TIPO_CHISPA else 0.0
+                    if p.tipo == TIPO_GOTA and p.t < p.vida - 0.05:
+                        # la gota cae y queda como mancha
+                        t = self.t_salpicaduras[int(p.x + p.y) % len(self.t_salpicaduras)]
+                        self._marca(Marca(t, p.x - 4, p.y - 2, 8, 4, 30.0))
+                        p.t = p.vida
+                    elif p.tipo == TIPO_TROZO:
+                        # el pedazo queda en el suelo
+                        self._marca(Marca(p.tex, p.x - 5, p.y - 4, 10, 8, 40.0, angulo=(p.t * p.giro) % 360))
+                        p.t = p.vida
             p.tam = max(0.5, p.tam + p.crece * dt)
             vivos.append(p)
         self.p = vivos
@@ -233,7 +366,13 @@ class Efectos:
             if not cam.visible_rect(sx, sy, m.w * z, m.h * z):
                 continue
             a = 255 if m.t < m.vida - 5 else int(255 * (m.vida - m.t) / 5)
-            lz.dibujar(m.tex, sx, sy, m.w * z, m.h * z, alpha=max(0, a), espejo=m.espejo)
+            if m.crece and m.t < m.crece:
+                f = 0.25 + 0.75 * m.t / m.crece
+                w, h = m.w * f, m.h * f
+                lz.dibujar(m.tex, sx + (m.w - w) * z / 2, sy + (m.h - h) * z / 2, w * z, h * z,
+                           alpha=max(0, a), espejo=m.espejo)
+                continue
+            lz.dibujar(m.tex, sx, sy, m.w * z, m.h * z, alpha=max(0, a), espejo=m.espejo, angulo=m.angulo)
 
     def dibujar(self, lz, cam):
         z = cam.zoom
@@ -265,5 +404,16 @@ class Efectos:
                 lz.dibujar(self.t_chispa, sx - tam, sy - tam, tam * 2, tam * 2, alpha=a, color=p.color)
             elif p.tipo == TIPO_CRUZ:
                 lz.dibujar(self.t_cruz, sx - tam / 2, sy - tam / 2, tam, tam, alpha=int(255 * (1 - f)), color=p.color)
+            elif p.tipo == TIPO_DINERO:
+                t = self.t_peso
+                alto = tam * 1.1
+                ancho = alto * t.width / t.height
+                a = int(255 * min(1.0, (1 - f) * 2.5))
+                lz.dibujar(t, sx - ancho / 2, sy - alto / 2, ancho, alto, alpha=a, color=p.color)
             elif p.tipo == TIPO_CHISPA:
                 lz.rect((sx, sy, max(1, int(2 * z)), max(1, int(2 * z))), p.color, int(255 * (1 - f)))
+            elif p.tipo == TIPO_GOTA:
+                lado = max(1.0, p.tam * z)
+                lz.rect((sx, sy, lado, lado), p.color, 230)
+            elif p.tipo == TIPO_TROZO:
+                lz.dibujar(p.tex, sx - 5 * z, sy - 4 * z, 10 * z, 8 * z, angulo=(p.t * p.giro) % 360)

@@ -27,7 +27,7 @@
   "fallo_por_altura": 30,
   "_fallo_por_altura": "Probabilidad (%) de errar el tiro desde un nivel más bajo hacia un blanco en un nivel más alto (ventaja de la altura, como en el Morro de Arica).",
   "poblacion_maxima": 200,
-  "recursos_iniciales": {"salitre": 100, "agua": 0},
+  "recursos_iniciales": {"dinero": 100, "agua": 0},
   "trabajadores_iniciales": 6,
   "carga_salitre": 5,
   "tiempo_extraccion_salitre": 2.5,
@@ -35,5 +35,7 @@
   "tiempo_extraccion_agua": 1.5,
   "carga_agua_agotada": 1,
   "minas_maximas": 15,
+  "segundos_herido": 40,
+  "_segundos_herido": "Con un hospital de campaña, el soldado de infantería que cae por fuego de fusil, metralla o sable queda herido en el suelo este tiempo; si los camilleros no lo recogen, muere. Quien cae por artillería, dinamita o minas muere en el acto.",
   "distancia_minima_recursos_cuartel": 3
 }

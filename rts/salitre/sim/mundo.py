@@ -22,7 +22,7 @@ from . import edificios as logica_edificios
 from . import vision as mod_vision
 from .azar import Azar
 from .constantes import AGUA, MEDIA, TICKS, TIERRA, TILE
-from .entidades import RECOLECTAR, Edificio, Orden, Recurso, Unidad
+from .entidades import RECOLECTAR, Edificio, Herido, Orden, Recurso, Unidad
 from .espacial import Rejilla, RejillaEdificios
 from .jugador import Jugador
 from .mapa import OCUPA_EDIFICIO, OCUPA_RECURSO, Mapa
@@ -49,6 +49,7 @@ class Mundo:
         self.edificios = {}
         self.recursos = {}
         self.minas = {}
+        self.heridos = {}
         self.proyectiles = []
         self.programados = []
         self._seq = 0
@@ -305,7 +306,7 @@ class Mundo:
             faltan = [self.cat.nombre(j.faccion.id, r) for r in tipo.requisitos if not j.tiene(r)]
             return "Requiere: " + ", ".join(faltan)
         if not j.puede_pagar(j.stats[tipo.id].costo):
-            return "Faltan recursos"
+            return j.falta(j.stats[tipo.id].costo)
         return self.validar_lugar(j.idx, tipo, tx, ty)
 
     def validar_lugar(self, p, tipo, tx, ty):
@@ -510,8 +511,11 @@ class Mundo:
             barco.cargamento.remove(uid)
         self.ev_pos(barco.x, barco.y, "desembarca", barco.id)
 
-    def vaciar_guarnicion(self, b):
+    def vaciar_guarnicion(self, b, solo=None):
+        """Saca a la guarnición (o solo a la unidad 'solo') junto al edificio."""
         for uid in list(b.guarnicion):
+            if solo is not None and uid != solo:
+                continue
             u = self.ent.get(uid)
             b.guarnicion.remove(uid)
             if u is None or not u.vivo:
@@ -542,7 +546,50 @@ class Mundo:
                 a = self.ent.get(atacante_id)
                 if a is not None and a.vivo and (a.es_unidad or a.es_edificio):
                     a.abatidos += 1
+            if e.es_unidad and e.paciente:
+                self._soltar_paciente(e, explosion)
+            if e.es_unidad and not explosion and self.puede_herirse(e):
+                # queda herido en el suelo: si los camilleros llegan a tiempo, vuelve a filas
+                h = self.crear_herido(e.tipo, e.dueno, e.x, e.y, self.tick + self.cat.ticks_herido, e.dir)
+                self.ev_pos(e.x, e.y, "herido", e.id, h.id, e.tipo.idx, e.dueno, e.x >> 4, e.y >> 4)
+                return
             self.ev_pos(e.x, e.y, "mue", e.id, e.tipo.idx, e.dueno, e.x >> 4, e.y >> 4, 1 if explosion else 0)
+
+    def puede_herirse(self, u):
+        """Con un hospital de campaña, la infantería que cae por fuego de fusil, metralla o sable
+        queda herida (los héroes, los que van embarcados y los propios camilleros mueren)."""
+        t = u.tipo
+        if t.clase != "infanteria" or not t.biologica or t.heroe or t.autonomo or u.capa != TIERRA or u.dentro:
+            return False
+        j = self.jugadores[u.dueno]
+        return j.vivo and j.tiene("hospital_campana")
+
+    def crear_herido(self, tipo, dueno, x, y, hasta, direccion=2):
+        h = Herido(self._nuevo_id(), tipo, dueno, x, y, hasta, direccion)
+        self.ent[h.id] = h
+        self.heridos[h.id] = h
+        return h
+
+    def _soltar_paciente(self, camilla, explosion):
+        """Cayeron los camilleros: el herido que llevaban queda en el suelo (o muere con ellos)."""
+        tipo = self.cat.unidades[camilla.paciente]
+        camilla.paciente = None
+        if explosion:
+            self.ev_pos(camilla.x, camilla.y, "mue", camilla.id, tipo.idx, camilla.dueno,
+                        camilla.x >> 4, camilla.y >> 4, 1)
+            return
+        h = self.crear_herido(tipo, camilla.dueno, camilla.x + TILE // 4, camilla.y,
+                              self.tick + self.cat.ticks_herido // 2)
+        self.ev_pos(h.x, h.y, "herido", camilla.id, h.id, tipo.idx, camilla.dueno, h.x >> 4, h.y >> 4)
+
+    def _heridos(self):
+        """Los heridos que nadie recogió a tiempo mueren."""
+        t = self.tick
+        for h in list(self.heridos.values()):
+            if h.vivo and h.hasta <= t:
+                h.vivo = False
+                self.muertos.append(h)
+                self.ev_pos(h.x, h.y, "mue", h.id, h.tipo.idx, h.dueno, h.x >> 4, h.y >> 4, 0)
 
     def agotar(self, r):
         if r.rtipo == "salitre" and r.vivo:
@@ -569,6 +616,8 @@ class Mundo:
                     del self.minas[e.id]
                     if e.dueno >= 0:
                         self.jugadores[e.dueno].minas -= 1
+                elif e.es_herido:
+                    del self.heridos[e.id]
 
     def _quitar_unidad(self, u):
         del self.unidades[u.id]
@@ -714,6 +763,8 @@ class Mundo:
             self._minas()
         if t % 8 == 0:
             self._auras()
+        if self.heridos and t % 4 == 0:
+            self._heridos()
         self._limpiar()
         if t % 4 == 0:
             self._actualizar_vision()
@@ -825,6 +876,10 @@ class Mundo:
                 for e in list(self.unidades.values()) + list(self.edificios.values()):
                     if e.dueno == j.idx and e.vivo:
                         self.matar(e, 0, -1)
+                for h in list(self.heridos.values()):
+                    if h.dueno == j.idx and h.vivo:
+                        h.vivo = False
+                        self.muertos.append(h)
         equipos_vivos = {j.equipo for j in self.jugadores if j.vivo}
         if len(self.jugadores) > 1 and len(equipos_vivos) <= 1 or not equipos_vivos:
             self.terminado = True
@@ -838,7 +893,7 @@ class Mundo:
         for e in self.ent.values():
             h = ((h ^ (e.id * 2654435761 + e.x * 31 + e.y * 17 + e.vida)) * 1099511628211) & mask
         for j in self.jugadores:
-            h = ((h ^ (j.salitre * 7 + j.agua * 13 + j.pob_usada)) * 1099511628211) & mask
+            h = ((h ^ (j.dinero * 7 + j.agua * 13 + j.pob_usada)) * 1099511628211) & mask
         return h
 
     def distancia(self, a, b):

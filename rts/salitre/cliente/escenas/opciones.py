@@ -51,8 +51,18 @@ class Opciones(Escena):
                              lambda v: self._fijar("desplazar_con_borde", v))
         self.barras = Casilla((x2, y + 248, 340, 30), "Barras de vida siempre visibles", cfg["barras_siempre"],
                               lambda v: self._fijar("barras_siempre", v))
+        self.sangre = Casilla((x2, y + 286, 340, 30), "Sangre en las bajas", cfg["sangre"],
+                              lambda v: self._fijar("sangre", v))
+        self.sangre.tooltip = ("Sangre en las bajas",
+                               "Charcos y salpicaduras al caer; con artillería, dinamita o minas el cuerpo vuela en "
+                               "pedazos. Desactívelo para una batalla sin sangre.")
+        self.voces = Casilla((x2, y + 324, 340, 30), "Voces de las tropas", cfg["voces"],
+                             lambda v: self._fijar("voces", v))
+        self.voces.tooltip = ("Voces de las tropas",
+                              "Las unidades hablan al formarse, al elegirlas y al recibir órdenes; sin voces se oyen "
+                              "toques de corneta.")
         self.widgets += [self.nombre, self.completa, self.vsync, self.fps, self.encerrar, self.volumen, self.vel_cam,
-                         self.borde, self.barras, self.tamano]
+                         self.borde, self.barras, self.sangre, self.voces, self.tamano]
         self.widgets.append(Boton((self.p.x + 40, self.p.bottom - 64, 200, 44), "Restablecer", self.restablecer,
                                   "madera"))
         self.widgets.append(Boton((self.p.right - 260, self.p.bottom - 64, 220, 44), "Guardar y volver",
