@@ -22,19 +22,29 @@ decisiones.
 
 | | *StarCraft* | *Salitre y Pólvora* |
 |---|---|---|
-| Recurso principal | Minerales | **Salitre** de las calicheras (5 por viaje, 2,5 s) |
+| Recurso principal | Minerales | **Salitre** de las calicheras (5 por viaje, 2,5 s), que se **vende** en el Cuartel General |
+| Moneda | — | **Dinero**: el salitre entregado se cambia 1 × 1 en el acto (sale un $ dorado sobre el cuartel) |
 | Recurso secundario | Gas (refinería sobre el géiser) | **Agua** (molino sobre el pozo, 6 por viaje, 1,5 s) |
-| Trabajador | SCV, sonda, zángano | **Trabajador chino** (50 de salitre, 1 de población) |
+| Trabajador | SCV, sonda, zángano | **Trabajador chino** ($ 50, 1 de población) |
 | Suministro | Depósito, pilón, superamo | **Depósito de Intendencia** (+10) y Cuartel General (+10), máximo 200 |
 
-- Se empieza con **6 trabajadores** y 100 de salitre; los trabajadores salen solos
-  a recolectar.
+- Todos los costos son en **dinero** (y agua): el salitre vale por lo que se paga
+  por él, como en la economía real del nitrato, que financió la guerra. El parte
+  de guerra cuenta el dinero gastado.
+- **Llegada del Cuartel General**: la partida empieza con el campo vacío. A los
+  diez segundos el cuartel llega en **tren**, por un ramal del ferrocarril
+  salitrero, en los mapas que tienen vía (Pampa del Tamarugal, Alto de la Alianza
+  y Cuatro Naciones), o en **carreta** por el camino en los mapas campales. Se
+  despliega con **6 trabajadores** y $ 100; los trabajadores salen solos a
+  recolectar. El convoy ve a su alrededor mientras llega y luego se retira.
 - El **agua** se pide desde el segundo nivel tecnológico: caballería, artillería,
   héroes e investigaciones. Así, como el gas, marca el paso de la tecnología y
   obliga a defender los pozos. Un pozo agotado sigue dando 1 de agua por viaje.
 - Los **costos en población** siguen el pedido del diseño: trabajador, infante y
   cantinera 1; ingeniero 2; caballería 5; artillería 10. Un ejército de 200 puede
   tener, por ejemplo, 40 trabajadores, 60 infantes, 8 jinetes y 6 piezas.
+- Cada pozo muestra el agua que le queda, para planear a tiempo el molino del
+  pozo siguiente.
 
 ## Progresión tecnológica
 
@@ -71,6 +81,40 @@ TABLAS.md):
 Así se forman contrapesos: la Gatling frena a la infantería, la caballería
 alcanza a la artillería que no está protegida, la artillería rompe trincheras y
 reductos, y los ingenieros abren brechas.
+
+### Guarniciones
+
+La infantería (con sus unidades de apoyo y los héroes a pie) puede guarecerse en
+la **trinchera** (4 plazas, +1 de alcance), las **barracas** (6, +2) y el
+**Cuartel General** (8, +2). En la trinchera se ve a cada soldado asomado sobre
+los sacos; en las barracas y el cuartel los tiradores suben al **techo** y
+disparan desde arriba, con la ventaja de altura, como una pequeña fortaleza. La
+artillería y la dinamita son la respuesta: rompen la obra y la guarnición cae
+con ella.
+
+### Heridos y camilleros
+
+Con un **hospital de campaña**, el infante que cae por fusil, metralla o sable
+queda herido 40 segundos en el suelo. El hospital manda solos **dos equipos de
+camilleros** (no combaten ni ocupan población) a buscar a los heridos dentro de
+30 casillas; en el hospital se curan en 20 segundos y vuelven a filas con la
+mitad de la vida. Quien cae por artillería, dinamita o minas muere en el acto (y
+el cuerpo se despedaza). Así el hospital deja de ser solo el requisito de la
+cantinera: recupera tropa después de cada choque, como las ambulancias de Tacna,
+Chorrillos y Miraflores.
+
+### La cantinera
+
+La cantinera solo actúa sobre la tropa propia: si va seleccionada junto con la
+infantería, una orden de ataque la hace acompañar a la columna y curar, nunca
+avanzar sola contra el enemigo.
+
+### Voces
+
+Cada unidad se presenta con su voz al formarse, responde al ser seleccionada y
+al recibir una orden, y un ayudante da los avisos (obra terminada, falta de
+dinero o agua, ataques, victoria). Las voces no se pisan: una alarma corta a una
+respuesta y los avisos esperan su turno. Sin voces vuelven los toques de corneta.
 
 ## Terreno y visión
 

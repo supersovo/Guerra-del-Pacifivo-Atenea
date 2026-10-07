@@ -86,11 +86,18 @@ registros) se guardan en `%APPDATA%\GuerraDelPacifico` en Windows, en
 
 | Recurso | De dónde sale | Para qué |
 |---------|---------------|----------|
-| **Salitre** (mineral principal) | Calicheras: los trabajadores extraen 5 por viaje | Todo |
+| **Salitre** (mineral principal) | Calicheras: los trabajadores extraen 5 por viaje | Se **vende en el Cuartel General** al entregarlo, 1 × 1 por dinero: sobre el techo sale un **$ dorado** |
+| **Dinero** | La venta del salitre (se empieza con $ 100) | Formar tropas, construir e investigar: todo cuesta dinero |
 | **Agua** (como el gas de *StarCraft*) | Pozos: hay que levantar un **molino de agua** encima; 6 por viaje | Caballería, artillería, héroes, investigaciones |
 
-- Los **trabajadores chinos** recolectan y construyen. Al empezar, los seis
-  primeros salen solos a las calicheras más cercanas.
+- **El Cuartel General llega a la campaña**: al empezar el campo está vacío y a
+  los diez segundos el cuartel llega **en tren**, por un ramal del ferrocarril
+  salitrero (Pampa del Tamarugal, Alto de la Alianza y Cuatro Naciones), o **en
+  carreta** por el camino en los mapas campales. Se despliega con los seis
+  primeros **trabajadores chinos**, que salen solos a las calicheras; el convoy
+  se vuelve por donde vino.
+- Los trabajadores recolectan y construyen. Cada **pozo** muestra con una barra
+  y una cifra el agua que le queda.
 - La **población** limita el ejército: el Cuartel General y cada **Depósito de
   Intendencia** dan 10 (el Fortín argentino, 5), hasta un máximo de **200**.
 - Costo en población: trabajador, infante y cantinera **1**; ingeniero **2**;
@@ -131,6 +138,48 @@ Las cifras completas de cada unidad, edificio, investigación y héroe están en
 - **Héroes**: cada nación tiene de cuatro a cinco, todos personajes reales. Su
   **aura de mando** mejora el daño, la armadura, la velocidad o la curación de la
   tropa cercana, y cada uno tiene una habilidad (tecla **Q**).
+- **Uniformes por arma**: el infante, el zapador (quepí azul, mandil de cuero y
+  zapapico), el dinamitero (blusa de brin y canana de cartuchos), el torpedista
+  (de marinero), el granadero (morrión y caballo morcillo) y el cazador (dolmán
+  con alamares y caballo alazán) se distinguen de un vistazo, con los colores de
+  cada nación. Detalle en [docs/DISENO.md](docs/DISENO.md).
+- La **cantinera** solo atiende a la tropa propia: aunque se le ordene atacar, no
+  va hacia el enemigo.
+
+### Guarniciones
+
+Con la infantería seleccionada, clic derecho sobre una **trinchera**, unas
+**barracas** o el **Cuartel General** propios para guarecerla:
+
+| Obra | Plazas | Alcance extra | Cómo se ve |
+|------|--------|---------------|------------|
+| Trinchera | 4 | +1 | Cabezas, hombros y fusiles asoman sobre los sacos |
+| Barracas | 6 | +2 | Los tiradores **suben al techo** y disparan desde arriba, como una pequeña fortaleza |
+| Cuartel General | 8 | +2 | Ídem, desde el techo del cuartel |
+
+La tarjeta del edificio muestra el retrato de cada soldado guarecido (clic sobre
+uno para que baje) y el botón «Salir de la trinchera» o «Bajar del techo».
+
+### Heridos, camilleros y sangre
+
+- Con un **hospital de campaña**, el infante que cae por fusil, metralla o sable
+  queda **herido** en el suelo 40 segundos. El hospital manda **dos equipos de
+  camilleros** al frente: lo recogen, lo curan en 20 segundos y vuelve a filas
+  con media vida (sobre el hospital se ve la cruz verde). Si nadie lo recoge,
+  muere. Los equipos caídos se reponen a los 30 segundos.
+- Las bajas dejan **sangre** en el terreno; las causadas por **artillería,
+  dinamita o minas despedazan** el cuerpo. Se puede desactivar en Opciones
+  («Sangre en las bajas»).
+
+### Voces de la tropa
+
+Las unidades **hablan** en lugar de los toques de corneta: se presentan al
+formarse («¡Granadero a caballo, listo para la carga!»), responden al
+seleccionarlas y al recibir una orden («¡En marcha!», «¡Calen bayoneta!», «¡A la
+carga!»), y el ayudante avisa de las obras terminadas, la falta de dinero o de
+agua y los ataques. Los héroes dicen sus palabras más conocidas (Bolognesi,
+Prat, Abaroa…). Se desactivan en Opciones («Voces de las tropas») y entonces
+vuelven los toques de corneta.
 
 ### El terreno importa
 
@@ -249,7 +298,12 @@ python.org sirve para Intel y Apple Silicon).
 - Tipografías **IM Fell English SC** (Igino Marini) y **Alegreya Sans**
   (Huerta Tipográfica), con licencia SIL Open Font License (textos en
   `recursos/fuentes/`).
-- Sprites, edificios, terreno, efectos, ícono y sonidos están generados por el
-  propio programa.
+- Sprites, edificios, terreno, efectos, ícono y efectos de sonido están
+  generados por el propio programa.
+- **Voces** sintetizadas sin conexión con el modelo abierto **Kokoro-82M**
+  (licencia Apache 2.0) y [kokoro-onnx](https://github.com/thewh1teagle/kokoro-onnx)
+  (MIT), voces en español `em_alex`, `em_santa` y `ef_dora`. Se regeneran con
+  `herramientas/generar_voces.py`; el texto de cada frase está en
+  `recursos/sonidos/voces/voces.json`.
 - Homenaje a los combatientes de los cuatro países. El juego representa la
   guerra con respeto por todos los bandos y no toma partido.

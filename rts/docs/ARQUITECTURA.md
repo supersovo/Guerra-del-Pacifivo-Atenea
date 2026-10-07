@@ -85,7 +85,13 @@ montoneros quietos, minas) solo se ven con un **detector** cerca.
 - **Instantáneas**: cada 2 ticks (8 por segundo) el servidor envía a cada jugador
   solo lo que su bando ve y solo lo que cambió (entidades nuevas o modificadas y
   bajas). Cada entidad viaja como `[id, tipo, dueño, x, y, vida, dirección,
-  banderas, extra]`. Los espectadores y las repeticiones reciben todo.
+  banderas, extra]`. Los espectadores y las repeticiones reciben todo. Los
+  tipos negativos no son unidades del catálogo: −1 calichera, −2 pozo, −3 mina,
+  −4 herido tendido (con su tipo de unidad en `extra`) y −5 el **convoy** (tren o
+  carreta) que trae el Cuartel General al comenzar, con su recorrido en `extra`
+  para dibujar la locomotora y los vagones sobre la vía. En `extra` también
+  viajan las guarniciones (`g`: tipos de los soldados guarecidos; `gf`: los que
+  acaban de disparar desde su puesto).
 - **Cliente**: el socket es no bloqueante y la conexión inicial va en un hilo, así
   la pantalla nunca se congela; las posiciones se **interpolan** entre
   instantáneas para que el movimiento se vea suave a cualquier cantidad de cuadros
@@ -153,10 +159,17 @@ montoneros quietos, minas) solo se ven con un **detector** cerca.
   zapadores, dinamiteros, torpedistas, granaderos y cazadores) y el color del jugador; se pueden
   reemplazar por imágenes propias en `recursos/graficos/`.
 - **Efectos**: humo de pólvora negra, fogonazos, explosiones, cráteres, polvo de
-  obra y de marcha, curaciones.
-- **Sonido sintetizado** (fusilería, cañones, Gatling, explosiones, toques de
-  corneta) con volumen y paneo según la posición en el mapa; se puede reemplazar
-  con archivos en `recursos/sonidos/`.
+  obra y de marcha, curaciones, el $ dorado de la venta del salitre, sangre y
+  cuerpos despedazados (con la opción «Sangre en las bajas»).
+- **Sonido sintetizado** (fusilería, cañones, Gatling, explosiones, silbato del
+  tren, toques de corneta) con volumen y paneo según la posición en el mapa; se
+  puede reemplazar con archivos en `recursos/sonidos/`.
+- **Voces de la tropa** (`recursos/sonidos/voces/<clave>_<n>.ogg`): sintetizadas
+  sin conexión con Kokoro-82M por `herramientas/generar_voces.py` y cargadas la
+  primera vez que se dicen. Suenan por un canal reservado y con prioridades
+  (selección < orden < aviso < alarma): una más importante corta a la que suena y
+  los avisos esperan su turno. Si faltan los archivos o están desactivadas,
+  suenan los toques de corneta.
 - **Escenas**: portada, escaramuza, multijugador (conexión, cuartel general, sala
   de espera), carga, batalla, parte de guerra, repeticiones, archivo histórico y
   opciones.

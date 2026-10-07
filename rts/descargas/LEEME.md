@@ -14,7 +14,7 @@ evitarlo, descárguelo con PowerShell (tecla Windows → escriba *PowerShell* �
 Intro) y pegue:
 
 ```powershell
-curl.exe -L -o "$env:USERPROFILE\Downloads\GuerraDelPacifico-0.9.1-Instalador.exe" https://raw.githubusercontent.com/supersovo/Guerra-del-Pacifivo-Atenea/refs/heads/claude/friendly-keller-8ieqfo/rts/descargas/GuerraDelPacifico-0.9.1-Instalador.exe
+curl.exe -L -o "$env:USERPROFILE\Downloads\GuerraDelPacifico-0.10.0-Instalador.exe" https://raw.githubusercontent.com/supersovo/Guerra-del-Pacifivo-Atenea/refs/heads/claude/friendly-keller-8ieqfo/rts/descargas/GuerraDelPacifico-0.10.0-Instalador.exe
 ```
 
 El instalador queda en la carpeta *Descargas*. Si la rama ya se fusionó, cambie
@@ -34,8 +34,8 @@ Sirve para Mac con procesador Intel o Apple Silicon (M1 en adelante), con macOS
 ⌘ + espacio y escriba *Terminal*) y pegue:
 
 ```sh
-curl -L -o ~/Downloads/GuerraDelPacifico-0.9.1-macOS.dmg https://raw.githubusercontent.com/supersovo/Guerra-del-Pacifivo-Atenea/refs/heads/claude/friendly-keller-8ieqfo/rts/descargas/GuerraDelPacifico-0.9.1-macOS.dmg
-open ~/Downloads/GuerraDelPacifico-0.9.1-macOS.dmg
+curl -L -o ~/Downloads/GuerraDelPacifico-0.10.0-macOS.dmg https://raw.githubusercontent.com/supersovo/Guerra-del-Pacifivo-Atenea/refs/heads/claude/friendly-keller-8ieqfo/rts/descargas/GuerraDelPacifico-0.10.0-macOS.dmg
+open ~/Downloads/GuerraDelPacifico-0.10.0-macOS.dmg
 ```
 
 Se abre la imagen de disco: arrastre *Guerra del Pacífico* sobre *Aplicaciones*
@@ -62,6 +62,28 @@ encuentra las partidas de los compañeros y ellos pueden entrar a la suya.
 En Mac, ⌘ (Cmd) sirve igual que Ctrl. El servidor dedicado viene dentro de la
 aplicación y se usa desde la Terminal:
 `"/Applications/Guerra del Pacífico.app/Contents/MacOS/ServidorSalitre" --help`.
+
+## Novedades de la 0.10.0
+
+- **Dinero**: el salitre se vende en el Cuartel General, 1 × 1, al entregarlo
+  (sale un $ dorado sobre el techo); con el dinero se forman las tropas, se
+  construye y se investiga.
+- **El Cuartel General llega a la campaña** a los diez segundos: en tren por un
+  ramal del ferrocarril (Pampa del Tamarugal, Alto de la Alianza, Cuatro
+  Naciones) o en carreta en los mapas campales.
+- **Guarniciones**: la trinchera muestra a sus soldados asomados; las barracas y
+  el Cuartel General también se guarnecen y sus tiradores disparan desde el techo.
+- **Heridos y camilleros**: el hospital de campaña manda camilleros a recoger a
+  los heridos, que se curan y vuelven a filas.
+- **Sangre** en las bajas y cuerpos despedazados por la artillería y los
+  explosivos (se desactiva en *Opciones*).
+- **Uniformes propios de cada arma**: infantes, zapadores, dinamiteros,
+  torpedistas, granaderos y cazadores se distinguen de un vistazo.
+- **Voces de la tropa**: las unidades hablan al formarse, al seleccionarlas y al
+  recibir órdenes, y el ayudante da los avisos (se desactivan en *Opciones* y
+  vuelven los toques de corneta).
+- Cada pozo muestra el agua que le queda, y la cantinera ya no avanza sola contra
+  el enemigo cuando se ordena atacar.
 
 ## Novedades de la 0.9.1
 

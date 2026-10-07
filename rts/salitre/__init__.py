@@ -9,6 +9,6 @@ Paquetes:
     cliente    frontend con pygame: menús, sala de espera y campo de batalla
 """
 
-VERSION = "0.9.1"
+VERSION = "0.10.0"
 NOMBRE_JUEGO = "Guerra del Pacífico: Salitre y Pólvora"
 PROTOCOLO = 1
