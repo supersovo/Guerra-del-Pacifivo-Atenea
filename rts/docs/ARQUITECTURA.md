@@ -182,6 +182,11 @@ montoneros quietos, minas) solo se ven con un **detector** cerca.
   cambiar de programa con Alt + Tab.
 - **Texturas en caché**: sprites, edificios, iconos y textos se generan una vez y
   quedan en la memoria de video.
+- **Casas fuertes por capas**: las barracas y el cuartel tienen, además de su
+  textura, una capa «frente» (parapeto almenado y fachada con los vanos de las
+  ventanas recortados). La vista pinta la obra, después los tiradores en sus
+  puestos (`edificios.geometria_fortaleza`) y encima el frente: así asoman tras
+  las almenas y dentro de las ventanas sin recortes por soldado.
 - **Terreno** por bloques de 16×16 casillas: colores fundidos con un escalado
   suave alineado entre bloques, grano, detalles por casilla, acantilados con
   sombra, caminos y vías férreas.
@@ -194,7 +199,15 @@ montoneros quietos, minas) solo se ven con un **detector** cerca.
   cuerpos despedazados (con la opción «Sangre en las bajas»).
 - **Sonido sintetizado** (fusilería, cañones, Gatling, explosiones, silbato del
   tren, toques de corneta) con volumen y paneo según la posición en el mapa; se
-  puede reemplazar con archivos en `recursos/sonidos/`.
+  puede reemplazar con archivos en `recursos/sonidos/`. El mezclador se abre a
+  44,1 kHz antes de iniciar pygame (`Lienzo`) y los efectos, sintetizados a
+  22 050 Hz, se remuestrean a esa frecuencia.
+- **Música** (`recursos/sonidos/musica/*.ogg`, de `herramientas/generar_musica.py`)
+  con `pygame.mixer.music`: cada escena declara su pista (`Escena.musica`), y al
+  cambiar de escena la que suena se apaga con un fundido y entra la nueva.
+- **Volúmenes**: general, música, efectos y voces (`Sonido.fijar_volumen`); el de
+  cada sonido es el general por el de su clase. Los controla
+  `ui/controles_sonido.py`, en las Opciones y en el menú de la batalla.
 - **Voces de la tropa** (`recursos/sonidos/voces/<clave>_<n>.ogg`): sintetizadas
   sin conexión con Kokoro-82M por `herramientas/generar_voces.py` y cargadas la
   primera vez que se dicen. Suenan por un canal reservado y con prioridades

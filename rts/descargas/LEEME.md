@@ -14,7 +14,7 @@ evitarlo, descárguelo con PowerShell (tecla Windows → escriba *PowerShell* �
 Intro) y pegue:
 
 ```powershell
-curl.exe -L -o "$env:USERPROFILE\Downloads\GuerraDelPacifico-0.11.0-Instalador.exe" https://raw.githubusercontent.com/supersovo/Guerra-del-Pacifivo-Atenea/refs/heads/claude/friendly-keller-8ieqfo/rts/descargas/GuerraDelPacifico-0.11.0-Instalador.exe
+curl.exe -L -o "$env:USERPROFILE\Downloads\GuerraDelPacifico-0.11.1-Instalador.exe" https://raw.githubusercontent.com/supersovo/Guerra-del-Pacifivo-Atenea/refs/heads/claude/friendly-keller-8ieqfo/rts/descargas/GuerraDelPacifico-0.11.1-Instalador.exe
 ```
 
 El instalador queda en la carpeta *Descargas*. Si la rama ya se fusionó, cambie
@@ -34,8 +34,8 @@ Sirve para Mac con procesador Intel o Apple Silicon (M1 en adelante), con macOS
 ⌘ + espacio y escriba *Terminal*) y pegue:
 
 ```sh
-curl -L -o ~/Downloads/GuerraDelPacifico-0.11.0-macOS.dmg https://raw.githubusercontent.com/supersovo/Guerra-del-Pacifivo-Atenea/refs/heads/claude/friendly-keller-8ieqfo/rts/descargas/GuerraDelPacifico-0.11.0-macOS.dmg
-open ~/Downloads/GuerraDelPacifico-0.11.0-macOS.dmg
+curl -L -o ~/Downloads/GuerraDelPacifico-0.11.1-macOS.dmg https://raw.githubusercontent.com/supersovo/Guerra-del-Pacifivo-Atenea/refs/heads/claude/friendly-keller-8ieqfo/rts/descargas/GuerraDelPacifico-0.11.1-macOS.dmg
+open ~/Downloads/GuerraDelPacifico-0.11.1-macOS.dmg
 ```
 
 Se abre la imagen de disco: arrastre *Guerra del Pacífico* sobre *Aplicaciones*
@@ -62,6 +62,22 @@ encuentra las partidas de los compañeros y ellos pueden entrar a la suya.
 En Mac, ⌘ (Cmd) sirve igual que Ctrl. El servidor dedicado viene dentro de la
 aplicación y se usa desde la Terminal:
 `"/Applications/Guerra del Pacífico.app/Contents/MacOS/ServidorSalitre" --help`.
+
+## Novedades de la 0.11.1
+
+- **Música de banda militar**, compuesta para el juego: la *Marcha del Salitre*
+  en los menús y *Vivac en la pampa* durante la batalla.
+- **Control de volumen**: en *Opciones → Sonido*, volumen general, de la
+  música, de los efectos y de las voces, que se aplican al instante; en la
+  batalla, los mismos controles en el menú (**F10**).
+- Los efectos de sonido suenan con su tono y su duración reales (antes sonaban
+  acelerados y más agudos).
+- **Casas fuertes**: las barracas y el Cuartel General tienen azotea plana con
+  parapeto almenado, ventanas en la fachada y, el cuartel, un torreón con la
+  bandera. Los tiradores se cubren tras los merlones, salen a la tronera para
+  disparar y vuelven a cubrirse; en las ventanas se asoman con el fusil al hacer
+  fuego.
+- La 0.11.1 juega en red con la 0.11.0 (mismos datos y protocolo).
 
 ## Novedades de la 0.11.0
 

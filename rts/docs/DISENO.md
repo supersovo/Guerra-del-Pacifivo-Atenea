@@ -87,10 +87,14 @@ reductos, y los ingenieros abren brechas.
 La infantería (con sus unidades de apoyo y los héroes a pie) puede guarecerse en
 la **trinchera** (4 plazas, +1 de alcance), las **barracas** (6, +2) y el
 **Cuartel General** (8, +2). En la trinchera se ve a cada soldado asomado sobre
-los sacos; en las barracas y el cuartel los tiradores suben al **techo** y
-disparan desde arriba, con la ventaja de altura, como una pequeña fortaleza. La
-artillería y la dinamita son la respuesta: rompen la obra y la guarnición cae
-con ella.
+los sacos. Las barracas y el cuartel son **casas fuertes** de adobe, a la manera
+de las casonas en que se combatió en el pueblo de Tarapacá o en La Concepción:
+azotea plana con **parapeto almenado** y ventanas en la fachada. Los tiradores se reparten entre
+las almenas (y el torreón del cuartel) y las ventanas, y disparan con la
+ventaja de altura. Se mueven como tropa a cubierto: tras el merlón mientras
+recargan, a la tronera del lado del enemigo para disparar, y en las ventanas se
+asoman solo para hacer fuego. La artillería y la dinamita son la respuesta:
+rompen la obra y la guarnición cae con ella.
 
 ### Heridos y camilleros
 
@@ -108,6 +112,14 @@ Chorrillos y Miraflores.
 La cantinera solo actúa sobre la tropa propia: si va seleccionada junto con la
 infantería, una orden de ataque la hace acompañar a la columna y curar, nunca
 avanzar sola contra el enemigo.
+
+### Música
+
+Dos piezas originales para banda militar (cornetas, cornos, bombardino, tuba,
+lira, caja, bombo y platillos), compuestas para el juego y sintetizadas sin
+muestras grabadas: una marcha en si bemol para los menús y una pieza en re
+menor, sobria y con un toque de corneta a lo lejos, para la batalla, donde la
+música suena más baja que el fuego. Cada una es un bucle sin costura.
 
 ### Voces
 

@@ -154,11 +154,18 @@ Con la infantería seleccionada, clic derecho sobre una **trinchera**, unas
 | Obra | Plazas | Alcance extra | Cómo se ve |
 |------|--------|---------------|------------|
 | Trinchera | 4 | +1 | Cabezas, hombros y fusiles asoman sobre los sacos |
-| Barracas | 6 | +2 | Los tiradores **suben al techo** y disparan desde arriba, como una pequeña fortaleza |
-| Cuartel General | 8 | +2 | Ídem, desde el techo del cuartel |
+| Barracas | 6 | +2 | Casa fuerte de adobe: tiradores en la **azotea**, tras el **parapeto almenado**, y en las **ventanas** de la fachada |
+| Cuartel General | 8 | +2 | Ídem, en dos pisos y con un centinela en el **torreón** de la bandera |
+
+En las casas fuertes los tiradores se mueven como en un combate real: el de la
+azotea espera a cubierto tras un merlón, sale a la **tronera** del lado del
+enemigo, dispara y vuelve a cubrirse para recargar; el de la ventana se asoma
+al disparar (se ve el cañón del fusil) y se retira a la penumbra. Si el
+enemigo ataca por detrás, el fuego sale por las aspilleras del fondo. Desde la
+azotea se dispara con la ventaja de la altura.
 
 La tarjeta del edificio muestra el retrato de cada soldado guarecido (clic sobre
-uno para que baje) y el botón «Salir de la trinchera» o «Bajar del techo».
+uno para que baje) y el botón «Salir de la trinchera» o «Desalojar».
 
 ### Heridos, camilleros y sangre
 
@@ -232,6 +239,15 @@ Arica**, con Chile, el Perú o Bolivia (el rival cambia según la nación elegid
   núcleo de tropa fogueada.
 - La campaña se guarda sola en el perfil del equipo y se retoma donde quedó.
 
+### Música y sonido
+
+- **Música de banda militar**, original del juego: la *Marcha del Salitre* en
+  los menús y *Vivac en la pampa* (tambores, cornos y un toque de corneta a lo
+  lejos) durante la batalla, más baja para no tapar el fuego.
+- **Opciones → Sonido**: volumen **general**, de la **música**, de los
+  **efectos** (fusilería, cañones, obras) y de las **voces**; se aplican al
+  instante. En la batalla, el menú (**F10**) trae los mismos controles.
+
 ### Voces de la tropa
 
 Las unidades **hablan** en lugar de los toques de corneta: se presentan al
@@ -267,7 +283,7 @@ vuelven los toques de corneta.
 | Conversar / con el equipo | Intro / Mayúsculas + Intro |
 | Señal en el mapa para los aliados | Alt + G |
 | Barras de vida | Mantener Alt (o activarlas siempre en Opciones) |
-| Menú (rendirse, pausa, abandonar) | F10 o Esc |
+| Menú (volumen, rendirse, pausa, abandonar) | F10 o Esc |
 | Captura de pantalla / pantalla completa | F12 / Alt + Intro |
 
 En Mac, ⌘ (Cmd) sirve igual que Ctrl (⌘ + clic, ⌘ + 1…9 y ⌘V para pegar una
@@ -350,7 +366,8 @@ pyinstaller --noconfirm instalador/salitre.spec   # ejecutables en dist/
 
 Las voces de `recursos/sonidos/voces/` se generan sin conexión con
 `herramientas/generar_voces.py` (modelo Kokoro-82M; las instrucciones están al
-comienzo del archivo).
+comienzo del archivo) y la música de `recursos/sonidos/musica/` con
+`herramientas/generar_musica.py` (necesita `numpy` y `soundfile`).
 
 En Windows, `instalador\construir_windows.ps1` construye los ejecutables, los
 prueba y genera el instalador con Inno Setup. En un Mac, `sh
@@ -377,6 +394,9 @@ python.org sirve para Intel y Apple Silicon).
   `recursos/fuentes/`).
 - Sprites, edificios, terreno, efectos, ícono y efectos de sonido están
   generados por el propio programa.
+- **Música** original (*Marcha del Salitre* y *Vivac en la pampa*), compuesta y
+  sintetizada para el juego por `herramientas/generar_musica.py` (instrumentos
+  de banda por síntesis aditiva, sin muestras grabadas ni obras de terceros).
 - **Voces** sintetizadas sin conexión con el modelo abierto **Kokoro-82M**
   (licencia Apache 2.0) y [kokoro-onnx](https://github.com/thewh1teagle/kokoro-onnx)
   (MIT), voces en español `em_alex`, `em_santa` y `ef_dora`. Se regeneran con
