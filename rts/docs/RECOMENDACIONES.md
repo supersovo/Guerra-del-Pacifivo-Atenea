@@ -16,12 +16,18 @@ material de estudio de ciencias militares y seguir desarrollándolo.
    si todos usan Windows, o Tailscale o ZeroTier. Evita abrir puertos y cifra el
    tráfico.
 3. **Una sola versión.** Publique cada versión con una etiqueta (`v0.9.0`): el
-   flujo de GitHub Actions genera el instalador y la versión portátil, y todos
-   instalan la misma. El servidor rechaza a quien tenga datos distintos.
+   flujo de GitHub Actions genera el instalador de Windows, la aplicación para
+   macOS y las versiones portátiles, y todos instalan la misma. El servidor
+   rechaza a quien tenga datos distintos. Los jugadores de Windows, macOS y Linux
+   pueden jugar juntos: el servidor manda la partida y basta con tener la misma
+   versión.
 4. **Windows SmartScreen** advertirá que el instalador no está firmado («Windows
    protegió su PC» → *Más información* → *Ejecutar de todas formas*). Para
    evitarlo hace falta un certificado de firma de código, que tiene costo; para un
-   curso basta con explicar la advertencia.
+   curso basta con explicar la advertencia. En macOS, Gatekeeper pide lo mismo la
+   primera vez (*Ajustes del Sistema → Privacidad y seguridad → Abrir
+   igualmente*); bajar el `.dmg` con la Terminal lo evita
+   ([descargas/LEEME.md](../descargas/LEEME.md)).
 5. **Claves exclusivas para el juego**: la conexión del juego no va cifrada. Si el
    servidor se expone a Internet sin red privada, conviene agregar TLS (ver la
    hoja de ruta).
@@ -125,7 +131,8 @@ un 30 % de sus tiros.
    tocar el código. El *Himno de Yungay* es de dominio público y podría sonar en
    los menús chilenos; para las demás naciones habría que buscar marchas de
    dominio público.
-5. **Versión para macOS** (PyInstaller funciona igual; falta probarla y firmarla).
+5. **Firma y notarización de Apple** para la versión de macOS: con una cuenta de
+   desarrollador (99 USD al año) la aplicación abriría sin advertencias.
 6. **Teclas configurables** y paletas para daltonismo en los colores de los
    jugadores.
 7. **Más de cuatro jugadores** por partida en mapas grandes: el servidor ya admite

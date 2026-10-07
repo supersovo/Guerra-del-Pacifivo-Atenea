@@ -7,14 +7,20 @@ una sola carpeta que comparten Python, pygame y los datos.
 
 Resultado: dist/GuerraDelPacifico/ con GuerraDelPacifico(.exe) y
 ServidorSalitre(.exe). El instalador de Windows (salitre.iss) empaqueta esa carpeta.
+En macOS sale además dist/Guerra del Pacífico.app (instalador/construir_mac.sh
+la mete en un .dmg); con SALITRE_ARQUITECTURA=universal2 sirve para Mac con
+procesador Intel y con Apple Silicon (hace falta el Python universal2 de python.org).
 """
 
+import os
 import sys
 from pathlib import Path
 
 RAIZ = Path(SPECPATH).resolve().parent          # carpeta rts/
 ICONO = str(RAIZ / "recursos" / "icono.ico")
 EN_WINDOWS = sys.platform.startswith("win")
+EN_MAC = sys.platform == "darwin"
+ARQUITECTURA = (os.environ.get("SALITRE_ARQUITECTURA") or None) if EN_MAC else None
 VERSION = next(ln.split('"')[1] for ln in (RAIZ / "salitre" / "__init__.py").read_text(encoding="utf-8").splitlines()
                if ln.startswith("VERSION"))
 
@@ -79,6 +85,7 @@ exe_juego = EXE(
     console=False,
     icon=ICONO if EN_WINDOWS else None,
     version=archivo_version() if EN_WINDOWS else None,
+    target_arch=ARQUITECTURA,
     upx=False,
 )
 exe_servidor = EXE(
@@ -89,6 +96,7 @@ exe_servidor = EXE(
     name="ServidorSalitre",
     console=True,
     icon=ICONO if EN_WINDOWS else None,
+    target_arch=ARQUITECTURA,
     upx=False,
 )
 
@@ -102,3 +110,27 @@ coll = COLLECT(
     name="GuerraDelPacifico",
     upx=False,
 )
+
+if EN_MAC:
+    # El juego es el primer ejecutable: el que abre el ícono. El servidor dedicado
+    # queda junto a él, en Contents/MacOS/ServidorSalitre, para usarlo desde la Terminal.
+    app = BUNDLE(
+        coll,
+        name="Guerra del Pacífico.app",
+        icon=str(RAIZ / "recursos" / "icono.icns"),
+        bundle_identifier="cl.proyectoatenea.guerradelpacifico",
+        version=VERSION,
+        info_plist={
+            "CFBundleVersion": VERSION,
+            "CFBundleDevelopmentRegion": "es",
+            "LSApplicationCategoryType": "public.app-category.strategy-games",
+            "LSMinimumSystemVersion": "10.13",
+            # PyInstaller marca la aplicación como «de fondo» (sin Dock ni foco) cuando el
+            # último ejecutable lleva consola, y aquí ese es el servidor dedicado
+            "LSBackgroundOnly": False,
+            "NSHighResolutionCapable": True,
+            "NSHumanReadableCopyright": "Proyecto Atenea",
+            "NSLocalNetworkUsageDescription":
+                "Para encontrar las partidas de sus compañeros en la red local y jugar con ellos.",
+        },
+    )

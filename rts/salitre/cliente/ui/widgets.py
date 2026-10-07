@@ -5,11 +5,16 @@ dibuja con el Estilo. Son deliberadamente simples: los menús del juego son
 pocos y la acción ocurre en el campo de batalla.
 """
 
+import sys
+
 import pygame
 
 from .. import fuentes
 from ..graficos import paleta as P
 from ..lienzo import envolver
+
+# En Mac, ⌘ (Cmd) hace de Ctrl, como en los demás programas: ⌘V pega y ⌘+número forma un grupo.
+MOD_CTRL = pygame.KMOD_CTRL | (pygame.KMOD_GUI if sys.platform == "darwin" else 0)
 
 
 class Evento:
@@ -152,7 +157,7 @@ class Campo(Widget):
                 if self.al_enter:
                     self.al_enter()
                 return True
-            if ev.key == pygame.K_v and ev.mod & pygame.KMOD_CTRL:
+            if ev.key == pygame.K_v and ev.mod & MOD_CTRL:
                 try:
                     pegado = pygame.scrap.get_text() if hasattr(pygame, "scrap") else ""
                 except pygame.error:

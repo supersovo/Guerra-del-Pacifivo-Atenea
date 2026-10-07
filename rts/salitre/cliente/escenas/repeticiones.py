@@ -1,6 +1,8 @@
 """Repeticiones guardadas en este equipo: verlas con todo el mapa a la vista,
 cambiar la velocidad (+/-) y estudiar la batalla después."""
 
+import subprocess
+import sys
 import time
 import webbrowser
 
@@ -51,7 +53,10 @@ class Repeticiones(Escena):
     def abrir_carpeta(self):
         carpeta = rutas.dir_repeticiones()
         try:
-            webbrowser.open(carpeta.as_uri())
+            if sys.platform == "darwin":
+                subprocess.Popen(["open", str(carpeta)])   # en el Finder
+            else:
+                webbrowser.open(carpeta.as_uri())
         except (OSError, ValueError, webbrowser.Error):
             pass
         self.app.avisar(f"Carpeta de repeticiones: {carpeta}", 8)

@@ -28,7 +28,9 @@ batallas se pueden estudiar después.
 2. Pulse **Crear servidor en este equipo**. El juego abre el servidor en el puerto
    47800 y muestra las direcciones IP del equipo (por ejemplo `192.168.1.20`).
 3. Si Windows pregunta por el cortafuegos, permita el acceso en **redes
-   privadas** (el instalador puede dejarlo configurado).
+   privadas** (el instalador puede dejarlo configurado). En Mac, si pregunta si el
+   juego puede buscar dispositivos en la red local o aceptar conexiones
+   entrantes, pulse **Permitir**.
 4. Ya en el *Cuartel general*, cree una sala, elija el mapa y espere a sus
    compañeros.
 
@@ -91,6 +93,7 @@ Menú de inicio → **Servidor dedicado**, o desde una consola:
 
 ```sh
 ServidorSalitre.exe --nombre "Curso 3º B" --sin-invitados
+"/Applications/Guerra del Pacífico.app/Contents/MacOS/ServidorSalitre" --nombre "Curso 3º B" --sin-invitados   # en Mac
 python -m salitre --servidor --nombre "Curso 3º B" --sin-invitados   # desde el código fuente
 ```
 
@@ -167,5 +170,6 @@ repeticiones quedan en el volumen `salitre-datos`; para respaldarlos, copie
 | «Ese nombre pertenece a una cuenta registrada» | Escriba la clave de esa cuenta o use otro nombre. |
 | «Se abrió otra sesión con su nombre» | Alguien entró con su nombre desde otro equipo. |
 | Para probar si el puerto responde (Windows) | `Test-NetConnection 192.168.1.20 -Port 47800` en PowerShell. |
+| Para probar si el puerto responde (Mac o Linux) | `nc -vz 192.168.1.20 47800` en la Terminal. |
 | Para comprobar que un servidor responde al juego (desde el código fuente) | `python docker/probar_servidor.py 192.168.1.20 47800` |
-| Registros para pedir ayuda | `%APPDATA%\GuerraDelPacifico\registros\cliente.log` y `servidor.log`. |
+| Registros para pedir ayuda | `%APPDATA%\GuerraDelPacifico\registros\cliente.log` y `servidor.log` (en Mac, `~/Library/Application Support/GuerraDelPacifico/registros/`). |

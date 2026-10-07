@@ -1,8 +1,10 @@
 #!/usr/bin/env sh
-# Construye la versión portátil para Linux o macOS (carpeta con el juego y el
-# servidor dedicado) y la comprime. Desde la carpeta rts:
+# Construye la versión portátil para Linux (carpeta con el juego y el servidor
+# dedicado) y la comprime. Desde la carpeta rts:
 #
 #     sh instalador/construir.sh
+#
+# En macOS, instalador/construir_mac.sh arma la aplicación y su .dmg.
 set -eu
 cd "$(dirname "$0")/.."
 python3 -m pip install -r requirements.txt pyinstaller

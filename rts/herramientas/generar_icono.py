@@ -1,9 +1,10 @@
-"""Genera el ícono del juego: recursos/icono.png (256x256) y recursos/icono.ico
-(16 a 256 píxeles) para el ejecutable y el instalador de Windows.
+"""Genera el ícono del juego: recursos/icono.png (256x256), recursos/icono.ico
+(16 a 256 píxeles) para el ejecutable y el instalador de Windows y
+recursos/icono.icns (32 a 512 píxeles) para la aplicación de macOS.
 
 Se dibuja grande y se reduce con suavizado. Las entradas pequeñas del .ico van
 como mapa de bits (lo que leen todas las herramientas de Windows) y las de
-128 y 256 como PNG.
+128 y 256 como PNG; las del .icns son todas PNG, como las escribe iconutil.
 
     python herramientas/generar_icono.py
 """
@@ -20,6 +21,14 @@ import pygame  # noqa: E402
 
 RAIZ = Path(__file__).resolve().parent.parent
 TAMANOS = (16, 24, 32, 48, 64, 128, 256)
+# tipos de imagen del .icns de macOS: (tipo, lado en píxeles); «@2x» son las de pantallas Retina
+ICNS = ((b"ic11", 32),    # 16@2x
+        (b"ic12", 64),    # 32@2x
+        (b"ic07", 128),
+        (b"ic13", 256),   # 128@2x
+        (b"ic08", 256),
+        (b"ic14", 512),   # 256@2x
+        (b"ic09", 512))
 
 
 def dibujar(lado=1024):
@@ -107,6 +116,15 @@ def escribir_ico(ruta, imagenes):
     Path(ruta).write_bytes(cab + entradas + datos)
 
 
+def escribir_icns(ruta, png_por_lado):
+    """Encabezado «icns», índice (TOC) y una entrada PNG por tipo; los largos incluyen sus 8 bytes de cabecera."""
+    entradas = [(tipo, png_por_lado[lado]) for tipo, lado in ICNS]
+    indice = b"".join(tipo + struct.pack(">I", 8 + len(b)) for tipo, b in entradas)
+    cuerpo = b"TOC " + struct.pack(">I", 8 + len(indice)) + indice
+    cuerpo += b"".join(tipo + struct.pack(">I", 8 + len(b)) + b for tipo, b in entradas)
+    Path(ruta).write_bytes(b"icns" + struct.pack(">I", 8 + len(cuerpo)) + cuerpo)
+
+
 def main():
     pygame.init()
     grande = dibujar()
@@ -117,7 +135,9 @@ def main():
     destino = RAIZ / "recursos"
     escribir_ico(destino / "icono.ico", imagenes)
     pygame.image.save(pygame.transform.smoothscale(grande, (256, 256)), str(destino / "icono.png"))
-    print("Escritos", destino / "icono.ico", "y", destino / "icono.png")
+    escribir_icns(destino / "icono.icns",
+                  {lado: a_png(pygame.transform.smoothscale(grande, (lado, lado))) for _, lado in ICNS})
+    print("Escritos", destino / "icono.ico", destino / "icono.png", "y", destino / "icono.icns")
     return 0
 
 

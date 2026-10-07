@@ -75,6 +75,13 @@ def test_todas_las_pantallas(app):
             cuadros(app, 1)
 
 
+def test_argumento_psn_de_macos(capsys):
+    from salitre import VERSION
+    from salitre.__main__ import main
+    assert main(["-psn_0_4711", "--version"]) == 0
+    assert VERSION in capsys.readouterr().out
+
+
 def test_escaramuza_contra_la_ia(app):
     esc = Escaramuza(app)
     app.cambiar(esc)
@@ -90,6 +97,12 @@ def test_escaramuza_contra_la_ia(app):
     assert juego.cam.vista.collidepoint(sx, sy)
     juego.seleccionar([cg.id])
     cuadros(app)
+    # Ctrl+número forma un grupo; en Mac también ⌘+número
+    pygame.event.post(pygame.event.Event(pygame.KEYDOWN, key=pygame.K_1, mod=pygame.KMOD_LCTRL))
+    pygame.event.post(pygame.event.Event(pygame.KEYDOWN, key=pygame.K_2, mod=pygame.KMOD_LGUI))
+    cuadros(app, 1)
+    assert juego.grupos[1] == [cg.id]
+    assert (juego.grupos.get(2) == [cg.id]) == (sys.platform == "darwin")
     boton = next(b for b in juego.botones if b and b.clave == "u:trabajador")
     juego.activar_boton(boton)
     srv = app.servidor_local.servidor

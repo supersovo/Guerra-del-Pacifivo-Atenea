@@ -1,11 +1,13 @@
 # Descargas
 
-Aquí queda el instalador de Windows (`GuerraDelPacifico-<versión>-Instalador.exe`)
-cuando se ejecuta el flujo «RTS Salitre y Pólvora» de GitHub Actions con la
-opción **Guardar el instalador de Windows en rts/descargas/** (pestaña
-*Actions* → *RTS Salitre y Pólvora* → *Run workflow*).
+Aquí quedan el instalador de Windows (`GuerraDelPacifico-<versión>-Instalador.exe`)
+y la aplicación para macOS (`GuerraDelPacifico-<versión>-macOS.dmg`) cuando se
+ejecuta el flujo «RTS Salitre y Pólvora» de GitHub Actions con las opciones
+**Guardar el instalador de Windows en rts/descargas/** o **Guardar la aplicación
+para macOS (.dmg) en rts/descargas/** (pestaña *Actions* → *RTS Salitre y
+Pólvora* → *Run workflow*).
 
-## Descargarlo sin que el navegador lo bloquee
+## Windows: descargarlo sin que el navegador lo bloquee
 
 Chrome y Edge desconfían de los programas nuevos sin firma digital. Para
 evitarlo, descárguelo con PowerShell (tecla Windows → escriba *PowerShell* →
@@ -25,6 +27,42 @@ Si al abrirlo Windows muestra «Windows protegió su PC», pulse *Más informaci
 Ejecutar de todas formas*. Si ya tenía instalada una versión anterior, el
 instalador la actualiza en el mismo lugar y conserva la configuración.
 
+## macOS: descargarlo con la Terminal
+
+Sirve para Mac con procesador Intel o Apple Silicon (M1 en adelante), con macOS
+10.13 o posterior. Abra la Terminal (*Aplicaciones → Utilidades → Terminal*, o
+⌘ + espacio y escriba *Terminal*) y pegue:
+
+```sh
+curl -L -o ~/Downloads/GuerraDelPacifico-0.9.1-macOS.dmg https://raw.githubusercontent.com/supersovo/Guerra-del-Pacifivo-Atenea/refs/heads/claude/friendly-keller-8ieqfo/rts/descargas/GuerraDelPacifico-0.9.1-macOS.dmg
+open ~/Downloads/GuerraDelPacifico-0.9.1-macOS.dmg
+```
+
+Se abre la imagen de disco: arrastre *Guerra del Pacífico* sobre *Aplicaciones*
+y abra el juego desde allí. Bajado con la Terminal, macOS no le pone la marca de
+«descargado de Internet» y el juego abre sin advertencias. Para actualizarlo,
+haga lo mismo y reemplace la versión anterior; la configuración se conserva.
+
+**Si lo bajó con el navegador** (Safari, Chrome…), la primera vez macOS avisa
+que no puede comprobar la aplicación, porque no está registrada ante Apple:
+
+- macOS 15 o posterior: intente abrirlo una vez; luego vaya a *Ajustes del
+  Sistema → Privacidad y seguridad*, baje hasta *Seguridad*, pulse *Abrir
+  igualmente* junto al nombre del juego, escriba su contraseña y vuelva a pulsar
+  *Abrir igualmente*.
+- macOS 14 o anterior: clic derecho (o Control + clic) sobre la aplicación →
+  *Abrir* → *Abrir*.
+- En cualquier versión, desde la Terminal:
+  `xattr -dr com.apple.quarantine "/Applications/Guerra del Pacífico.app"`
+
+Si macOS pregunta si el juego puede buscar dispositivos en la red local, o si
+acepta conexiones entrantes al crear un servidor, pulse *Permitir*: así
+encuentra las partidas de los compañeros y ellos pueden entrar a la suya.
+
+En Mac, ⌘ (Cmd) sirve igual que Ctrl. El servidor dedicado viene dentro de la
+aplicación y se usa desde la Terminal:
+`"/Applications/Guerra del Pacífico.app/Contents/MacOS/ServidorSalitre" --help`.
+
 ## Novedades de la 0.9.1
 
 - Con la ventana agrandada o maximizada, los clics caen donde se ven los botones
@@ -34,3 +72,5 @@ instalador la actualiza en el mismo lugar y conserva la configuración.
 - La cámara se mueve al llevar el ratón al borde: durante la batalla el puntero
   queda encerrado en la ventana (se suelta con F10 o Alt + Tab; se puede
   desactivar en *Opciones → Encerrar el ratón en la ventana*).
+- Versión para macOS (Intel y Apple Silicon) en un `.dmg`. Los jugadores de Mac
+  juegan en red con los de Windows y Linux.

@@ -32,12 +32,22 @@ GitHub Actions (pestaña *Actions* → flujo «RTS Salitre y Pólvora» → últ
 ejecución → artefactos `instalador-windows` y `portatil-windows`; hay que
 iniciar sesión en GitHub para descargarlos) o en una versión publicada.
 
+**macOS** (Mac con procesador Intel o Apple Silicon, macOS 10.13 o posterior).
+Abra `GuerraDelPacifico-<versión>-macOS.dmg` y arrastre *Guerra del Pacífico*
+sobre *Aplicaciones*. La aplicación no está registrada ante Apple, así que la
+primera vez macOS no la deja abrir: en macOS 15 o posterior, después del primer
+intento vaya a *Ajustes del Sistema → Privacidad y seguridad* y pulse *Abrir
+igualmente*; en macOS 14 o anterior, clic derecho sobre la aplicación → *Abrir*.
+Si pregunta por la red local, permítala: así encuentra las partidas de los
+compañeros. Se genera en GitHub Actions (artefacto `aplicacion-macos`), donde se
+prueba en el macOS más reciente, también la parte para Intel.
+
 **Linux.** Descomprima `GuerraDelPacifico-<versión>-linux.tar.gz` y ejecute
 `GuerraDelPacifico/GuerraDelPacifico`.
 
-**Copia en el repositorio.** El instalador también puede guardarse en
-[`rts/descargas/`](descargas/LEEME.md), desde donde se baja con PowerShell sin
-pasar por el navegador.
+**Copia en el repositorio.** El instalador de Windows y la aplicación para macOS
+también pueden guardarse en [`rts/descargas/`](descargas/LEEME.md), desde donde
+se bajan con PowerShell o con la Terminal del Mac sin pasar por el navegador.
 
 **Si el navegador o Windows bloquean la descarga.** El juego es nuevo y no
 lleva firma digital, así que Chrome, Edge y Windows desconfían de él aunque no
@@ -66,7 +76,8 @@ python -m salitre --servidor      # el servidor dedicado (no necesita pygame)
 ```
 
 Los datos de cada jugador (configuración, perfil, repeticiones, capturas y
-registros) se guardan en `%APPDATA%\GuerraDelPacifico` en Windows y en
+registros) se guardan en `%APPDATA%\GuerraDelPacifico` en Windows, en
+`~/Library/Application Support/GuerraDelPacifico` en macOS y en
 `~/.local/share/guerra-del-pacifico` en Linux; no se borran al desinstalar.
 
 ## Cómo se juega
@@ -149,6 +160,10 @@ Las cifras completas de cada unidad, edificio, investigación y héroe están en
 | Menú (rendirse, pausa, abandonar) | F10 o Esc |
 | Captura de pantalla / pantalla completa | F12 / Alt + Intro |
 
+En Mac, ⌘ (Cmd) sirve igual que Ctrl (⌘ + clic, ⌘ + 1…9 y ⌘V para pegar una
+dirección), Alt es la tecla Opción (⌥), el puntero se suelta con ⌘ + Tab y, en
+los portátiles, F1, F2, F10 y F12 se pulsan junto con la tecla fn.
+
 En las **repeticiones**, + y − cambian la velocidad y P pausa; en una
 escaramuza contra la IA, F3 pausa.
 
@@ -182,9 +197,9 @@ rts/
 ├── mapas/                los seis campos de batalla (JSON)
 ├── recursos/             tipografías e ícono (y aquí pueden ir gráficos o sonidos propios)
 ├── herramientas/         generadores de mapas, tablas e ícono
-├── instalador/           PyInstaller e Inno Setup
+├── instalador/           PyInstaller, Inno Setup (Windows) e imagen de disco (macOS)
 ├── docker/               servidor dedicado en contenedor
-├── descargas/            copia del instalador de Windows (se guarda a pedido desde GitHub Actions)
+├── descargas/            copias del instalador de Windows y del .dmg de macOS (se guardan a pedido desde GitHub Actions)
 ├── tests/                pruebas automáticas
 └── docs/                 investigación, diseño, arquitectura, multijugador y recomendaciones
 ```
@@ -212,7 +227,10 @@ pyinstaller --noconfirm instalador/salitre.spec   # ejecutables en dist/
 ```
 
 En Windows, `instalador\construir_windows.ps1` construye los ejecutables, los
-prueba y genera el instalador con Inno Setup.
+prueba y genera el instalador con Inno Setup. En un Mac, `sh
+instalador/construir_mac.sh` arma *Guerra del Pacífico.app*, la prueba y la
+guarda en un `.dmg` (con `SALITRE_ARQUITECTURA=universal2` y el Python de
+python.org sirve para Intel y Apple Silicon).
 
 ## Documentación
 

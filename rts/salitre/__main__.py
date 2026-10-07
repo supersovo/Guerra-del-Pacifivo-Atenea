@@ -9,7 +9,8 @@ import sys
 
 
 def main(argv=None):
-    argv = list(sys.argv[1:] if argv is None else argv)
+    # macOS puede agregar «-psn_0_…» al abrir desde el Finder una aplicación recién descargada
+    argv = [a for a in (sys.argv[1:] if argv is None else argv) if not a.startswith("-psn_")]
     if "--servidor" in argv:
         argv.remove("--servidor")
         from .servidor.principal import main as servidor

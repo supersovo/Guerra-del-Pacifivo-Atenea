@@ -24,7 +24,7 @@ from ..juego.tarjeta import tarjeta
 from ..juego.vista import Vista
 from ..sonido import sonido
 from ..ui.hud import ALTO_INF, ALTO_SUP, HUD
-from ..ui.widgets import Boton
+from ..ui.widgets import MOD_CTRL, Boton
 from .base import Escena
 
 TECLAS_GRUPO = {getattr(pygame, f"K_{k}"): k for k in range(10)}
@@ -620,7 +620,7 @@ class Juego(Escena):
             return True
         if k in TECLAS_GRUPO:
             n = TECLAS_GRUPO[k]
-            if mods & pygame.KMOD_CTRL:
+            if mods & MOD_CTRL:
                 self.grupos[n] = list(self.seleccion)
                 self.hud.mensaje(f"Grupo {n} formado ({len(self.seleccion)})", P.CREMA, 2)
             elif mods & pygame.KMOD_SHIFT:
@@ -777,7 +777,7 @@ class Juego(Escena):
             ahora = time.monotonic()
             doble = self.ultimo_clic[0] == e.id and ahora - self.ultimo_clic[1] < DOBLE_CLIC
             self.ultimo_clic = (e.id, ahora)
-            if (doble or pygame.key.get_mods() & pygame.KMOD_CTRL) and e.tipo is not None:
+            if (doble or pygame.key.get_mods() & MOD_CTRL) and e.tipo is not None:
                 self.seleccionar(self._mismo_tipo_en_pantalla(e), agregar)
             elif agregar and self.est.propio(e) and all(
                     self.est.propio(self.est.ents[i]) for i in self.seleccion if i in self.est.ents):

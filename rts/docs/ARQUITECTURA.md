@@ -185,6 +185,8 @@ ficticio de SDL):
   completa (salón, sala de espera con un segundo jugador, batalla, parte de
   guerra y regreso a la sala).
 
-La integración continua (`.github/workflows/rts.yml`) corre las pruebas en Linux
-y Windows, construye el instalador de Windows con una prueba de humo del
-ejecutable, la versión portátil para Linux y la imagen Docker del servidor.
+La integración continua (`.github/workflows/rts.yml`) corre las pruebas en Linux,
+Windows y macOS, construye el instalador de Windows con una prueba de humo del
+ejecutable, la aplicación para macOS (universal: Intel y Apple Silicon, probada
+desde el `.dmg` en ambas arquitecturas cuando el equipo tiene Rosetta 2), la
+versión portátil para Linux y la imagen Docker del servidor.
