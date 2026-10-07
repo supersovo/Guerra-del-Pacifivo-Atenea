@@ -75,6 +75,8 @@ class Mundo:
         self.trucos = False
         # veteranos caídos (para el parte de guerra y el libro de la campaña): (dueño, tipo, hoja)
         self.caidos = []
+        # veteranos del ejército vencido que se retiró del campo (pasan a la batalla siguiente)
+        self.retirada = {}
 
         self.jugadores = []
         for i, c in enumerate(configs):
@@ -673,6 +675,12 @@ class Mundo:
                 j.est["unidades_perdidas"] += 1
             else:
                 j.est["edificios_perdidos"] += 1
+            if e.es_edificio and e.pacientes:
+                # cayó el hospital: los veteranos que se curaban en él no vuelven
+                for pac in e.pacientes:
+                    if len(pac) > 2 and pac[0] in self.cat.unidades:
+                        self.anotar_caido(e.dueno, self.cat.unidades[pac[0]], pac[2])
+                e.pacientes = []
             if dueno_atacante >= 0 and self.enemigos(dueno_atacante, e.dueno):
                 ja = self.jugadores[dueno_atacante]
                 if e.es_unidad:
@@ -724,7 +732,7 @@ class Mundo:
     def veteranos_de(self, p):
         """Los veteranos vivos del jugador al terminar (en filas, guarecidos, embarcados o heridos
         en manos de la sanidad): los que pasan a la siguiente batalla de la campaña."""
-        out = []
+        out = list(self.retirada.get(p, []))
         for u in self.unidades.values():
             if u.vivo and u.dueno == p and u.grado:
                 out.append(self._ficha(u.tipo.id, hoja_de(u), "en filas"))
@@ -1070,11 +1078,14 @@ class Mundo:
             if j.vivo and (j.idx not in con_edificios or j.rendido):
                 j.vivo = False
                 self.ev_todos("derrota", j.idx)
-                for e in list(self.unidades.values()) + list(self.edificios.values()):
+                self.retirada[j.idx] = self._retirada(j.idx)
+                for e in list(self.edificios.values()):
                     if e.dueno == j.idx and e.vivo:
                         self.matar(e, 0, -1)
                 for h in list(self.heridos.values()):
                     if h.dueno == j.idx and h.vivo:
+                        # los heridos que nadie recogió quedan en el campo
+                        self.anotar_caido(h.dueno, h.tipo, h.hoja)
                         h.vivo = False
                         self.muertos.append(h)
         equipos_vivos = {j.equipo for j in self.jugadores if j.vivo}
@@ -1082,6 +1093,30 @@ class Mundo:
             self.terminado = True
             self.ganador = next(iter(equipos_vivos)) if equipos_vivos else None
             self.ev_todos("fin", -1 if self.ganador is None else self.ganador)
+
+    def _retirada(self, p):
+        """El ejército vencido se retira del campo: sus unidades se van (no mueren) y los
+        veteranos, con los heridos que llevan los camilleros y los que se curan en el
+        hospital, siguen en filas para la batalla siguiente de la campaña o de la serie."""
+        fichas = []
+        for u in list(self.unidades.values()):
+            if u.dueno != p or not u.vivo:
+                continue
+            if u.grado:
+                fichas.append(self._ficha(u.tipo.id, hoja_de(u), "en retirada"))
+            if u.paciente and u.paciente_hoja and u.paciente_hoja[1]:
+                fichas.append(self._ficha(u.paciente, u.paciente_hoja, "herido"))
+            u.paciente = None
+            u.paciente_hoja = None
+            u.vivo = False
+            self.muertos.append(u)
+        for b in self.edificios.values():
+            if b.vivo and b.dueno == p and b.pacientes:
+                for pac in b.pacientes:
+                    if len(pac) > 2 and pac[2] and pac[2][1]:
+                        fichas.append(self._ficha(pac[0], pac[2], "herido"))
+                b.pacientes = []
+        return fichas
 
     # ------------------------------------------------------------------
     def suma_control(self):

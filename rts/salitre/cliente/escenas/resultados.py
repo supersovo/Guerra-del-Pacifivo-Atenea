@@ -150,11 +150,45 @@ class Resultados(Escena):
                 lz.texto(str(v), x0 + 300 + k * anchos + anchos // 2, y + 8, fuentes.cuerpo(17), P.TINTA, "centro")
             lz.texto(self._linea_veteranos(res), x0 + 300, y + 29, fuentes.cursiva(14), (126, 86, 18))
             y += 48
+        if self.fin.get("serie"):
+            self._dibujar_serie(self.fin["serie"], x0, y + 4, r.w - 60)
         if self.fin.get("repeticion"):
             if self.origen == "multijugador" and self.app.servidor_local is None:
                 txt = (f"Copia guardada en este equipo: {self.guardada}" if self.guardada else
                        f"Repetición guardada en el servidor: {self.fin['repeticion']}")
             else:
                 txt = f"Repetición guardada: {self.fin['repeticion']}"
-            lz.texto(txt, x0, r.bottom - 96, fuentes.cursiva(15), P.TINTA_SUAVE)
+            lz.texto(txt, x0, r.bottom - 48, fuentes.cursiva(15), P.TINTA_SUAVE)
         self.dibujar_widgets()
+
+    def _dibujar_serie(self, serie, x, y, ancho):
+        """Serie de campaña: marcador por equipo y lo que cada ejército conserva para la siguiente."""
+        lz = self.lz
+        lz.linea((x, y), (x + ancho, y), (120, 90, 60))
+        y += 8
+        gan = serie.get("ganador")
+        if serie.get("terminada"):
+            if gan is None:
+                titulo = f"Serie de {serie['total']} batallas terminada: tablas"
+            else:
+                quienes = ", ".join(p["nombre"] for p in serie.get("participantes", []) if p["equipo"] == gan)
+                titulo = f"Serie de {serie['total']} batallas terminada: ¡ganó el equipo {gan} ({quienes})!"
+            color = (40, 110, 40)
+        else:
+            titulo = (f"Serie de campaña: {serie['jugadas']} de {serie['total']} batallas libradas. "
+                      "Los veteranos que siguen en filas llegarán con el cuartel general a la siguiente.")
+            color = P.TINTA
+        lz.texto(titulo, x, y, fuentes.negrita(17), color)
+        y += 24
+        partes = []
+        for eq, (vic, hon) in sorted(serie.get("marcador", {}).items(), key=lambda kv: int(kv[0])):
+            partes.append(f"Equipo {eq}: {vic} {'victoria' if vic == 1 else 'victorias'}, {hon} honores")
+        lz.texto("   ·   ".join(partes), x, y, fuentes.cuerpo(15), P.TINTA)
+        y += 22
+        for p in serie.get("participantes", []):
+            u = p.get("ultima") or {}
+            txt = (f"{p['nombre']}: {u.get('supervivientes', p['veteranos'])} veteranos siguen en filas "
+                   f"({u.get('nuevos', 0)} nuevos), {u.get('caidos', 0)} caídos en esta batalla, "
+                   f"+{u.get('honores', 0)} honores  ·  en la serie: {p['honores']} honores, {p['caidos']} caídos")
+            lz.texto(txt, x, y, fuentes.cursiva(14), (126, 86, 18))
+            y += 19

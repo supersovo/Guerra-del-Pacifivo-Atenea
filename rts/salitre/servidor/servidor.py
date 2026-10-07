@@ -24,6 +24,7 @@ from ..red.instantanea import Emisor
 from ..sim.constantes import TICKS
 from ..sim.mundo import Mundo
 from . import repeticion
+from . import serie as mod_serie
 from .bd import BaseDatos
 
 log = logging.getLogger("salitre.servidor")
@@ -119,6 +120,8 @@ class Sala:
         self.clave = clave
         self.estado = "espera"
         self.partida = None
+        self.modo_serie = 1           # 1: batalla única; 2 a 4: serie de campaña
+        self.serie = None             # serie en curso (o la última, ya terminada)
         self.ranuras = [self._ranura_abierta(i) for i in range(mapa.jugadores)]
         self.ocupar(0, anfitrion)
 
@@ -148,16 +151,28 @@ class Sala:
     def humanos(self):
         return [r["sesion"] for r in self.ranuras if r["tipo"] == "humano" and r["sesion"] is not None]
 
-    def a_dict(self):
-        return {
+    @property
+    def en_serie(self):
+        """Hay una serie de campaña comenzada y sin terminar."""
+        return self.serie is not None and not self.serie.terminada
+
+    def a_dict(self, cat=None):
+        d = {
             "id": self.id, "nombre": self.nombre, "mapa": self.mapa.id, "mapa_nombre": self.mapa.nombre,
             "anfitrion": self.anfitrion.nombre if self.anfitrion else "", "velocidad": self.velocidad,
             "estado": self.estado, "con_clave": bool(self.clave),
             "ranuras": [{"tipo": r["tipo"], "nombre": r["nombre"], "faccion": r["faccion"],
                          "equipo": r["equipo"], "color": r["color"], "listo": r["listo"],
-                         "dificultad": r["dificultad"]} for r in self.ranuras],
+                         "dificultad": r["dificultad"], "ausente": bool(r.get("ausente"))} for r in self.ranuras],
             "ocupadas": sum(1 for r in self.ranuras if r["tipo"] in ("humano", "ia")),
+            "modo_serie": self.modo_serie,
+            "serie_total": self.serie.total if self.serie is not None else 0,
+            "serie_jugadas": self.serie.jugadas if self.serie is not None else 0,
+            "en_serie": self.en_serie,
         }
+        if cat is not None:
+            d["serie"] = self.serie.a_dict(cat) if self.serie is not None else None
+        return d
 
 
 class Partida:
@@ -187,7 +202,7 @@ class Partida:
             self.configs = []
         self.jugadores = []
         if repeticion_datos is None:
-            for r in sala.ranuras:
+            for k, r in enumerate(sala.ranuras):
                 if r["tipo"] not in ("humano", "ia"):
                     continue
                 idx = len(self.configs)
@@ -201,7 +216,7 @@ class Partida:
                     "indice": idx, "sesion": s, "nombre": r["nombre"],
                     "usuario_id": (s.usuario or {}).get("id") if s and not s.invitado else None,
                     "es_ia": r["tipo"] == "ia", "conectado": s is not None, "fuera_t": None,
-                    "ia_suplente": None,
+                    "ia_suplente": None, "ranura": k,
                 })
         # el cuartel general llega en tren o en carreta (las repeticiones viejas no lo tienen)
         llegada = repeticion_datos.get("llegada", False) if repeticion_datos is not None else True
@@ -444,6 +459,8 @@ class Partida:
         msg = {"t": "fin", "ganador": ganador, "abortada": self.abortada, "ticks": m.tick,
                "resultados": [{k: v for k, v in r.items() if k != "usuario_id"} for r in resultados],
                "elo": elos, "repeticion": nombre_rep}
+        if self.sala is not None and self.sala.serie is not None:
+            msg["serie"] = self.srv.serie_tras_batalla(self, resultados, ganador)
         for s in self.sesiones():
             s.enviar(msg)
             s.partida = None
@@ -633,6 +650,13 @@ class Servidor:
                             p.sala.ranuras[i]["sesion"] = s
                             s.sala = p.sala
                     return True
+        # serie de campaña entre batallas: su lugar (y sus veteranos) lo esperan en la sala
+        for sala in self.salas.values():
+            if sala.en_serie and sala.estado == "espera":
+                for i, r in enumerate(sala.ranuras):
+                    if r.get("ausente") and r["nombre"].lower() == s.nombre.lower():
+                        self._volver_a_la_serie(sala, i, s)
+                        return True
         return False
 
     def _salida(self, s):
@@ -644,7 +668,7 @@ class Servidor:
         if s.sala is not None:
             sala = s.sala
             if sala.estado == "espera":
-                self._dejar_sala(s)
+                self._dejar_sala(s)     # en una serie, su lugar queda esperándolo
             else:
                 i = sala.indice_de(s)
                 if i is not None:
@@ -728,6 +752,13 @@ class Servidor:
         if sala.clave and P.texto(msg.get("clave"), 30) != sala.clave:
             s.error("Clave de sala incorrecta.")
             return
+        if sala.en_serie:
+            for i, r in enumerate(sala.ranuras):
+                if r.get("ausente") and r["nombre"].lower() == s.nombre.lower():
+                    self._volver_a_la_serie(sala, i, s)
+                    return
+            s.error("Esa sala está en medio de una serie de campaña: solo pueden volver sus participantes.")
+            return
         for i, r in enumerate(sala.ranuras):
             if r["tipo"] == "abierta":
                 sala.ocupar(i, s)
@@ -749,15 +780,35 @@ class Servidor:
             return
         i = sala.indice_de(s)
         if i is not None:
-            sala.ranuras[i] = Sala._ranura_abierta(i) | {"equipo": sala.ranuras[i]["equipo"]}
-        if sala.anfitrion is s:
+            if sala.en_serie and i in sala.serie.participantes:
+                # serie de campaña: conserva su lugar y sus veteranos hasta que vuelva
+                sala.ranuras[i].update(sesion=None, listo=False, ausente=True)
+            else:
+                sala.ranuras[i] = Sala._ranura_abierta(i) | {"equipo": sala.ranuras[i]["equipo"]}
+        if sala.anfitrion is s or not sala.humanos():
             humanos = sala.humanos()
             if humanos:
                 sala.anfitrion = humanos[0]
             else:
-                self.salas.pop(sala.id, None)
+                self._cerrar_sala(sala)
                 return
         self._difundir_sala(sala)
+
+    def _cerrar_sala(self, sala):
+        self.salas.pop(sala.id, None)
+        if sala.en_serie:
+            sala.serie.abandonada = True
+            self._guardar_serie(sala)
+
+    def _volver_a_la_serie(self, sala, i, s):
+        """Un participante de la serie vuelve a la sala (se había ido o perdió la conexión)."""
+        sala.ranuras[i].update(sesion=s, listo=False, ausente=False)
+        s.sala = sala
+        if sala.anfitrion is None or sala.anfitrion not in sala.humanos():
+            sala.anfitrion = s
+        log.info("%s vuelve a la serie de la sala %s", s.nombre, sala.nombre)
+        self._difundir_sala(sala)
+        self._difundir_lobby()
 
     def _es_anfitrion(self, s):
         if s.sala is None or s.sala.anfitrion is not s or s.sala.estado != "espera":
@@ -780,6 +831,9 @@ class Servidor:
                 s.error("No puede cambiar la ranura de otro jugador.")
                 return
         r = sala.ranuras[k]
+        if sala.en_serie:
+            # durante la serie la nación y el equipo de cada ejército no cambian
+            msg = {c: v for c, v in msg.items() if c not in ("faccion", "equipo")}
         if "faccion" in msg and msg["faccion"] in self.cat.facciones:
             r["faccion"] = msg["faccion"]
         if "equipo" in msg:
@@ -804,6 +858,9 @@ class Servidor:
         if not self._es_anfitrion(s):
             return
         sala = s.sala
+        if sala.en_serie:
+            s.error("La serie ya comenzó: los ejércitos no cambian hasta que termine.")
+            return
         for i, r in enumerate(sala.ranuras):
             if r["tipo"] == "abierta":
                 libres = sala.colores_libres()
@@ -824,6 +881,24 @@ class Servidor:
         if not (0 <= k < len(sala.ranuras)) or k == sala.indice_de(s):
             return
         r = sala.ranuras[k]
+        if sala.en_serie and k in sala.serie.participantes:
+            if r["tipo"] == "ia":
+                s.error("La serie ya comenzó: los ejércitos no cambian hasta que termine.")
+                return
+            # su ejército, con sus veteranos, queda al mando de la IA hasta el final de la serie
+            otro = r["sesion"]
+            if otro is not None:
+                otro.sala = None
+                otro.enviar({"t": "expulsado", "msg": "El anfitrión entregó su ejército a la IA."})
+                otro.enviar(self._estado_lobby())
+            part = sala.serie.participantes[k]
+            part["es_ia"] = True
+            r.update(tipo="ia", sesion=None, nombre=f"IA ({part['nombre']})"[:24], dificultad="normal", listo=True,
+                     ausente=False)
+            self._guardar_serie(sala)
+            self._difundir_sala(sala)
+            self._difundir_lobby()
+            return
         if r["tipo"] == "humano" and r["sesion"] is not None:
             otro = r["sesion"]
             otro.sala = None
@@ -847,11 +922,24 @@ class Servidor:
         except mod_mapas.MapaError as e:
             s.error(str(e))
             return
+        if sala.en_serie and mapa.jugadores < max(sala.serie.participantes) + 1:
+            s.error("Ese mapa no tiene lugar para todos los ejércitos de la serie.")
+            return
+        self._cambiar_mapa(sala, mapa, s)
+        if "velocidad" in msg and msg["velocidad"] in VELOCIDADES:
+            sala.velocidad = msg["velocidad"]
+        self._difundir_sala(sala)
+        self._difundir_lobby()
+
+    def _cambiar_mapa(self, sala, mapa, quien=None):
         viejas = sala.ranuras
         sala.mapa = mapa
         nuevas = []
         for i in range(mapa.jugadores):
-            nuevas.append(viejas[i] if i < len(viejas) else Sala._ranura_abierta(i))
+            if i < len(viejas):
+                nuevas.append(viejas[i])
+            else:
+                nuevas.append(Sala._ranura_abierta(i) | ({"tipo": "cerrada"} if sala.en_serie else {}))
         for r in viejas[mapa.jugadores:]:
             if r["tipo"] == "humano" and r["sesion"] is not None:
                 r["sesion"].sala = None
@@ -859,10 +947,23 @@ class Servidor:
                 r["sesion"].enviar(self._estado_lobby())
         sala.ranuras = nuevas
         for r in sala.ranuras:
+            if r["tipo"] == "humano" and r["sesion"] is not quien:
+                r["listo"] = False
+
+    def m_serie(self, s, msg):
+        """El anfitrión elige batalla única (1) o una serie de campaña de 2 a 4 batallas."""
+        if not self._es_anfitrion(s):
+            return
+        sala = s.sala
+        if sala.en_serie:
+            s.error("La serie ya comenzó: termínela antes de cambiar el modo.")
+            return
+        n = P.entero(msg.get("batallas"), 1, 1, mod_serie.MAX_BATALLAS)
+        sala.modo_serie = n if n >= mod_serie.MIN_BATALLAS else 1
+        sala.serie = None         # la serie anterior ya terminó: queda en la base de datos
+        for r in sala.ranuras:
             if r["tipo"] == "humano" and r["sesion"] is not s:
                 r["listo"] = False
-        if "velocidad" in msg and msg["velocidad"] in VELOCIDADES:
-            sala.velocidad = msg["velocidad"]
         self._difundir_sala(sala)
         self._difundir_lobby()
 
@@ -877,10 +978,22 @@ class Servidor:
         if len({r["equipo"] for r in activas}) < 2:
             s.error("Todos están en el mismo equipo: elija equipos distintos.")
             return
+        faltan = [r["nombre"] for r in activas if r["tipo"] == "humano" and r["sesion"] is None]
+        if faltan:
+            s.error(f"Falta {', '.join(faltan)}: espere a que vuelva o entregue su ejército a la IA (Quitar).")
+            return
         for r in activas:
             if r["tipo"] == "humano" and r["sesion"] is not s and not r["listo"]:
                 s.error(f"{r['nombre']} todavía no está listo.")
                 return
+        if not sala.en_serie and sala.modo_serie >= mod_serie.MIN_BATALLAS:
+            sala.serie = mod_serie.Serie(sala.modo_serie, sala.ranuras)
+            self._guardar_serie(sala)
+            log.info("Comienza una serie de %s batallas en la sala %s", sala.serie.total, sala.nombre)
+        if sala.en_serie:
+            # los veteranos de cada ejército llegan con su cuartel general
+            for k, r in enumerate(sala.ranuras):
+                r["veteranos"] = sala.serie.veteranos(k)
         sala.estado = "jugando"
         p = Partida(self, sala)
         sala.partida = p
@@ -1014,20 +1127,56 @@ class Servidor:
             sala.estado = "espera"
             sala.partida = None
             for i, r in enumerate(sala.ranuras):
+                r.pop("veteranos", None)
                 if r["tipo"] == "humano":
                     if r["sesion"] is None or not r["sesion"].vivo:
-                        sala.ranuras[i] = Sala._ranura_abierta(i)
+                        if sala.en_serie and i in sala.serie.participantes:
+                            r.update(sesion=None, listo=False, ausente=True)    # su lugar lo espera
+                        else:
+                            sala.ranuras[i] = Sala._ranura_abierta(i)
                     else:
                         r["listo"] = False
                         r["sesion"].sala = sala
             humanos = sala.humanos()
             if not humanos:
-                self.salas.pop(sala.id, None)
+                self._cerrar_sala(sala)
             else:
                 if sala.anfitrion not in humanos:
                     sala.anfitrion = humanos[0]
+                if sala.en_serie and not p.abortada:
+                    self._mapa_siguiente(sala)
                 self._difundir_sala(sala)
         self._difundir_lobby()
+
+    # -- series de campaña --------------------------------------------------
+    def serie_tras_batalla(self, p, resultados, ganador):
+        """Pasa el parte de la batalla a los escalafones de la serie y lo guarda."""
+        sala = p.sala
+        if sala.en_serie and not p.abortada:
+            por_ranura = {}
+            for i, r in enumerate(resultados):
+                if i < len(p.jugadores) and p.jugadores[i].get("ranura") is not None:
+                    por_ranura[p.jugadores[i]["ranura"]] = r
+            sala.serie.aplicar(self.cat, por_ranura, ganador, p.mapa.nombre, p.mundo.tick / (TICKS * 60))
+            self._guardar_serie(sala)
+        return sala.serie.a_dict(self.cat)
+
+    def _guardar_serie(self, sala):
+        try:
+            self.bd.guardar_serie(sala.nombre, sala.serie)
+        except Exception:  # noqa: BLE001 - la base de datos no debe tumbar la sala
+            log.exception("No se pudo guardar la serie de la sala %s", sala.nombre)
+
+    def _mapa_siguiente(self, sala):
+        """La serie sigue en el mapa siguiente del itinerario (el anfitrión puede cambiarlo)."""
+        mapas = {m["id"]: m["jugadores"] for m in self.mapas_disponibles()}
+        sig = sala.serie.proximo_mapa(sala.mapa.id, mapas, max(sala.serie.participantes) + 1)
+        if sig == sala.mapa.id:
+            return
+        try:
+            self._cambiar_mapa(sala, mod_mapas.buscar(sig))
+        except mod_mapas.MapaError:
+            log.warning("No se pudo pasar al mapa %s", sig)
 
     def _estado_lobby(self):
         return {"t": "lobby",
@@ -1044,11 +1193,17 @@ class Servidor:
                 s.enviar(msg)
 
     def _difundir_sala(self, sala):
-        d = sala.a_dict()
+        d = sala.a_dict(self.cat)
         for k, r in enumerate(sala.ranuras):
             ses = r["sesion"]
             if ses is not None:
-                ses.enviar({"t": "sala", "sala": d, "yo": k, "anfitrion": sala.anfitrion is ses})
+                msg = {"t": "sala", "sala": d, "yo": k, "anfitrion": sala.anfitrion is ses}
+                if sala.serie is not None and k in sala.serie.participantes:
+                    # el escalafón detallado solo va a su dueño
+                    part = sala.serie.participantes[k]
+                    msg["escalafon"] = part["escalafon"]
+                    msg["libro"] = part["caidos"][-40:]
+                ses.enviar(msg)
 
 
 class ServidorEnHilo:

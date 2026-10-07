@@ -123,6 +123,37 @@ def veteranos_rival(cat, campana, estado, etapa):
     return fichas_limpias(cat, out)
 
 
+def actualizar_escalafon(cat, estado, resultado, etiqueta):
+    """Pasa el parte de una batalla al escalafón de un ejército.
+
+    Los veteranos vivos (en filas, heridos en manos de la sanidad o en retirada) quedan
+    en el escalafón con una batalla más; los caídos van al libro. Los que no llegaron a
+    desplegarse (buques, unidades de otra nación o la batalla terminó antes de que bajaran
+    del tren) siguen de reserva. Devuelve (vivos, caídos, nuevos)."""
+    vivos = []
+    nuevos = 0
+    for v in fichas_limpias(cat, (resultado or {}).get("veteranos", [])):
+        if v["grado"] < 1:
+            continue
+        if not v["ficha"]:
+            estado["contador"] = estado.get("contador", 0) + 1
+            v["ficha"] = f"v{estado['contador']}"
+            nuevos += 1
+        v["batallas"] += 1
+        vivos.append(v)
+    caidos = []
+    for v in fichas_limpias(cat, (resultado or {}).get("caidos", [])):
+        if v["grado"] >= 1 or v["ficha"]:
+            v["etapa"] = etiqueta
+            v["batallas"] += 1
+            caidos.append(v)
+    presentes = {v["ficha"] for v in vivos} | {v["ficha"] for v in caidos}
+    reserva = [v for v in estado["escalafon"] if v["ficha"] not in presentes]
+    estado["escalafon"] = sorted(vivos + reserva, key=lambda v: (-v["grado"], -v["bajas"], v["ficha"]))
+    estado["caidos"].extend(caidos)
+    return vivos, caidos, nuevos
+
+
 def aplicar_batalla(cat, campana, estado, propio, rival, victoria, minutos=0.0):
     """Anota el resultado de la batalla de la etapa actual.
 
@@ -136,44 +167,18 @@ def aplicar_batalla(cat, campana, estado, propio, rival, victoria, minutos=0.0):
     if not victoria:
         estado["historial"].append(resumen)
         return resumen
-    vivos = []
-    for v in fichas_limpias(cat, (propio or {}).get("veteranos", [])):
-        if v["grado"] < 1:
-            continue
-        if not v["ficha"]:
-            estado["contador"] += 1
-            v["ficha"] = f"v{estado['contador']}"
-            resumen["nuevos"] += 1
-        v["batallas"] += 1
-        vivos.append(v)
-    caidos = []
-    for v in fichas_limpias(cat, (propio or {}).get("caidos", [])):
-        if v["grado"] >= 1 or v["ficha"]:
-            v["etapa"] = etapa.nombre
-            v["batallas"] += 1
-            caidos.append(v)
-    # los que no pudieron desplegarse (buques, unidades de otra nación) quedan de reserva
-    presentes = {v["ficha"] for v in vivos} | {v["ficha"] for v in caidos}
-    reserva = [v for v in estado["escalafon"] if v["ficha"] not in presentes and not _desplegable(cat, v,
-                                                                                                   estado["faccion"])]
-    estado["escalafon"] = sorted(vivos + reserva, key=lambda v: (-v["grado"], -v["bajas"], v["ficha"]))
-    estado["caidos"].extend(caidos)
+    vivos, caidos, nuevos = actualizar_escalafon(cat, estado, propio, etapa.nombre)
     honores = campana.honor_victoria + campana.honores_de(vivos)
     estado["honores"] += honores
     if rival is not None:
+        # la IA conserva a los suyos que sobrevivieron (también los que se retiraron del campo)
         rival_fac = etapa.rival(estado["faccion"])
         estado.setdefault("rival", {})[rival_fac] = [v for v in fichas_limpias(cat, rival.get("veteranos", []))
                                                      if v["grado"] >= 1]
-    resumen.update(honores=honores, supervivientes=len(vivos), caidos=len(caidos))
+    resumen.update(honores=honores, supervivientes=len(vivos), caidos=len(caidos), nuevos=nuevos)
     estado["historial"].append(resumen)
     estado["etapa"] += 1
     if estado["etapa"] >= len(campana.etapas):
         estado["terminada"] = True
         estado["medalla"] = campana.medalla(estado["honores"])
     return resumen
-
-
-def _desplegable(cat, v, faccion):
-    tipo = cat.unidades.get(v["tipo"])
-    fac = cat.facciones.get(faccion)
-    return tipo is not None and fac is not None and tipo.id in fac.unidades and tipo.capa_nombre == "tierra"

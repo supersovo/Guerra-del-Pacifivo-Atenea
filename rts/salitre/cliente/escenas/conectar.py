@@ -166,12 +166,15 @@ class Conectar(Escena):
                 self.app.cerrar_red()
                 self.estado = None
             return
-        for m in red.recibir():
+        msgs = red.recibir()
+        for k, m in enumerate(msgs):
             t = m.get("t")
             if t == "bienvenida":
                 self.app.bienvenida = m
                 self.app.perfil.recordar_servidor(self.estado[4], m.get("servidor", ""))
                 from .lobby import Lobby
+                # lo que llegó detrás (la partida o la serie que lo esperan) lo atiende el salón
+                self.devolver_red(msgs[k + 1:])
                 self.app.cambiar(Lobby(self.app))
                 return
             if t == "error":

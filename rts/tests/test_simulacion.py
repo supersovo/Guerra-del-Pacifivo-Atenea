@@ -459,6 +459,37 @@ def test_veteranos_llegan_con_el_cuartel():
     assert fichas["c1-3"]["grado"] == 2 and fichas["c1-3"]["bajas"] == 4
 
 
+def test_el_vencido_se_retira_con_sus_veteranos():
+    """El ejército vencido deja el campo: sus veteranos (también los heridos que llevan los
+    camilleros o que se curan en el hospital) siguen en filas para la batalla siguiente; los
+    heridos que nadie recogió quedan en el campo."""
+    from salitre.sim import veterania
+    m = U.mundo()
+    j1 = m.jugadores[1]
+    hosp = m.crear_edificio(1, "hospital_campana", 50, 20, construido=True)
+    vet = _unidad(m, 1, "infante", 40, 40)
+    veterania.aplicar_hoja(m, vet, (0, 2, 4242, "p1", 1, 5))
+    caido = _unidad(m, 1, "infante", 44, 40)
+    veterania.aplicar_hoja(m, caido, (0, 1, 4343, "p2", 1, 2))
+    m.matar(caido, 0, 0)
+    assert any(h.hoja and h.hoja[2] == 4343 for h in m.heridos.values())
+    hosp.pacientes.append(["infante", 999, (0, 3, 4444, "p3", 2, 9)])
+    perdidas = j1.est["unidades_perdidas"]
+    m.comando(1, {"c": "rendirse"})
+    U.avanzar(m, 2 * S)
+    assert m.terminado and m.ganador == 0
+    assert {v["nombre"]: v["estado"] for v in m.veteranos_de(1)} == {4242: "en retirada", 4444: "herido"}
+    assert [c["nombre"] for c in m.caidos_de(1)] == [4343]
+    assert not any(u.dueno == 1 for u in m.unidades.values())
+    assert j1.est["unidades_perdidas"] == perdidas            # retirarse no es morir
+    # si el enemigo destruye el hospital, los veteranos que se curaban en él no vuelven
+    m2 = U.mundo()
+    h2 = m2.crear_edificio(0, "hospital_campana", 14, 20, construido=True)
+    h2.pacientes.append(["granadero", 999, (0, 2, 5555, "q1", 1, 3)])
+    m2.matar(h2, 0, 1)
+    assert [c["nombre"] for c in m2.caidos_de(0)] == [5555] and m2.jugadores[0].est["veteranos_caidos"] == 1
+
+
 def test_llegada_del_cuartel_en_tren_y_en_carreta():
     from salitre.contenido import mapas
     from salitre.sim.mundo import LLEGADA, Mundo

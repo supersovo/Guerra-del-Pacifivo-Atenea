@@ -63,6 +63,12 @@ class Escena:
             self.app.perdio_conexion(red.error)
         return msgs
 
+    def devolver_red(self, msgs):
+        """Al cambiar de escena a mitad de un lote, los mensajes que faltan quedan para la siguiente."""
+        red = self.app.red
+        if red is not None and msgs:
+            red.pendientes = list(msgs) + red.pendientes
+
 
 def superficie_fondo(w, h, semilla=1879):
     """Panorama del desierto: cielo, cordillera, oficina salitrera y la pampa."""

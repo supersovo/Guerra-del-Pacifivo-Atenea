@@ -28,8 +28,8 @@ class Lobby(Escena):
         self.p_chat = pygame.Rect(24, 502, lz.W - 48, 202)
         ps = self.p_salas
         self.tabla_salas = Tabla((ps.x + 16, ps.y + 46, ps.w - 32, 200),
-                                 [("Sala", 230, "izq"), ("Mapa", 190, "izq"), ("Lugares", 80, "centro"),
-                                  ("Estado", 120, "izq")], al_doble=lambda c: self.unirse())
+                                 [("Sala", 200, "izq"), ("Mapa", 176, "izq"), ("Lugares", 70, "centro"),
+                                  ("Estado", 174, "izq")], al_doble=lambda c: self.unirse())
         self.tabla_salas.vacia = "No hay salas abiertas: cree la primera."
         self.tabla_partidas = Tabla((ps.x + 16, ps.y + 284, ps.w - 32, 72),
                                     [("Partida en curso", 220, "izq"), ("Mapa", 190, "izq"),
@@ -109,6 +109,12 @@ class Lobby(Escena):
             total = len(s.get("ranuras", []))
             estado = "En combate" if s.get("estado") == "jugando" else (
                 "Completa" if s.get("ocupadas", 0) >= total else "Esperando")
+            if s.get("en_serie"):
+                jugadas, batallas = s.get("serie_jugadas", 0), s.get("serie_total", 0)
+                estado = (f"En combate ({jugadas + 1}.ª de {batallas})" if s.get("estado") == "jugando" else
+                          f"Serie: {jugadas} de {batallas} libradas")
+            elif s.get("modo_serie", 1) > 1 and s.get("estado") != "jugando":
+                estado = f"{estado} (serie de {s['modo_serie']})"
             nombre = s["nombre"] + ("  (clave)" if s.get("con_clave") else "")
             col = P.GRIS if s.get("estado") == "jugando" else None
             filas.append((s["id"], [nombre, s.get("mapa_nombre", "?"), f"{s.get('ocupadas', 0)}/{total}", estado], col))
@@ -224,7 +230,8 @@ class Lobby(Escena):
         super().actualizar(dt)
         for w in self.dialogo_widgets:
             w.actualizar(dt)
-        for m in self.mensajes_red():
+        msgs = self.mensajes_red()
+        for k, m in enumerate(msgs):
             t = m.get("t")
             if t == "lobby":
                 self._aplicar_lobby(m)
@@ -232,10 +239,12 @@ class Lobby(Escena):
                 self.app.sala_actual = m
                 self.app.en_sala = True
                 from .sala import SalaEspera
+                self.devolver_red(msgs[k + 1:])
                 self.app.cambiar(SalaEspera(self.app))
                 return
             elif t == "inicio":
                 from .juego import Juego
+                self.devolver_red(msgs[k + 1:])
                 self.app.cambiar(Juego(self.app, m, "multijugador"))
                 return
             elif t == "chat":

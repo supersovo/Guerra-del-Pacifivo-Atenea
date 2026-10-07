@@ -184,6 +184,10 @@ def test_multijugador_salon_sala_y_batalla(app, tmp_path):
         hasta(app, lambda: escena(app) == "SalaEspera")
         sala = app.escena
         assert sala.anfitrion and sala.yo == 0
+        # serie de campaña de dos batallas: los veteranos pasan de una a la otra
+        sala.cambiar_modo(2)
+        hasta(app, lambda: sala.sala.get("modo_serie") == 2)
+        cuadros(app)
 
         # un compañero entra por la red, elige Perú y se declara listo
         otro = Conexion()
@@ -210,10 +214,11 @@ def test_multijugador_salon_sala_y_batalla(app, tmp_path):
         juego = app.escena
         assert juego.origen == "multijugador" and not juego.est.espectador
         hasta(app, lambda: any(e.dueno == juego.est.yo for e in juego.est.ents.values()))
-        # el compañero se rinde: victoria, parte de guerra y regreso a la sala
+        # el compañero se rinde: victoria, parte de guerra (con el marcador de la serie) y regreso a la sala
         otro.enviar({"t": "rendirse"})
         hasta(app, lambda: juego.fin is not None, 20)
         assert juego.fin["ganador"] == juego.est.jugadores[juego.est.yo]["equipo"]
+        assert juego.fin["serie"]["jugadas"] == 1 and not juego.fin["serie"]["terminada"]
         juego._ir_resultados()
         cuadros(app)
         assert escena(app) == "Resultados"
@@ -221,6 +226,25 @@ def test_multijugador_salon_sala_y_batalla(app, tmp_path):
         app.escena.volver()
         cuadros(app)
         assert escena(app) == "SalaEspera"
+        sala = app.escena
+        hasta(app, lambda: sala.serie is not None and sala.serie["jugadas"] == 1)
+        assert sala.sala["mapa"] == "quebrada_de_tarapaca"          # la serie sigue en el mapa siguiente
+        assert not sala.filas[0]["faccion"].activo and not sala.d_modo.activo
+        assert sala.b_escalafon.visible
+        sala.abrir_escalafon()
+        cuadros(app)
+        sala.cerrar_escalafon()
+        cuadros(app)
+        # sale de la sala en medio de la serie: su lugar lo espera y puede volver desde el salón
+        sala.salir_sala()
+        hasta(app, lambda: escena(app) == "Lobby")
+        lobby = app.escena
+        hasta(app, lambda: any(f[1][2:] == ["2/2", "Serie: 1 de 2 libradas"] for f in lobby.tabla_salas.filas))
+        lobby.tabla_salas.sel = lobby.tabla_salas.filas[0][0]
+        lobby.unirse()
+        hasta(app, lambda: escena(app) == "SalaEspera")
+        assert app.escena.yo == 0 and app.escena.serie["jugadas"] == 1
+        cuadros(app)
         app.escena.salir_sala()
         hasta(app, lambda: escena(app) == "Lobby")
         app.escena.desconectar()

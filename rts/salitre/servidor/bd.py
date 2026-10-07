@@ -1,4 +1,5 @@
-"""Base de datos del servidor (SQLite): cuentas, partidas, estadísticas y escalafón.
+"""Base de datos del servidor (SQLite): cuentas, partidas, estadísticas, escalafón y las
+series de campaña (con el escalafón de veteranos de cada jugador entre batallas).
 
 El archivo vive en la carpeta de datos del usuario (servidor.db). El esquema
 lleva número de versión (PRAGMA user_version) para poder migrarlo en el futuro.
@@ -8,13 +9,14 @@ Las claves se guardan con PBKDF2-HMAC-SHA256 y sal aleatoria: nunca en claro.
 import functools
 import hashlib
 import hmac
+import json
 import os
 import sqlite3
 import threading
 import time
 from pathlib import Path
 
-VERSION_ESQUEMA = 1
+VERSION_ESQUEMA = 2
 ITERACIONES = 120_000
 ELO_INICIAL = 1200
 K_ELO = 32
@@ -63,6 +65,34 @@ CREATE TABLE IF NOT EXISTS partida_jugadores (
 );
 CREATE INDEX IF NOT EXISTS idx_pj_usuario ON partida_jugadores(usuario_id);
 CREATE TABLE IF NOT EXISTS configuracion (clave TEXT PRIMARY KEY, valor TEXT);
+CREATE TABLE IF NOT EXISTS series (
+    id INTEGER PRIMARY KEY,
+    sala TEXT,
+    creada REAL NOT NULL,
+    actualizada REAL NOT NULL,
+    total INTEGER NOT NULL,
+    jugadas INTEGER NOT NULL DEFAULT 0,
+    terminada INTEGER NOT NULL DEFAULT 0,
+    abandonada INTEGER NOT NULL DEFAULT 0,
+    ganador_equipo INTEGER,
+    estado TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS serie_jugadores (
+    serie_id INTEGER NOT NULL REFERENCES series(id) ON DELETE CASCADE,
+    ranura INTEGER NOT NULL,
+    usuario_id INTEGER REFERENCES usuarios(id),
+    nombre TEXT NOT NULL,
+    faccion TEXT NOT NULL,
+    equipo INTEGER NOT NULL,
+    es_ia INTEGER NOT NULL DEFAULT 0,
+    victorias INTEGER NOT NULL DEFAULT 0,
+    honores INTEGER NOT NULL DEFAULT 0,
+    veteranos INTEGER NOT NULL DEFAULT 0,
+    caidos INTEGER NOT NULL DEFAULT 0,
+    escalafon TEXT NOT NULL DEFAULT '[]',
+    PRIMARY KEY (serie_id, ranura)
+);
+CREATE INDEX IF NOT EXISTS idx_sj_usuario ON serie_jugadores(usuario_id);
 """
 
 
@@ -232,6 +262,47 @@ class BaseDatos:
         d = dict(p)
         d["jugadores"] = [dict(f) for f in self.con.execute(
             "SELECT * FROM partida_jugadores WHERE partida_id = ? ORDER BY indice", (pid,))]
+        return d
+
+    # -- series de campaña ----------------------------------------------------
+    @_bloqueo
+    def guardar_serie(self, sala, serie):
+        """Crea o actualiza la serie (y el escalafón de cada participante). Devuelve su id."""
+        ahora = time.time()
+        estado = json.dumps(serie.estado(), ensure_ascii=False)
+        if serie.id is None:
+            cur = self.con.execute(
+                "INSERT INTO series (sala, creada, actualizada, total, jugadas, terminada, abandonada, "
+                "ganador_equipo, estado) VALUES (?,?,?,?,?,?,?,?,?)",
+                (sala, ahora, ahora, serie.total, serie.jugadas, int(serie.terminada), int(serie.abandonada),
+                 serie.ganador, estado))
+            serie.id = cur.lastrowid
+        else:
+            self.con.execute(
+                "UPDATE series SET actualizada = ?, jugadas = ?, terminada = ?, abandonada = ?, ganador_equipo = ?, "
+                "estado = ? WHERE id = ?",
+                (ahora, serie.jugadas, int(serie.terminada), int(serie.abandonada), serie.ganador, estado, serie.id))
+        for k, p in serie.participantes.items():
+            self.con.execute(
+                "INSERT OR REPLACE INTO serie_jugadores VALUES (?,?,?,?,?,?,?,?,?,?,?,?)",
+                (serie.id, k, p.get("usuario_id"), p["nombre"], p["faccion"], p["equipo"], int(p["es_ia"]),
+                 p["victorias"], p["honores"], len(p["escalafon"]), len(p["caidos"]),
+                 json.dumps(p["escalafon"], ensure_ascii=False)))
+        self.con.commit()
+        return serie.id
+
+    @_bloqueo
+    def serie(self, sid):
+        r = self.con.execute("SELECT * FROM series WHERE id = ?", (sid,)).fetchone()
+        if r is None:
+            return None
+        d = dict(r)
+        d["estado"] = json.loads(d["estado"])
+        d["jugadores"] = []
+        for f in self.con.execute("SELECT * FROM serie_jugadores WHERE serie_id = ? ORDER BY ranura", (sid,)):
+            j = dict(f)
+            j["escalafon"] = json.loads(j["escalafon"])
+            d["jugadores"].append(j)
         return d
 
     @_bloqueo
