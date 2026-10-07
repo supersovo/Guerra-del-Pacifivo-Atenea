@@ -72,6 +72,9 @@ class Perfil:
             CREATE TABLE IF NOT EXISTS escaramuzas (
                 id INTEGER PRIMARY KEY, fecha REAL, mapa TEXT, faccion TEXT, rivales TEXT,
                 resultado TEXT, minutos REAL, abatidos INTEGER, perdidas INTEGER);
+            CREATE TABLE IF NOT EXISTS campanas (
+                id INTEGER PRIMARY KEY, campana TEXT, faccion TEXT, estado TEXT, creada REAL,
+                actualizada REAL, terminada INTEGER DEFAULT 0);
         """)
         self.con.commit()
 
@@ -92,6 +95,45 @@ class Perfil:
     def escaramuzas(self, n=20):
         return [dict(r) for r in self.con.execute(
             "SELECT * FROM escaramuzas ORDER BY fecha DESC LIMIT ?", (n,))]
+
+    # -- campañas: el escalafón de veteranos de cada campaña contra la IA ------------
+    def crear_campana(self, estado):
+        ahora = time.time()
+        cur = self.con.execute("INSERT INTO campanas (campana, faccion, estado, creada, actualizada, terminada) "
+                               "VALUES (?,?,?,?,?,0)", (estado["campana"], estado["faccion"],
+                                                         json.dumps(estado, ensure_ascii=False), ahora, ahora))
+        self.con.commit()
+        return cur.lastrowid
+
+    def guardar_campana(self, cid, estado):
+        self.con.execute("UPDATE campanas SET estado = ?, actualizada = ?, terminada = ? WHERE id = ?",
+                         (json.dumps(estado, ensure_ascii=False), time.time(), 1 if estado.get("terminada") else 0,
+                          cid))
+        self.con.commit()
+
+    def campana(self, cid):
+        r = self.con.execute("SELECT * FROM campanas WHERE id = ?", (cid,)).fetchone()
+        if r is None:
+            return None
+        try:
+            return json.loads(r["estado"])
+        except ValueError:
+            return None
+
+    def ultima_campana(self, campana_id):
+        """(id, estado) de la última campaña de ese tipo (la que está en curso o la recién terminada)."""
+        r = self.con.execute("SELECT id, estado FROM campanas WHERE campana = ? ORDER BY actualizada DESC LIMIT 1",
+                             (campana_id,)).fetchone()
+        if r is None:
+            return None, None
+        try:
+            return r["id"], json.loads(r["estado"])
+        except ValueError:
+            return None, None
+
+    def borrar_campana(self, cid):
+        self.con.execute("DELETE FROM campanas WHERE id = ?", (cid,))
+        self.con.commit()
 
     def resumen(self):
         r = self.con.execute("SELECT COUNT(*), SUM(resultado = 'victoria'), SUM(resultado = 'derrota') "

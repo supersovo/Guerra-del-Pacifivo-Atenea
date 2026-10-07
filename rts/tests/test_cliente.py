@@ -56,8 +56,9 @@ def escena(app):
 
 
 def test_todas_las_pantallas(app):
+    from salitre.cliente.escenas.campana import Campana
     cuadros(app)
-    for cls in (Escaramuza, Conectar, Opciones, Repeticiones, Portada):
+    for cls in (Campana, Escaramuza, Conectar, Opciones, Repeticiones, Portada):
         app.cambiar(cls(app))
         cuadros(app)
     arc = Archivo(app)
@@ -120,6 +121,48 @@ def test_escaramuza_contra_la_ia(app):
     juego.abandonar()
     cuadros(app)
     assert escena(app) == "Portada"
+
+
+def test_campana_del_salitre(app):
+    """Una batalla de la campaña: el escalafón baja del tren con el cuartel general y, al
+    rendirse, la derrota queda anotada y la batalla se puede repetir con los mismos veteranos."""
+    from salitre.cliente.escenas.campana import Campana
+    from salitre.contenido import campanas
+    camp = campanas.cargar()["salitre"]
+    est = campanas.nuevo_estado(camp, "chile")
+    est["escalafon"] = [{"ficha": "v1", "tipo": "infante", "grado": 3, "xp": 5000, "nombre": 99, "batallas": 2,
+                         "bajas": 9},
+                        {"ficha": "v2", "tipo": "cazador", "grado": 1, "xp": 4000, "nombre": 98, "batallas": 1,
+                         "bajas": 1}]
+    cid = app.perfil.crear_campana(est)
+    esc = Campana(app)
+    app.cambiar(esc)
+    cuadros(app)
+    assert esc.cid == cid and len(esc.tabla.filas) == 2
+    assert esc.tabla.filas[0][1][1].startswith("Sargento ")
+    esc.marchar()
+    hasta(app, lambda: escena(app) == "Juego")
+    juego = app.escena
+    assert juego.origen == "campana"
+
+    def veteranos():
+        return sorted((e.tipo.id, e.ex.get("v")) for e in juego.est.ents.values()
+                      if e.dueno == juego.est.yo and isinstance(e.ex, dict) and e.ex.get("v"))
+    hasta(app, lambda: len(veteranos()) == 2, 30)
+    assert veteranos() == [("cazador", 1), ("infante", 3)]
+    juego.abrir_menu()
+    cuadros(app)
+    juego.rendirse()
+    juego.rendirse()            # la rendición se confirma pulsando otra vez
+    hasta(app, lambda: juego.fin is not None, 15)
+    guardado = app.perfil.campana(cid)
+    assert guardado["etapa"] == 0 and guardado["historial"][-1]["victoria"] is False
+    assert [v["ficha"] for v in guardado["escalafon"]] == ["v1", "v2"]
+    juego._ir_resultados()
+    cuadros(app)
+    app.escena.volver()
+    cuadros(app)
+    assert escena(app) == "Campana" and app.escena.resumen is not None
 
 
 def test_multijugador_salon_sala_y_batalla(app, tmp_path):

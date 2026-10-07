@@ -26,8 +26,8 @@ class Resultados(Escena):
         self.fondo = FondoMenu(self.lz)
         lz = self.lz
         self.panel = pygame.Rect(40, 130, lz.W - 80, lz.H - 170)
-        self.widgets.append(Boton((self.panel.right - 250, self.panel.bottom - 60, 220, 44), "Volver", self.volver,
-                                  "principal"))
+        self.widgets.append(Boton((self.panel.right - 250, self.panel.bottom - 60, 220, 44),
+                                  "A la campaña" if origen == "campana" else "Volver", self.volver, "principal"))
         self.guardada = None
         # en un servidor de otro equipo la repetición queda allá: se puede pedir una copia
         if origen == "multijugador" and self.fin.get("repeticion") and app.servidor_local is None:
@@ -38,6 +38,10 @@ class Resultados(Escena):
             self.widgets.append(self.b_rep)
 
     def volver(self):
+        if self.origen == "campana":
+            from .campana import Campana
+            self.app.cambiar(Campana(self.app, resumen=getattr(self.app, "resumen_campana", None)))
+            return
         if self.origen == "multijugador" and self.app.red is not None:
             from .sala import SalaEspera
             from .lobby import Lobby

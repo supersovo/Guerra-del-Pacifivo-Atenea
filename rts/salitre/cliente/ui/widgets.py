@@ -11,7 +11,7 @@ import pygame
 
 from .. import fuentes
 from ..graficos import paleta as P
-from ..lienzo import envolver
+from ..lienzo import abreviar, envolver
 
 # En Mac, ⌘ (Cmd) hace de Ctrl, como en los demás programas: ⌘V pega y ⌘+número forma un grupo.
 MOD_CTRL = pygame.KMOD_CTRL | (pygame.KMOD_GUI if sys.platform == "darwin" else 0)
@@ -467,7 +467,8 @@ class Tabla(Widget):
             x = r.x + 8
             for (_t, ancho, ancla), v in zip(self.columnas, valores):
                 tx = x if ancla == "izq" else (x + ancho // 2 if ancla == "centro" else x + ancho - 6)
-                lz.texto(str(v), tx, y + (self.alto_fila - fuente.get_height()) // 2, fuente, color, ancla)
+                lz.texto(abreviar(str(v), fuente, ancho - 6), tx, y + (self.alto_fila - fuente.get_height()) // 2,
+                         fuente, color, ancla)
                 x += ancho
 
         celdas(r.y + 2, [c[0] for c in self.columnas], fb, P.TINTA)

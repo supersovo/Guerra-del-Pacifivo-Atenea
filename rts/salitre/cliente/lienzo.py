@@ -300,3 +300,27 @@ def envolver(s, fuente, ancho):
                 actual = p
         out.append(actual)
     return out
+
+
+_abreviados = {}
+
+
+def abreviar(s, fuente, ancho):
+    """El texto tal cual si cabe en el ancho; si no, recortado con puntos suspensivos."""
+    clave = (s, id(fuente), ancho)
+    r = _abreviados.get(clave)
+    if r is None:
+        r = s
+        if fuente.size(s)[0] > ancho:
+            lo, hi = 0, len(s)
+            while lo < hi:
+                m = (lo + hi + 1) // 2
+                if fuente.size(s[:m].rstrip(" ,.;") + "…")[0] <= ancho:
+                    lo = m
+                else:
+                    hi = m - 1
+            r = s[:lo].rstrip(" ,.;") + "…"
+        if len(_abreviados) > 3000:
+            _abreviados.clear()
+        _abreviados[clave] = r
+    return r

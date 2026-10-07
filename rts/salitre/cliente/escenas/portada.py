@@ -16,8 +16,9 @@ class Portada(Escena):
         ancho = 360
         x = (lz.W - ancho) // 2
         y = 170
-        self.panel = pygame.Rect(x - 30, y - 24, ancho + 60, 6 * 54 + 40)
         opciones = [
+            ("Campaña del Salitre", self.campana, "principal",
+             "Cuatro batallas encadenadas, de Dolores al Morro de Arica: sus veteranos pasan de una a otra."),
             ("Escaramuza contra la IA", self.escaramuza, "principal",
              "Batalla en un mapa histórico contra uno o más ejércitos de la computadora."),
             ("Multijugador en línea", self.multijugador, "principal",
@@ -29,6 +30,7 @@ class Portada(Escena):
             ("Opciones", self.opciones, "normal", "Pantalla, sonido y controles."),
             ("Salir", app.salir, "madera", None),
         ]
+        self.panel = pygame.Rect(x - 30, y - 24, ancho + 60, len(opciones) * 54 + 40)
         for i, (texto, accion, tipo, ayuda) in enumerate(opciones):
             b = Boton((x, y + i * 54, ancho, 44), texto, accion, tipo, tooltip=(texto, ayuda) if ayuda else None,
                       fuente=fuentes.negrita(19))
@@ -37,6 +39,10 @@ class Portada(Escena):
     def entrar(self):
         self.app.cerrar_red()
         self.app.detener_servidor_local()
+
+    def campana(self):
+        from .campana import Campana
+        self.app.cambiar(Campana(self.app))
 
     def escaramuza(self):
         from .escaramuza import Escaramuza

@@ -15,6 +15,7 @@ import secrets
 import time
 
 from .. import NOMBRE_JUEGO, PROTOCOLO, VERSION, rutas
+from ..contenido import campanas
 from ..contenido import catalogo as mod_cat
 from ..contenido import mapas as mod_mapas
 from ..ia.ia import DIFICULTADES, IA
@@ -193,7 +194,9 @@ class Partida:
                 s = r["sesion"]
                 self.configs.append({"nombre": r["nombre"], "faccion": r["faccion"], "equipo": r["equipo"],
                                      "color": r["color"], "ia": r["tipo"] == "ia",
-                                     "dificultad": r["dificultad"]})
+                                     "dificultad": r["dificultad"],
+                                     # veteranos de la campaña o de la serie que llegan con el cuartel
+                                     "veteranos": list(r.get("veteranos") or [])})
                 self.jugadores.append({
                     "indice": idx, "sesion": s, "nombre": r["nombre"],
                     "usuario_id": (s.usuario or {}).get("id") if s and not s.invitado else None,
@@ -900,10 +903,13 @@ class Servidor:
             return
         rivales = msg.get("rivales") or [{"faccion": "peru", "dificultad": "normal"}]
         sala.ranuras[0]["equipo"] = 1
+        # campaña: los veteranos del jugador (y los de la IA) llegan con el cuartel general
+        sala.ranuras[0]["veteranos"] = campanas.fichas_limpias(self.cat, msg.get("veteranos"))
         for k, riv in enumerate(rivales[: len(sala.ranuras) - 1]):
             self.m_agregar_ia(s, riv)
             r = sala.ranuras[k + 1]
             r["equipo"] = P.entero(riv.get("equipo"), 2, 1, 8)
+            r["veteranos"] = campanas.fichas_limpias(self.cat, riv.get("veteranos") if isinstance(riv, dict) else None)
         self.m_iniciar(s, {})
 
     def m_cmd(self, s, msg):

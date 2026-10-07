@@ -427,6 +427,8 @@ class Juego(Escena):
             sonido().toque("derrota")
             sonido().voz("derrota", 3)
         self.fin_titulo = titulo
+        if self.origen == "campana" and not est.espectador:
+            self._anotar_campana(m, mi_equipo)
         lz = self.lz
         self.widgets = [Boton((lz.W // 2 - 110, lz.H // 2 + 50, 220, 44), "Ver el parte de guerra",
                               self._ir_resultados, "principal")]
@@ -441,6 +443,26 @@ class Juego(Escena):
                     yo["est"]["enemigos_abatidos"] if yo else 0, yo["est"]["unidades_perdidas"] if yo else 0)
             except Exception:  # noqa: BLE001 - el perfil local nunca debe interrumpir el juego
                 pass
+
+    def _anotar_campana(self, m, mi_equipo):
+        """Campaña: los veteranos sobrevivientes forman el nuevo escalafón (se guarda al instante)."""
+        from ...contenido import campanas as mod_campanas
+        perfil = self.app.perfil
+        cid = self.info.get("campana_id")
+        campana = mod_campanas.cargar().get(self.info.get("campana", "salitre"))
+        estado = perfil.campana(cid) if cid is not None else None
+        if campana is None or estado is None or estado.get("terminada"):
+            return
+        res = {r["indice"]: r for r in m.get("resultados", [])}
+        propio = res.get(self.est.yo)
+        rival = next((r for i, r in res.items() if i != self.est.yo and r.get("es_ia")), None)
+        victoria = not m.get("abortada") and m.get("ganador") is not None and m.get("ganador") == mi_equipo
+        try:
+            self.app.resumen_campana = mod_campanas.aplicar_batalla(
+                self.app.cat, campana, estado, propio, rival, victoria, m.get("ticks", 0) / 16 / 60)
+            perfil.guardar_campana(cid, estado)
+        except Exception:  # noqa: BLE001 - el perfil local nunca debe interrumpir el juego
+            self.app.resumen_campana = None
 
     def _ir_resultados(self):
         from .resultados import Resultados

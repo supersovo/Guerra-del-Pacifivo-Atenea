@@ -148,3 +148,27 @@ def test_escaramuza_contra_ia_y_reconexion(servidor):
     assert re_inicio["partida"] == inicio["partida"]
     m = a2.esperar("inst", 5)
     assert m.get("completa")
+
+
+def test_campana_veteranos_llegan_con_el_cuartel(servidor):
+    _srv, puerto, _ = servidor
+    a, _ = _entrar(puerto, "Sotomayor")
+    vets = [{"tipo": "infante", "grado": 3, "xp": 5000, "nombre": 99, "ficha": "v1", "batallas": 2, "bajas": 9},
+            {"tipo": "granadero", "grado": 2, "xp": 9000, "nombre": 98, "ficha": "v2", "batallas": 1, "bajas": 2},
+            {"tipo": "canon_campana", "grado": 7, "nombre": "malo"}]      # datos inválidos: se descartan
+    a.enviar({"t": "partida_rapida", "mapa": "quebrada_de_tarapaca", "faccion": "chile", "veteranos": vets,
+              "rivales": [{"faccion": "peru", "dificultad": "facil", "equipo": 2,
+                           "veteranos": [{"tipo": "infante", "grado": 1, "nombre": 7}]}]})
+    inicio = a.esperar("inicio", 10)
+    assert inicio["yo"] == 0
+    vistos = {}
+    fin = time.time() + 25
+    while time.time() < fin and sum(1 for r in vistos.values() if isinstance(r[8], dict) and r[8].get("v")) < 2:
+        for m in a.recibir():
+            if m["t"] == "inst":
+                for r in m.get("e", []):
+                    vistos[r[0]] = r
+        time.sleep(0.02)
+    veteranos = sorted((U.cat().tipos[r[1]].id, r[8]["v"], r[8]["n"]) for r in vistos.values()
+                       if r[2] == 0 and isinstance(r[8], dict) and r[8].get("v"))
+    assert veteranos == [("granadero", 2, 98), ("infante", 3, 99)]
