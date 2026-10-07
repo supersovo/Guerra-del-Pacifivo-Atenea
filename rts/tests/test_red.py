@@ -5,6 +5,7 @@ import time
 import pytest
 
 import utilidades as U
+from salitre.red import instantanea as I
 from salitre.red import protocolo as P
 from salitre.red.conexion import Conexion
 from salitre.servidor.bd import BaseDatos
@@ -82,11 +83,13 @@ def test_partida_entre_dos_jugadores(servidor):
     ib = b.esperar("inicio", 10)
     assert ia["yo"] == 0 and ib["yo"] == 1
     assert ia["mapa"]["id"] == "pampa_del_tamarugal"
-    # instantáneas: cada uno ve sus trabajadores y no los del rival (niebla)
+    # instantáneas: primero llega el tren con el cuartel general; después cada uno
+    # ve su cuartel y sus trabajadores, y no los del rival (niebla)
     vistos_a = {}
     insts = []
-    fin = time.time() + 3
-    while time.time() < fin:
+    idx_cg = U.cat().edificios["cuartel_general"].idx
+    fin = time.time() + 25
+    while time.time() < fin and not any(r[1] == idx_cg for r in vistos_a.values()):
         for m in a.recibir():
             if m["t"] == "inst":
                 insts.append(m)
@@ -95,9 +98,10 @@ def test_partida_entre_dos_jugadores(servidor):
         b.recibir()
         time.sleep(0.02)
     assert insts and insts[0].get("completa")
+    assert {r[2] for r in vistos_a.values() if r[1] == I.TIPO_CONVOY} == {0}, "el tren propio, no el del rival"
     duenos = {r[2] for r in vistos_a.values() if r[1] >= 0}
     assert duenos == {0}
-    cg = [r for r in vistos_a.values() if r[1] == U.cat().edificios["cuartel_general"].idx][0]
+    cg = [r for r in vistos_a.values() if r[1] == idx_cg][0]
     a.comando({"c": "entrenar", "e": [cg[0]], "t": "trabajador"})
     nuevo = None
     fin = time.time() + 20

@@ -8,6 +8,7 @@
  "alto": 96,
  "jugadores": 2,
  "naval": false,
+ "llegada": "carreta",
  "inicios": [
   [
    22,

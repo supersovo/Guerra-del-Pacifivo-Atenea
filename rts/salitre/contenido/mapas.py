@@ -41,6 +41,8 @@ class MapaDatos:
         self.inicios = [tuple(p) for p in d.get("inicios", [])]
         self.recursos = [dict(r) for r in d.get("recursos", [])]
         self.naval = bool(d.get("naval", False))
+        # cómo llega el cuartel general al comenzar: en tren (por una vía férrea) o en carreta
+        self.llegada = d.get("llegada", "carreta")
         self.decoracion = [dict(x) for x in d.get("decoracion", [])]
         self.validar()
 
@@ -59,6 +61,8 @@ class MapaDatos:
         for y, fila in enumerate(self.altura):
             if set(fila) - set("012"):
                 raise MapaError(f"{self.id}: la altura solo admite 0, 1 y 2 (fila {y})")
+        if self.llegada not in ("tren", "carreta"):
+            raise MapaError(f"{self.id}: 'llegada' debe ser 'tren' o 'carreta'")
         if self.jugadores < 1 or len(self.inicios) < self.jugadores:
             raise MapaError(f"{self.id}: faltan posiciones de inicio")
         for tx, ty in self.inicios:
@@ -76,7 +80,7 @@ class MapaDatos:
             "id": self.id, "nombre": self.nombre, "descripcion": self.descripcion,
             "historia": self.historia, "ambiente": self.ambiente,
             "ancho": self.ancho, "alto": self.alto, "jugadores": self.jugadores,
-            "naval": self.naval, "inicios": [list(p) for p in self.inicios],
+            "naval": self.naval, "llegada": self.llegada, "inicios": [list(p) for p in self.inicios],
             "recursos": self.recursos, "decoracion": self.decoracion,
             "terreno": self.terreno, "altura": self.altura,
         }

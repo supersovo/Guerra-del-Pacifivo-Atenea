@@ -130,6 +130,20 @@ def sint_sable(rnd):
             * math.exp(-i / (0.04 * FREC)) for i in range(n)]
 
 
+def sint_silbato(rnd):
+    """Silbato de la locomotora: acorde agudo con soplido de vapor."""
+    n = int(1.3 * FREC)
+    vapor = _ruido_filtrado(n, rnd, 0.5)
+    out = []
+    for i in range(n):
+        t = i / FREC
+        env = min(1.0, t / 0.06) * (1.0 if t < 1.0 else max(0.0, 1 - (t - 1.0) / 0.3))
+        tono = (math.sin(2 * math.pi * 523 * t) + 0.8 * math.sin(2 * math.pi * 659 * t)
+                + 0.6 * math.sin(2 * math.pi * 784 * t))
+        out.append(env * (0.5 * tono + 0.35 * vapor[i]))
+    return out
+
+
 TOQUES = {
     "lista": [(0, 0.12), (5, 0.12), (9, 0.3)],                         # unidad lista
     "ataque": [(9, 0.1), (9, 0.1), (9, 0.1), (5, 0.1), (9, 0.35)],     # ¡bajo ataque!
@@ -159,7 +173,7 @@ class Sonido:
         rnd = random.Random(1879)
         gen = {
             "fusil": sint_fusil, "canon": sint_canon, "explosion": sint_explosion, "gatling": sint_gatling,
-            "clic": sint_clic, "martillo": sint_martillo, "sable": sint_sable,
+            "clic": sint_clic, "martillo": sint_martillo, "sable": sint_sable, "silbato": sint_silbato,
         }
         for nombre, f in gen.items():
             self.efectos[nombre] = self._cargar(nombre) or _a_sonido(f(rnd), 0.9)

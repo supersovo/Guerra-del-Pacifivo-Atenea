@@ -15,6 +15,7 @@ la misma partida (así funcionan las repeticiones).
 """
 
 import heapq
+from collections import deque
 from math import isqrt
 
 from . import combate, comandos, comportamiento, habilidades
@@ -22,7 +23,7 @@ from . import edificios as logica_edificios
 from . import vision as mod_vision
 from .azar import Azar
 from .constantes import AGUA, MEDIA, TICKS, TIERRA, TILE
-from .entidades import RECOLECTAR, Edificio, Herido, Orden, Recurso, Unidad
+from .entidades import RECOLECTAR, Convoy, Edificio, Herido, Orden, Recurso, Unidad
 from .espacial import Rejilla, RejillaEdificios
 from .jugador import Jugador
 from .mapa import OCUPA_EDIFICIO, OCUPA_RECURSO, Mapa
@@ -33,10 +34,14 @@ from ..contenido.mapas import TAM_RECURSO
 PRESUPUESTO_RUTAS = 12000
 DEST_TODOS = -1
 DEST_POS = 1000
+LLEGADA = TICKS * 10          # todos los cuarteles generales llegan a la vez, a los 10 s
+ESPERA_CONVOY = TICKS * 3     # el tren o la carreta se queda un rato junto al cuartel
+RETIRADA = TICKS * 7
+CODIGO_VIA = 3                # terreno '=': camino o vía férrea
 
 
 class Mundo:
-    def __init__(self, catalogo, mapa_datos, configs, semilla=1, registrar=False):
+    def __init__(self, catalogo, mapa_datos, configs, semilla=1, registrar=False, llegada=False):
         self.cat = catalogo
         self.datos_mapa = mapa_datos
         self.mapa = Mapa(mapa_datos)
@@ -50,6 +55,9 @@ class Mundo:
         self.recursos = {}
         self.minas = {}
         self.heridos = {}
+        self.convoyes = {}
+        # llegada=True: el cuartel general llega en tren o en carreta en los primeros segundos
+        self.llegada = bool(llegada)
         self.proyectiles = []
         self.programados = []
         self._seq = 0
@@ -172,13 +180,126 @@ class Mundo:
         for j in self.jugadores:
             tx, ty = inicios[asignados[j.idx]]
             j.inicio = (tx, ty)
-            cg = self.crear_edificio(j.idx, "cuartel_general", tx, ty, construido=True)
-            trabajadores = []
-            for _ in range(self.cat.trabajadores_iniciales):
-                x, y = self.punto_salida(cg, TIERRA)
-                trabajadores.append(self.crear_unidad(j.idx, "trabajador", x, y))
-                j.pob_usada += self.cat.unidades["trabajador"].poblacion
-            self._primera_faena(cg, trabajadores)
+            if self.llegada:
+                modo, ruta = self._ruta_llegada(tx, ty)
+                c = Convoy(self._nuevo_id(), j.idx, modo, ruta, (tx, ty))
+                self.ent[c.id] = c
+                self.convoyes[c.id] = c
+            else:
+                self._desplegar_cuartel(j, tx, ty)
+
+    def _desplegar_cuartel(self, j, tx, ty):
+        cg = self.crear_edificio(j.idx, "cuartel_general", tx, ty, construido=True)
+        trabajadores = []
+        for _ in range(self.cat.trabajadores_iniciales):
+            x, y = self.punto_salida(cg, TIERRA)
+            trabajadores.append(self.crear_unidad(j.idx, "trabajador", x, y))
+            j.pob_usada += self.cat.unidades["trabajador"].poblacion
+        self._primera_faena(cg, trabajadores)
+        return cg
+
+    # ------------------------------------------------------------------
+    # Llegada del cuartel general
+    def _ruta_llegada(self, tx, ty):
+        """('tren' | 'carreta', puntos de la ruta desde el borde hasta el cuartel)."""
+        m = self.mapa
+        anillo = [y * m.w + x for y in range(ty - 1, ty + 4) for x in range(tx - 1, tx + 5)
+                  if m.dentro(x, y) and not (tx <= x < tx + 4 and ty <= y < ty + 3)]
+        if self.datos_mapa.llegada == "tren":
+            # la vía puede terminar a una o dos casillas del cuartel
+            cerca = [y * m.w + x for y in range(ty - 2, ty + 5) for x in range(tx - 2, tx + 6)
+                     if m.dentro(x, y) and not (tx <= x < tx + 4 and ty <= y < ty + 3)]
+            via = [i for i in cerca if m.terreno[i] == CODIGO_VIA]
+            camino = self._camino_al_borde(via, lambda i: m.terreno[i] == CODIGO_VIA, esquinas=False)
+            if camino:
+                return "tren", self._puntos(camino)
+        pas = m.pasable[TIERRA]
+        huella = {y * m.w + x for y in range(ty, ty + 3) for x in range(tx, tx + 4)}
+        # la carreta se detiene frente a la puerta del cuartel (abajo), sin pasar por su lugar
+        frente = [i for i in anillo if pas[i] and i // m.w == ty + 3]
+        inicio = frente or [i for i in anillo if pas[i]]
+        camino = self._camino_al_borde(inicio, lambda i: pas[i] and i not in huella, maximo=22)
+        if not camino:
+            cx, cy = tx * TILE + 2 * TILE, ty * TILE + 4 * TILE
+            return "carreta", [(cx, cy + 3 * TILE), (cx, cy)]
+        return "carreta", self._puntos(camino)
+
+    def _camino_al_borde(self, inicio, transitable, maximo=None, esquinas=True):
+        """Casillas desde el borde del mapa hasta una de 'inicio' (búsqueda en anchura). Si no se
+        llega al borde (una isla), el punto alcanzable más lejano a no más de 'maximo' pasos."""
+        m = self.mapa
+        w, h = m.w, m.h
+        previo = {i: -1 for i in inicio}
+        pasos = {i: 0 for i in inicio}
+        cola = deque(inicio)
+        lejano = inicio[0] if inicio else None
+        while cola:
+            i = cola.popleft()
+            y, x = divmod(i, w)
+            if x in (0, w - 1) or y in (0, h - 1):
+                lejano = i
+                break
+            if maximo is not None and pasos[i] > pasos.get(lejano, 0) and pasos[i] <= maximo:
+                lejano = i
+            for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1), (1, 1), (1, -1), (-1, 1), (-1, -1)):
+                nx, ny = x + dx, y + dy
+                if not (0 <= nx < w and 0 <= ny < h):
+                    continue
+                j = ny * w + nx
+                if j in previo or not transitable(j):
+                    continue
+                if esquinas and dx and dy and not (transitable(y * w + nx) and transitable(ny * w + x)):
+                    continue       # en diagonal no se cortan esquinas (la vía sí sigue en diagonal)
+                previo[j] = i
+                pasos[j] = pasos[i] + 1
+                cola.append(j)
+        else:
+            if maximo is None:
+                return []
+        if lejano is None:
+            return []
+        camino = []
+        i = lejano
+        while i != -1:
+            camino.append(i)
+            i = previo[i]
+        return camino            # del borde (o el punto lejano) hasta junto al cuartel
+
+    def _puntos(self, camino):
+        """Centros de las casillas, sin los puntos intermedios de los tramos rectos."""
+        m = self.mapa
+        pts = [m.centro_idx(i) for i in camino]
+        out = [pts[0]]
+        for k in range(1, len(pts) - 1):
+            a, b, c = out[-1], pts[k], pts[k + 1]
+            if (b[0] - a[0]) * (c[1] - b[1]) != (b[1] - a[1]) * (c[0] - b[0]):
+                out.append(b)
+        if len(pts) > 1:
+            out.append(pts[-1])
+        else:
+            out.append((pts[0][0], pts[0][1] + TILE))
+        return out
+
+    def _convoyes(self):
+        t = self.tick
+        for c in list(self.convoyes.values()):
+            if t <= LLEGADA:
+                c.ubicar(c.largo * t // LLEGADA)
+                if t == LLEGADA:
+                    j = self.jugadores[c.dueno]
+                    tx, ty = c.destino
+                    cg = self._desplegar_cuartel(j, tx, ty)
+                    self.ev_pos(cg.x, cg.y, "llegada", cg.id, c.id, c.modo)
+            elif t > LLEGADA + ESPERA_CONVOY:
+                fuera = t - LLEGADA - ESPERA_CONVOY
+                c.ubicar(c.largo - c.largo * fuera // RETIRADA)
+                if fuera >= RETIRADA:
+                    c.vivo = False
+                    self.muertos.append(c)
+
+    def cuartel_en_camino(self, p):
+        """True mientras el cuartel general del jugador p todavía no llegó."""
+        return self.tick < LLEGADA and any(c.dueno == p for c in self.convoyes.values())
 
     def _primera_faena(self, cg, trabajadores):
         """Como en StarCraft, los trabajadores iniciales salen solos a las calicheras más cercanas."""
@@ -618,6 +739,8 @@ class Mundo:
                         self.jugadores[e.dueno].minas -= 1
                 elif e.es_herido:
                     del self.heridos[e.id]
+                elif e.es_convoy:
+                    del self.convoyes[e.id]
 
     def _quitar_unidad(self, u):
         del self.unidades[u.id]
@@ -741,6 +864,8 @@ class Mundo:
             except (KeyError, ValueError, TypeError, IndexError, AttributeError):
                 self.ev_jugador(p, "err", "Orden no válida")
         self._ejecutar_programados()
+        if self.convoyes:
+            self._convoyes()
         self.rejilla.reconstruir(self.unidades.values())
         self._procesar_rutas()
         for b in list(self.edificios.values()):
@@ -841,6 +966,9 @@ class Mundo:
             obs[eq].append((tx, ty, u.st.vision, m.nivel[ty * w + tx]))
             if u.tipo.detector:
                 dets[eq].append((tx, ty, u.tipo.detector / TILE))
+        for c in self.convoyes.values():
+            tx, ty = m.casilla(c.x, c.y)
+            obs[eq_de[c.dueno]].append((tx, ty, 6, m.nivel[ty * w + tx]))
         for b in self.edificios.values():
             if not b.vivo:
                 continue
@@ -869,6 +997,8 @@ class Mundo:
         for b in self.edificios.values():
             if b.vivo:
                 con_edificios.add(b.dueno)
+        if self.tick <= LLEGADA:
+            con_edificios |= {c.dueno for c in self.convoyes.values()}
         for j in self.jugadores:
             if j.vivo and (j.idx not in con_edificios or j.rendido):
                 j.vivo = False

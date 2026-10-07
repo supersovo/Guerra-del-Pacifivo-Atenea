@@ -6,7 +6,7 @@ lo que cambió desde la instantánea anterior. Cada entidad viaja como una lista
 
     [id, tipo, dueño, x, y, vida, dirección, banderas, extra]
 
-tipo es el índice del catálogo (o -1 salitre, -2 agua, -3 mina, -4 herido); x, y en
+tipo es el índice del catálogo (o -1 salitre, -2 agua, -3 mina, -4 herido, -5 convoy); x, y en
 píxeles; extra es 0 o un diccionario con datos propios (cola de producción,
 energía, avance de obra...). Las bajas y lo que sale de la vista llegan en
 "q" como [id, motivo] (motivo "m" = muerto, "v" = fuera de vista).
@@ -35,6 +35,7 @@ TIPO_SALITRE = -1
 TIPO_AGUA = -2
 TIPO_MINA = -3
 TIPO_HERIDO = -4
+TIPO_CONVOY = -5
 
 
 def registro(m, e, propio, t, detectado=False):
@@ -120,6 +121,11 @@ def registro(m, e, propio, t, detectado=False):
     if e.es_recurso:
         return [e.id, TIPO_SALITRE if e.rtipo == "salitre" else TIPO_AGUA, -1, e.x >> 4, e.y >> 4,
                 e.cantidad, 0, 0, 0]
+    if e.es_convoy:
+        # tren o carreta del cuartel general: modo, lugar del cuartel (píxeles) y la ruta entera
+        return [e.id, TIPO_CONVOY, e.dueno, e.x >> 4, e.y >> 4, e.recorrido >> 4, e.dir, 0,
+                {"m": e.modo, "d": [(e.destino[0] * 32) + 64, (e.destino[1] * 32) + 48],
+                 "r": [[x >> 4, y >> 4] for x, y in e.ruta]}]
     if e.es_herido:
         # "u": tipo de la unidad caída; "h": tick en que muere si nadie lo recoge; "c": ya va un camillero
         return [e.id, TIPO_HERIDO, e.dueno, e.x >> 4, e.y >> 4, 1, e.dir, 0,
@@ -169,7 +175,7 @@ class Emisor:
         p = self.p
         if p is None:
             return not (e.es_unidad and e.dentro), False
-        if e.es_herido:
+        if e.es_herido or e.es_convoy:
             if m.aliados(p, e.dueno):
                 return True, False
             eq = m.jugadores[p].equipo

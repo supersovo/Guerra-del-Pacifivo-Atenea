@@ -291,6 +291,29 @@ def test_heridos_camilleros_y_hospital():
     assert abs(cam[0].x - x0) < TILE
 
 
+def test_llegada_del_cuartel_en_tren_y_en_carreta():
+    from salitre.contenido import mapas
+    from salitre.sim.mundo import LLEGADA, Mundo
+    for mapa, modo in ((U.mapa_llano(), "carreta"),
+                       (mapas.cargar(mapas.listar()["pampa_del_tamarugal"]), "tren")):
+        configs = [{"nombre": f"J{i}", "faccion": "chile", "equipo": i, "color": i, "posicion": i}
+                   for i in range(2)]
+        m = Mundo(U.cat(), mapa, configs, semilla=5, llegada=True)
+        assert not m.edificios and not m.unidades
+        assert sorted(c.modo for c in m.convoyes.values()) == [modo, modo]
+        U.avanzar(m, LLEGADA - 1)
+        # mientras vienen en camino nadie pierde por no tener edificios
+        assert not m.edificios and all(j.vivo for j in m.jugadores)
+        U.avanzar(m, 1)
+        assert len(U.de(m, 0, "cuartel_general")) == 1 and len(U.de(m, 1, "cuartel_general")) == 1
+        assert len(U.de(m, 0, "trabajador")) == 6
+        cg = U.de(m, 0, "cuartel_general")[0]
+        assert (cg.tx, cg.ty) == tuple(mapa.inicios[0])
+        U.avanzar(m, 12 * S)
+        assert not m.convoyes                    # el tren o la carreta se retiraron
+        assert m.jugadores[0].est["salitre_recolectado"] > 0
+
+
 def test_determinismo():
     def correr():
         from salitre.ia.ia import IA

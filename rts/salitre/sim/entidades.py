@@ -1,6 +1,8 @@
-"""Entidades de la simulación: unidades, edificios, recursos, minas, heridos y órdenes."""
+"""Entidades de la simulación: unidades, edificios, recursos, minas, heridos, convoyes y órdenes."""
 
-from .constantes import EDIFICIO, HERIDO, MINA, RECURSO, TILE, UNIDAD
+from math import isqrt
+
+from .constantes import CONVOY, EDIFICIO, HERIDO, MINA, RECURSO, TILE, UNIDAD
 
 # Tipos de orden
 MOVER = 1
@@ -50,6 +52,7 @@ class Entidad:
     es_recurso = False
     es_mina = False
     es_herido = False
+    es_convoy = False
 
 
 class Unidad(Entidad):
@@ -182,6 +185,53 @@ class Edificio(Entidad):
 
     def __repr__(self):
         return f"<{self.tipo.id}#{self.id} j{self.dueno} ({self.tx},{self.ty}) {self.vida}hp{'' if self.construido else ' en obra'}>"
+
+
+class Convoy(Entidad):
+    """Tren o carreta que trae el cuartel general al comenzar la partida: recorre 'ruta'
+    (puntos en subunidades, del borde del mapa al lugar del cuartel) y después se retira."""
+    __slots__ = ("modo", "ruta", "largo", "destino", "dir", "radio", "recorrido")
+    es_convoy = True
+
+    def __init__(self, uid, dueno, modo, ruta, destino):
+        self.id = uid
+        self.clase = CONVOY
+        self.tipo = None
+        self.dueno = dueno
+        self.modo = modo
+        self.ruta = ruta
+        self.largo = sum(_dist(ruta[i], ruta[i + 1]) for i in range(len(ruta) - 1))
+        self.destino = destino          # casilla superior izquierda del cuartel general
+        self.x, self.y = ruta[0]
+        self.vida = 1
+        self.vivo = True
+        self.st = None
+        self.dir = 2
+        self.radio = TILE // 2
+        self.recorrido = 0
+
+    def ubicar(self, d):
+        """Se pone a la distancia d del comienzo de la ruta (y mira hacia donde avanza)."""
+        d = max(0, min(self.largo, d))
+        avanza = d >= self.recorrido
+        self.recorrido = d
+        r = self.ruta
+        for i in range(len(r) - 1):
+            seg = _dist(r[i], r[i + 1])
+            if d <= seg or i == len(r) - 2:
+                (x0, y0), (x1, y1) = r[i], r[i + 1]
+                f = min(d, seg)
+                self.x = x0 + (x1 - x0) * f // max(1, seg)
+                self.y = y0 + (y1 - y0) * f // max(1, seg)
+                dx, dy = (x1 - x0, y1 - y0) if avanza else (x0 - x1, y0 - y1)
+                from .comportamiento import direccion
+                self.dir = direccion(dx, dy)
+                return
+            d -= seg
+
+
+def _dist(a, b):
+    return isqrt((a[0] - b[0]) ** 2 + (a[1] - b[1]) ** 2)
 
 
 class Herido(Entidad):

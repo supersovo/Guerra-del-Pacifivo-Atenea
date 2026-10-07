@@ -46,6 +46,7 @@ def guardar(mundo, configs, ganador, nombre=None, carpeta=None):
         "fecha": time.time(),
         "mapa": mundo.datos_mapa.a_dict(),
         "semilla": mundo.semilla,
+        "llegada": mundo.llegada,
         "jugadores": configs,
         "comandos": [[t, p, c] for (t, p, c) in (mundo.registro or [])],
         "fin": mundo.tick,

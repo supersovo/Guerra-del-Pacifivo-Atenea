@@ -8,6 +8,7 @@ import pygame
 
 from ...red import instantanea as I
 from .. import fuentes
+from ..graficos import convoy as G_C
 from ..graficos import edificios as G_E
 from ..graficos import naturaleza as N
 from ..graficos.efectos import Efectos
@@ -199,8 +200,73 @@ class Vista:
                 lz.dibujar(tm, sx - 8 * z, sy - 6 * z, 16 * z, 12 * z, alpha=200)
             elif e.t == I.TIPO_HERIDO:
                 pass            # ya dibujado en el suelo, debajo de las tropas
+            elif e.t == I.TIPO_CONVOY:
+                self._convoy(cam, e, ahora)
             else:
                 self._unidad(cam, e, ahora)
+
+    @staticmethod
+    def _en_ruta(ruta, d):
+        """Punto y ángulo (grados, hacia el final de la ruta) a la distancia d del comienzo."""
+        for i in range(len(ruta) - 1):
+            (x0, y0), (x1, y1) = ruta[i], ruta[i + 1]
+            seg = math.hypot(x1 - x0, y1 - y0) or 1.0
+            if d <= seg or i == len(ruta) - 2:
+                f = max(0.0, min(1.0, d / seg))
+                return x0 + (x1 - x0) * f, y0 + (y1 - y0) * f, math.degrees(math.atan2(y1 - y0, x1 - x0))
+            d -= seg
+        return ruta[-1][0], ruta[-1][1], 0.0
+
+    @staticmethod
+    def _distancia_en_ruta(ruta, x, y):
+        """Cuánto avanzó por la ruta un punto (x, y) que está sobre ella (o cerca)."""
+        mejor, mejor_d2, acum = 0.0, None, 0.0
+        for i in range(len(ruta) - 1):
+            (x0, y0), (x1, y1) = ruta[i], ruta[i + 1]
+            dx, dy = x1 - x0, y1 - y0
+            seg2 = dx * dx + dy * dy or 1.0
+            f = max(0.0, min(1.0, ((x - x0) * dx + (y - y0) * dy) / seg2))
+            px, py = x0 + dx * f, y0 + dy * f
+            d2 = (px - x) ** 2 + (py - y) ** 2
+            if mejor_d2 is None or d2 < mejor_d2:
+                mejor, mejor_d2 = acum + f * math.sqrt(seg2), d2
+            acum += math.sqrt(seg2)
+        return mejor
+
+    def _convoy(self, cam, e, ahora):
+        """El tren (locomotora y tres plataformas por la vía) o la carreta del cuartel general."""
+        lz = self.lz
+        est = self.est
+        z = cam.zoom
+        ex = e.ex if isinstance(e.ex, dict) else {}
+        ruta = ex.get("r") or []
+        if len(ruta) < 2:
+            return
+        col = color_jugador(est.jugadores[e.dueno]["color"]) if e.dueno >= 0 else (200, 200, 200)
+        s = self._distancia_en_ruta(ruta, e.x, e.y)
+        moviendo = (e.x0, e.y0) != (e.x1, e.y1)
+        if ex.get("m") == "tren":
+            piezas = [(lz.textura(("conv", "loco", col), lambda: G_C.locomotora(col)), s)]
+            for k in range(3):
+                t = lz.textura(("conv", "vagon", col, k), lambda k=k: G_C.vagon(col, k))
+                piezas.append((t, s - 43 - 40 * k))
+            for t, d in piezas:
+                if d < -20:
+                    continue        # todavía fuera del mapa
+                x, y, ang = self._en_ruta(ruta, max(0.0, d))
+                sx, sy = cam.a_pantalla(x, y)
+                lz.dibujar(t, sx - t.width * z / 2, sy - t.height * z / 2, t.width * z, t.height * z, angulo=ang)
+            if moviendo and int(ahora * 10 + e.id) % 3 == 0:
+                x, y, ang = self._en_ruta(ruta, s)
+                a = math.radians(ang)
+                self.efx.humo_chimenea(x + math.cos(a) * 6, y + math.sin(a) * 6 - 6)
+            return
+        paso = int(ahora * 6) % 2 if moviendo else 0
+        t = lz.textura(("conv", "carreta", col, paso), lambda: G_C.carreta(col, paso))
+        sx, sy = cam.a_pantalla(e.x, e.y)
+        lz.dibujar(t, sx - t.width * z / 2, sy - t.height * z / 2, t.width * z, t.height * z, angulo=45 * e.dir)
+        if moviendo and int(ahora * 10 + e.id) % 4 == 0:
+            self.efx.polvo_marcha(e.x, e.y + 6)
 
     def _herido(self, cam, e, ahora):
         """Herido tendido: de vez en cuando levanta el brazo pidiendo ayuda. A los suyos se les

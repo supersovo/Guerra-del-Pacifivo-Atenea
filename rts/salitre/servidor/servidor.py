@@ -200,7 +200,10 @@ class Partida:
                     "es_ia": r["tipo"] == "ia", "conectado": s is not None, "fuera_t": None,
                     "ia_suplente": None,
                 })
-        self.mundo = Mundo(cat, self.mapa, self.configs, self.semilla, registrar=repeticion_datos is None)
+        # el cuartel general llega en tren o en carreta (las repeticiones viejas no lo tienen)
+        llegada = repeticion_datos.get("llegada", False) if repeticion_datos is not None else True
+        self.mundo = Mundo(cat, self.mapa, self.configs, self.semilla, registrar=repeticion_datos is None,
+                           llegada=llegada)
         self.ias = {}
         self.emisores = {}
         for j in self.jugadores:

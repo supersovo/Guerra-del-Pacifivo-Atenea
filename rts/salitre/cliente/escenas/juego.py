@@ -78,6 +78,10 @@ class Juego(Escena):
         if not self.est.espectador:
             f = self.est.facciones[self.est.yo]
             self.hud.mensaje(f"Usted manda el {f.ejercito}. ¡Buena suerte, mi comandante!", P.CREMA)
+            if not inicio.get("repeticion"):
+                como = ("en tren, por el ramal del ferrocarril" if self.est.datos_mapa.llegada == "tren"
+                        else "en carreta, por el camino")
+                self.hud.mensaje(f"El cuartel general viene {como}.", P.BRONCE_CLARO, 9)
         else:
             self.hud.mensaje("Modo espectador: todo el mapa a la vista. +/- cambia la velocidad.", P.CREMA)
 
@@ -141,10 +145,15 @@ class Juego(Escena):
             self.cam.centrar(est.mapa.w * 16, est.mapa.h * 16)
             return
         # los recursos se conocen desde el inicio: se espera a ver el propio cuartel general
+        # (o el tren o la carreta que lo trae, mirando el lugar donde se levantará)
         for e in est.ents.values():
             if e.dueno == est.yo and e.es_edificio:
                 self.centrado = True
                 self.cam.centrar(e.x, e.y)
+                return
+            if e.dueno == est.yo and e.t == I.TIPO_CONVOY and isinstance(e.ex, dict) and "d" in e.ex:
+                self.centrado = True
+                self.cam.centrar(*e.ex["d"])
                 return
 
     def _nombre(self, dueno, idx):
@@ -234,6 +243,16 @@ class Juego(Escena):
             o = est.ents.get(ev[2])
             if o is not None:
                 efx.curacion(o.x, o.y - 10)
+        elif k == "llegada":
+            # el tren o la carreta llegó: se levanta el cuartel general y salen los trabajadores
+            o = est.ents.get(ev[2])
+            if o is not None:
+                for kk in range(12):
+                    efx.polvo_obra(o.x + (kk % 4 - 1.5) * 26, o.y + (kk // 4 - 1) * 18)
+                if o.dueno == est.yo:
+                    self.hud.mensaje("¡Llegó el cuartel general! Los trabajadores salen a la faena.", P.CREMA, 6)
+            snd.en_mapa("silbato" if ev[4] == "tren" else "martillo", o.x if o else 0, o.y if o else 0, cam,
+                        minimo_ms=400, volumen=0.8)
         elif k == "recuperado":
             o = est.ents.get(ev[2])
             if o is not None:

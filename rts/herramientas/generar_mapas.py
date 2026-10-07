@@ -12,6 +12,7 @@ las mismas oportunidades. Uso:
 import json
 import math
 import sys
+from collections import deque
 from pathlib import Path
 
 RAIZ = Path(__file__).resolve().parent.parent
@@ -202,6 +203,52 @@ class Lienzo:
         if inicio:
             self.inicios.append([tx, ty])
 
+    def ramal(self, region):
+        """Vía férrea desde el cuartel general hasta el borde del mapa o la vía principal más
+        cercana: por ella llega en tren el cuartel general al comenzar la partida. 'region(x, y)'
+        dice qué casillas sobreviven a la simetría (la mitad o el cuarto que se define)."""
+        tx, ty = self.inicios[-1]
+        nivel = self.a[ty + 1][tx + 1]
+        bloqueadas = set()
+        for x in range(tx, tx + 4):
+            for y in range(ty, ty + 3):
+                bloqueadas.add((x, y))
+        for r in self.recursos:
+            rw, rh = (2, 1) if r["tipo"] == "salitre" else (3, 3)
+            for x in range(r["x"] - 1, r["x"] + rw + 1):
+                for y in range(r["y"] - 1, r["y"] + rh + 1):
+                    bloqueadas.add((x, y))
+
+        def libre(x, y):
+            return (self.dentro(x, y) and region(x, y) and (x, y) not in bloqueadas
+                    and self.t[y][x] in ".,:=" and self.a[y][x] == nivel)
+
+        inicio = [(x, y) for x in range(tx - 1, tx + 5) for y in range(ty - 1, ty + 4)
+                  if (x, y) not in bloqueadas and libre(x, y)]
+        previo = {c: None for c in inicio}
+        cola = deque(inicio)
+        fin = None
+        while cola:
+            x, y = cola.popleft()
+            borde = x in (0, self.w - 1) or y in (0, self.h - 1)
+            if (borde or (self.t[y][x] == "=" and previo[(x, y)] is not None)) and (x, y) not in inicio:
+                fin = (x, y)
+                break
+            for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1), (1, 1), (1, -1), (-1, 1), (-1, -1)):
+                nx, ny = x + dx, y + dy
+                if (nx, ny) in previo or not libre(nx, ny):
+                    continue
+                if dx and dy and not (libre(x + dx, y) and libre(x, y + dy)):
+                    continue
+                previo[(nx, ny)] = (x, y)
+                cola.append((nx, ny))
+        if fin is None:
+            raise SystemExit("no hay por dónde tender el ramal hasta el cuartel general")
+        c = fin
+        while c is not None:
+            self.t[c[1]][c[0]] = "="
+            c = previo[c]
+
     # -- simetría ------------------------------------------------------------
     def reflejar_180(self):
         """Copia la mitad izquierda-superior en la otra mitad, rotada 180°."""
@@ -229,11 +276,11 @@ class Lienzo:
                 self.t[y][x] = self.t[sy][sx]
                 self.a[y][x] = self.a[sy][sx]
 
-    def exportar(self, ident, nombre, descripcion, historia, ambiente="desierto", naval=False):
+    def exportar(self, ident, nombre, descripcion, historia, ambiente="desierto", naval=False, llegada="carreta"):
         return {
             "id": ident, "nombre": nombre, "descripcion": descripcion, "historia": historia,
             "ambiente": ambiente, "ancho": self.w, "alto": self.h, "jugadores": len(self.inicios),
-            "naval": naval, "inicios": self.inicios, "recursos": self.recursos,
+            "naval": naval, "llegada": llegada, "inicios": self.inicios, "recursos": self.recursos,
             "terreno": ["".join(f) for f in self.t],
             "altura": ["".join(str(v) for v in f) for f in self.a],
         }
@@ -306,6 +353,7 @@ def pampa_del_tamarugal():
     lz.recursos.append({"tipo": "agua", "x": 46, "y": 40, "cantidad": 4000})
     for k in range(4):
         lz.recursos.append({"tipo": "salitre", "x": 40 + k * 2, "y": 37, "cantidad": 2000})
+    lz.ramal(lambda x, y: (y * lz.w + x) * 2 < lz.w * lz.h)
     lz.reflejar_180()
     lz.recursos, lz.inicios = reflejar_recursos_180(lz, lz.recursos, lz.inicios)
     return lz.exportar(
@@ -313,7 +361,7 @@ def pampa_del_tamarugal():
         "2 jugadores. Llanura salitrera con tamarugales, la vía del ferrocarril y los pozos del centro.",
         "La pampa del Tamarugal, entre la cordillera de la Costa y los Andes, concentraba las "
         "oficinas salitreras de Tarapacá. Por ella marcharon los ejércitos en noviembre de 1879, "
-        "de Dolores a Tarapacá, buscando siempre el agua de los pozos.")
+        "de Dolores a Tarapacá, buscando siempre el agua de los pozos.", llegada="tren")
 
 
 def alto_de_la_alianza():
@@ -330,6 +378,7 @@ def alto_de_la_alianza():
     lz.tamarugal(80, 10, 5, 35, 8)
     lz.linea(0, 48, 30, 30, "=", 1, solo_si=".,")
     lz.recursos.append({"tipo": "agua", "x": 46, "y": 54, "cantidad": 4000})
+    lz.ramal(lambda x, y: (y * lz.w + x) * 2 < lz.w * lz.h)
     lz.reflejar_180()
     lz.recursos, lz.inicios = reflejar_recursos_180(lz, lz.recursos, lz.inicios)
     return lz.exportar(
@@ -337,7 +386,7 @@ def alto_de_la_alianza():
         "2 jugadores. Dominar la meseta del Intiorko da la ventaja de la altura.",
         "El 26 de mayo de 1880 el ejército aliado de Campero esperó en la meseta del cerro "
         "Intiorko, al norte de Tacna, al ejército chileno de Baquedano. La IV División chilena "
-        "envolvió el ala derecha aliada y tomó su artillería: Bolivia no volvió a combatir.")
+        "envolvió el ala derecha aliada y tomó su artillería: Bolivia no volvió a combatir.", llegada="tren")
 
 
 def morro_de_arica():
@@ -419,6 +468,7 @@ def cuatro_naciones():
     lz.tamarugal(50, 6, 4, 45, 21)
     lz.meseta(36, 36, 5, 5, 1, [45, 225])
     lz.linea(0, 63, 63, 63, "=", 1, solo_si=".,:")
+    lz.ramal(lambda x, y: x < lz.w // 2 and y < lz.h // 2)
     lz.reflejar_4()
     lz.elipse(64, 64, 14, 14, ":", solo_si=".,")
     recursos, inicios = rotar_recursos_4(lz, lz.recursos, lz.inicios)
@@ -434,7 +484,7 @@ def cuatro_naciones():
         "4 jugadores (todos contra todos o 2 contra 2). Chile, Perú, Bolivia y Argentina en torno al salar.",
         "Escenario hipotético: las cuatro naciones del cono sur disputan el salitre. En 1879 la "
         "Argentina se declaró neutral, pero su conflicto de límites con Chile la llevó al borde "
-        "de la guerra hasta el Tratado de 1881.")
+        "de la guerra hasta el Tratado de 1881.", llegada="tren")
 
 
 def quebrada_de_tarapaca():
@@ -486,7 +536,7 @@ def limpiar(d):
     for (x0, y0) in d["inicios"]:
         for y in range(y0 - 1, y0 + 4):
             for x in range(x0 - 1, x0 + 5):
-                if 0 <= x < w and 0 <= y < h:
+                if 0 <= x < w and 0 <= y < h and t[y][x] != "=":    # el ramal llega hasta el cuartel
                     t[y][x] = "."
     d["terreno"] = ["".join(f) for f in t]
     # niveles: la casilla de un recurso o inicio hereda el nivel de su esquina

@@ -221,6 +221,12 @@ class EstadoJuego:
         obs = []
         w = m.w
         for e in self.ents.values():
+            if e.t == I.TIPO_CONVOY and self.aliado(e.dueno):
+                # el tren o la carreta del cuartel general ve a su alrededor (como en el servidor)
+                tx = min(m.w - 1, max(0, int(e.x1) // 32))
+                ty = min(m.h - 1, max(0, int(e.y1) // 32))
+                obs.append((tx, ty, 6, m.nivel[ty * w + tx]))
+                continue
             if e.tipo is None or e.fantasma or not self.aliado(e.dueno):
                 continue
             tx = min(m.w - 1, max(0, int(e.x1) // 32))

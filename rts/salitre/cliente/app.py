@@ -206,11 +206,13 @@ def prueba_humo(segundos=8.0):
         esc = Escaramuza(app)
         app.cambiar(esc)
         esc.comenzar()
-        limite = time.monotonic() + 30
+        limite = time.monotonic() + 45
         while True:
             app.paso(1 / 30)
             juego = app.escena
-            if type(juego).__name__ == "Juego" and any(e.dueno == juego.est.yo for e in juego.est.ents.values()):
+            # el cuartel general llega en tren o en carreta a los pocos segundos de comenzar
+            if type(juego).__name__ == "Juego" and any(e.dueno == juego.est.yo and e.es_edificio
+                                                       for e in juego.est.ents.values()):
                 break
             if time.monotonic() > limite:
                 raise RuntimeError(f"la escaramuza no comenzó (escena {type(juego).__name__})")
