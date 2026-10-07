@@ -2,7 +2,7 @@
 guarniciones (en la trinchera o en el techo de las barracas y del cuartel
 general) y el ir y venir de los trabajadores del molino."""
 
-from . import combate
+from . import combate, veterania
 from .comportamiento import deposito_cercano, direccion
 from .constantes import TICKS, TIERRA, TILE
 
@@ -32,11 +32,12 @@ def _hospital(m, b):
     """Equipos de camilleros (se reponen si caen) y pacientes que se recuperan y vuelven a filas."""
     t = m.tick
     tipo = b.tipo
+    j = m.jugadores[b.dueno]
     vivos = [i for i in b.camilleros if m.entidad(i) is not None]
     if len(vivos) < len(b.camilleros):
         b.camilleros_t = max(b.camilleros_t, t + tipo.reposicion)     # cayó un equipo: tarda en reponerse
     b.camilleros = vivos
-    if len(vivos) < tipo.camilleros and t >= b.camilleros_t:
+    if len(vivos) < tipo.camilleros + j.sanidad["equipos"] and t >= b.camilleros_t:
         x, y = m.punto_salida(b, TIERRA)
         u = m.crear_unidad(b.dueno, "camilleros", x, y)
         u.base_id = b.id
@@ -45,7 +46,6 @@ def _hospital(m, b):
         b.camilleros_t = t + ARRANQUE_CAMILLEROS
     if not b.pacientes:
         return
-    j = m.jugadores[b.dueno]
     quedan = []
     for pac in b.pacientes:
         if pac[1] > 0:
@@ -61,7 +61,8 @@ def _hospital(m, b):
             continue
         x, y = m.punto_salida(b, TIERRA)
         u = m.crear_unidad(b.dueno, ut.id, x, y)
-        u.vida = max(1, u.st.vida * tipo.vida_al_volver // 100)
+        veterania.aplicar_hoja(m, u, pac[2] if len(pac) > 2 else None)    # vuelve con su grado
+        u.vida = max(1, u.st.vida * min(100, tipo.vida_al_volver + j.sanidad["vida_al_volver"]) // 100)
         j.pob_usada += ut.poblacion
         j.est["heridos_recuperados"] = j.est.get("heridos_recuperados", 0) + 1
         m.ev_pos(b.x, b.y, "recuperado", b.id, u.id, ut.idx)

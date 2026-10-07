@@ -62,7 +62,8 @@ class Unidad(Entidad):
         "emplazando", "quieto", "dentro", "cargamento", "abatidos", "mov_ticks", "atasco",
         "casa_x", "casa_y", "cd", "regen", "acum", "oculta", "ataco_t", "golpeado_por",
         "golpeado_t", "fantasma", "recurso_id", "moviendo", "disparo_t", "espera", "creada_t",
-        "buscar_t", "ultimo_x", "ultimo_y", "base_id", "paciente",
+        "buscar_t", "ultimo_x", "ultimo_y", "base_id", "paciente", "paciente_hoja",
+        "xp", "grado", "nombre", "ficha", "batallas",
     )
     es_unidad = True
 
@@ -121,6 +122,14 @@ class Unidad(Entidad):
         self.ultimo_y = y
         self.base_id = 0         # camilleros: su hospital
         self.paciente = None     # camilleros: tipo del herido que llevan en la camilla
+        self.paciente_hoja = None
+        # veteranía: experiencia (en 1/XPF), grado, nombre (semilla, 0 = sin nombre todavía),
+        # ficha del escalafón de la campaña y batallas en que estuvo
+        self.xp = 0
+        self.grado = 0
+        self.nombre = 0
+        self.ficha = ""
+        self.batallas = 0
 
     def mod(self, campo, tick):
         v = self.aura.get(campo, 0)
@@ -234,12 +243,20 @@ def _dist(a, b):
     return isqrt((a[0] - b[0]) ** 2 + (a[1] - b[1]) ** 2)
 
 
+def hoja_de(u):
+    """Hoja de servicio de un veterano (lo que conserva si cae herido y vuelve del hospital):
+    (experiencia, grado, nombre, ficha, batallas, bajas causadas), o None si es un recluta."""
+    if not (u.xp or u.grado or u.ficha):
+        return None
+    return (u.xp, u.grado, u.nombre, u.ficha, u.batallas, u.abatidos)
+
+
 class Herido(Entidad):
     """Soldado caído que todavía vive: espera a los camilleros hasta 'hasta' (tick)."""
-    __slots__ = ("hasta", "camillero", "radio", "dir")
+    __slots__ = ("hasta", "camillero", "radio", "dir", "hoja")
     es_herido = True
 
-    def __init__(self, uid, tipo, dueno, x, y, hasta, direccion=2):
+    def __init__(self, uid, tipo, dueno, x, y, hasta, direccion=2, hoja=None):
         self.id = uid
         self.clase = HERIDO
         self.tipo = tipo
@@ -253,6 +270,7 @@ class Herido(Entidad):
         self.camillero = 0
         self.radio = TILE // 4
         self.dir = direccion
+        self.hoja = hoja         # hoja de servicio del veterano caído (ver hoja_de)
 
     def __repr__(self):
         return f"<herido {self.tipo.id}#{self.id} j{self.dueno} ({self.x // TILE},{self.y // TILE})>"

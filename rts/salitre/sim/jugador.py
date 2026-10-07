@@ -28,12 +28,15 @@ class Jugador:
         self._cat = catalogo
         self._efectos = list(faccion.efectos_iniciales())
         self.stats = mod_stats.tabla(catalogo, faccion, self._efectos)
+        self._stats_grado = {}        # (tipo, grado) -> stats con los bonos de la veteranía
+        self.veteranos_llegan = []    # campaña: veteranos que llegan con el cuartel general
+        self.sanidad = {"equipos": 0, "segundos_herido": 0, "vida_al_volver": 0}
         self.cambio_mejoras = True
         self.est = {
             "unidades_creadas": 0, "unidades_perdidas": 0, "enemigos_abatidos": 0,
             "edificios_construidos": 0, "edificios_perdidos": 0, "edificios_destruidos": 0,
             "salitre_recolectado": 0, "agua_recolectada": 0, "dinero_gastado": 0,
-            "agua_gastada": 0, "heridos_recuperados": 0,
+            "agua_gastada": 0, "heridos_recuperados": 0, "ascensos": 0, "veteranos_caidos": 0,
         }
         self.aviso_poblacion_t = -9999
         self.aviso_ataque_t = -9999
@@ -79,7 +82,22 @@ class Jugador:
         self.mejoras.add(mejora.id)
         self._efectos.extend(mejora.efectos)
         self.stats = mod_stats.tabla(self._cat, self.faccion, self._efectos)
+        self._stats_grado = {}
+        for k, v in mejora.sanidad.items():
+            self.sanidad[k] += v
         self.cambio_mejoras = True
+
+    def stats_de(self, tipo_id, grado=0):
+        """Stats de un tipo para este jugador; con grado > 0, los de un veterano de ese grado."""
+        if not grado:
+            return self.stats[tipo_id]
+        clave = (tipo_id, grado)
+        st = self._stats_grado.get(clave)
+        if st is None:
+            efectos = self._efectos + list(self._cat.veterania.grados[grado].efectos)
+            st = mod_stats.calcular(self._cat.unidades[tipo_id], efectos)
+            self._stats_grado[clave] = st
+        return st
 
     def nivel_pob_max(self, total):
         self.pob_max = min(self._cat.poblacion_maxima, total)

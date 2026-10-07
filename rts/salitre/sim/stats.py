@@ -1,8 +1,9 @@
 """Estadísticas efectivas de cada tipo para un jugador.
 
 Parten del catálogo y suman las bonificaciones de la nación y las
-investigaciones completadas. Se recalculan solo cuando termina una
-investigación; las auras y habilidades se aplican aparte, por unidad.
+investigaciones completadas (y, para los veteranos, los bonos de su grado). Se
+recalculan solo cuando termina una investigación; las auras y habilidades se
+aplican aparte, por unidad.
 """
 
 from .constantes import EFP, TILE
@@ -45,7 +46,8 @@ def calcular(tipo, efectos):
         st.carga_pct = int(tipo.carga_bonus + s.get("carga_pct", 0))
     arma = tipo.arma
     if arma is not None:
-        st.danio = int(arma.danio + s.get("danio", 0))
+        # el % de daño (grados de veteranía) se redondea al entero más cercano
+        st.danio = (int(arma.danio + s.get("danio", 0)) * (100 + s.get("danio_pct", 0)) + 50) // 100
         st.alcance = arma.alcance + int(round(s.get("alcance", 0) * TILE))
         st.alcance_min = arma.alcance_min
         st.enfriamiento = max(1, int(round(arma.enfriamiento * 100 / (100 + s.get("ataque_vel_pct", 0)))))

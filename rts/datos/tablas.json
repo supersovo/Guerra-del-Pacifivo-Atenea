@@ -37,5 +37,53 @@
   "minas_maximas": 15,
   "segundos_herido": 40,
   "_segundos_herido": "Con un hospital de campaña, el soldado de infantería que cae por fuego de fusil, metralla o sable queda herido en el suelo este tiempo; si los camilleros no lo recogen, muere. Quien cae por artillería, dinamita o minas muere en el acto.",
-  "distancia_minima_recursos_cuartel": 3
+  "distancia_minima_recursos_cuartel": 3,
+
+  "veterania": {
+    "_comentario": "Grados que la tropa gana con la experiencia (no los héroes, trabajadores ni camilleros). 'umbral': experiencia necesaria, en % del costo de la unidad (dinero + agua): abatir enemigos por su mismo valor da el 100 %. 'efectos': los mismos campos que las investigaciones, ya sumados para ese grado (no se acumulan entre grados). 'fallo_altura_pct': cuánto de la falla por disparar cuesta arriba conserva el grado. 'emplazar_pct': cuánto más rápido se emplaza la artillería. 'regeneracion': vida por segundo que recupera fuera de combate. 'rango': cómo se nombra al soldado del escalafón.",
+    "grados": [
+      {"nombre": "Recluta", "umbral": 0, "rango": "Soldado"},
+      {"nombre": "Fogueado", "umbral": 100, "rango": "Soldado", "efectos": [
+        {"campo": "vida_pct", "suma": 10},
+        {"campo": "danio_pct", "suma": 10},
+        {"campo": "ataque_vel_pct", "suma": 5},
+        {"campo": "velocidad_pct", "suma": 5, "objetivo": {"clases": ["caballeria"]}},
+        {"campo": "carga_pct", "suma": 25, "objetivo": {"clases": ["caballeria"], "armas": ["sable"]}},
+        {"campo": "curacion_pct", "suma": 20}
+      ]},
+      {"nombre": "Veterano", "umbral": 300, "rango": "Cabo", "fallo_altura_pct": 67, "emplazar_pct": 25, "efectos": [
+        {"campo": "vida_pct", "suma": 20},
+        {"campo": "danio_pct", "suma": 15},
+        {"campo": "ataque_vel_pct", "suma": 10},
+        {"campo": "armadura", "suma": 1},
+        {"campo": "vision", "suma": 1},
+        {"campo": "alcance", "suma": 1, "objetivo": {"armas": ["fusil", "metralla", "dinamita", "explosivo", "canon_naval"]}},
+        {"campo": "velocidad_pct", "suma": 10, "objetivo": {"clases": ["caballeria"]}},
+        {"campo": "carga_pct", "suma": 50, "objetivo": {"clases": ["caballeria"], "armas": ["sable"]}},
+        {"campo": "curacion_pct", "suma": 40}
+      ]},
+      {"nombre": "Aguerrido", "umbral": 600, "rango": "Sargento", "fallo_altura_pct": 50, "emplazar_pct": 50, "regeneracion": 0.5, "efectos": [
+        {"campo": "vida_pct", "suma": 30},
+        {"campo": "danio_pct", "suma": 25},
+        {"campo": "ataque_vel_pct", "suma": 15},
+        {"campo": "armadura", "suma": 1},
+        {"campo": "vision", "suma": 2},
+        {"campo": "alcance", "suma": 1, "objetivo": {"armas": ["fusil", "metralla", "dinamita", "canon_naval"]}},
+        {"campo": "alcance", "suma": 2, "objetivo": {"armas": ["explosivo"]}},
+        {"campo": "velocidad_pct", "suma": 15, "objetivo": {"clases": ["caballeria"]}},
+        {"campo": "carga_pct", "suma": 75, "objetivo": {"clases": ["caballeria"], "armas": ["sable"]}},
+        {"campo": "curacion_pct", "suma": 60}
+      ]}
+    ],
+    "experiencia": {
+      "_comentario": "edificios_pct: experiencia por dañar obras (en % de su valor). fogueo_pct: lo que enseña recibir fuego y seguir en pie (en % del valor de la vida perdida). curacion_por_vida: experiencia de la cantinera por cada punto de vida curado. encuadramiento: el recluta que combate cerca de un Aguerrido de su arma aprende más rápido; heroe_pct: ídem cerca de un héroe. instruccion: con esa investigación, los reclutas ociosos junto al Barracón de Instrucción llegan solos al primer grado (nunca más arriba). regeneracion_tras: segundos sin recibir fuego para que el Aguerrido recupere vida.",
+      "edificios_pct": 50,
+      "fogueo_pct": 25,
+      "curacion_por_vida": 0.5,
+      "encuadramiento": {"radio": 4, "pct": 50},
+      "heroe_pct": 25,
+      "instruccion": {"mejora": "ejercicios_tiro", "radio": 6, "por_segundo": 1.0},
+      "regeneracion_tras": 10
+    }
+  }
 }

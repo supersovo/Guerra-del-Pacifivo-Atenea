@@ -7,6 +7,7 @@ más bajo hacia uno más alto hay un 30 % de errar (ventaja de la altura).
 
 from math import isqrt
 
+from . import veterania
 from .constantes import AGUA, TICKS, TILE
 from .entidades import Proyectil
 
@@ -113,10 +114,13 @@ def danar(m, objetivo, d, atacante_id, dueno_atacante, por_explosion=False):
     if not objetivo.vivo or d <= 0:
         return
     t = m.tick
+    antes = objetivo.vida
     if objetivo.es_unidad and objetivo.mod("inmortal", t):
         objetivo.vida = max(1, objetivo.vida - d)
     else:
         objetivo.vida -= d
+    if objetivo.es_unidad or objetivo.es_edificio:
+        veterania.por_danio(m, m.ent.get(atacante_id), objetivo, antes - max(0, objetivo.vida))
     if objetivo.es_unidad:
         objetivo.golpeado_por = atacante_id
         objetivo.golpeado_t = t
@@ -193,7 +197,7 @@ def disparar(m, atacante, objetivo, ox, oy, st, arma, danio_pct, nivel_origen, i
     falla = False
     if not ignora_altura:
         nv_obj = m.mapa.nivel_en(objetivo.x, objetivo.y)
-        if nv_obj > nivel_origen and m.azar.prob(cat.fallo_altura):
+        if nv_obj > nivel_origen and m.azar.prob(veterania.fallo_altura(m, atacante)):
             falla = True
     dueno = atacante.dueno
     if arma.vel_proyectil:

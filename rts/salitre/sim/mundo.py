@@ -18,12 +18,12 @@ import heapq
 from collections import deque
 from math import isqrt
 
-from . import combate, comandos, comportamiento, habilidades
+from . import combate, comandos, comportamiento, habilidades, veterania
 from . import edificios as logica_edificios
 from . import vision as mod_vision
 from .azar import Azar
-from .constantes import AGUA, MEDIA, TICKS, TIERRA, TILE
-from .entidades import RECOLECTAR, Convoy, Edificio, Herido, Orden, Recurso, Unidad
+from .constantes import AGUA, MEDIA, TICKS, TIERRA, TILE, ticks
+from .entidades import RECOLECTAR, Convoy, Edificio, Herido, Orden, Recurso, Unidad, hoja_de
 from .espacial import Rejilla, RejillaEdificios
 from .jugador import Jugador
 from .mapa import OCUPA_EDIFICIO, OCUPA_RECURSO, Mapa
@@ -73,6 +73,8 @@ class Mundo:
         self.terminado = False
         self.ganador = None
         self.trucos = False
+        # veteranos caídos (para el parte de guerra y el libro de la campaña): (dueño, tipo, hoja)
+        self.caidos = []
 
         self.jugadores = []
         for i, c in enumerate(configs):
@@ -80,6 +82,8 @@ class Mundo:
             self.jugadores.append(Jugador(i, c.get("nombre", f"Jugador {i + 1}"), fac,
                                           int(c.get("equipo", i)), int(c.get("color", i)),
                                           catalogo, bool(c.get("ia", False))))
+            # veteranos de la campaña que llegan con el cuartel general
+            self.jugadores[-1].veteranos_llegan = list(c.get("veteranos") or [])
         n = len(self.jugadores)
         self.aliado = [[self.jugadores[a].equipo == self.jugadores[b].equipo for b in range(n)]
                        for a in range(n)]
@@ -196,6 +200,17 @@ class Mundo:
             trabajadores.append(self.crear_unidad(j.idx, "trabajador", x, y))
             j.pob_usada += self.cat.unidades["trabajador"].poblacion
         self._primera_faena(cg, trabajadores)
+        # los veteranos de las batallas anteriores bajan del tren o de la carreta con el cuartel
+        for v in j.veteranos_llegan:
+            tipo = self.cat.unidades.get(v.get("tipo"))
+            if tipo is None or tipo.id not in j.stats or tipo.capa != TIERRA:
+                continue
+            x, y = self.punto_salida(cg, TIERRA)
+            u = self.crear_unidad(j.idx, tipo.id, x, y)
+            veterania.aplicar_hoja(self, u, (v.get("xp", 0), v.get("grado", 0), v.get("nombre", 0),
+                                             v.get("ficha", ""), v.get("batallas", 0), v.get("bajas", 0)))
+            j.pob_usada += tipo.poblacion
+        j.veteranos_llegan = []
         return cg
 
     # ------------------------------------------------------------------
@@ -528,7 +543,7 @@ class Mundo:
         for e in list(self.unidades.values()) + list(self.edificios.values()):
             if e.dueno != j.idx:
                 continue
-            nuevo = j.stats.get(e.tipo.id)
+            nuevo = j.stats_de(e.tipo.id, e.grado) if e.es_unidad else j.stats.get(e.tipo.id)
             if nuevo is None or nuevo is e.st:
                 continue
             if nuevo.vida > e.st.vida and (e.es_unidad or e.construido):
@@ -671,36 +686,79 @@ class Mundo:
                 self._soltar_paciente(e, explosion)
             if e.es_unidad and not explosion and self.puede_herirse(e):
                 # queda herido en el suelo: si los camilleros llegan a tiempo, vuelve a filas
-                h = self.crear_herido(e.tipo, e.dueno, e.x, e.y, self.tick + self.cat.ticks_herido, e.dir)
+                # con su grado (la hoja de servicio va con él)
+                espera = self.cat.ticks_herido + ticks(j.sanidad["segundos_herido"])
+                h = self.crear_herido(e.tipo, e.dueno, e.x, e.y, self.tick + espera, e.dir, hoja_de(e))
                 self.ev_pos(e.x, e.y, "herido", e.id, h.id, e.tipo.idx, e.dueno, e.x >> 4, e.y >> 4)
                 return
+            if e.es_unidad:
+                self.anotar_caido(e.dueno, e.tipo, hoja_de(e))
             self.ev_pos(e.x, e.y, "mue", e.id, e.tipo.idx, e.dueno, e.x >> 4, e.y >> 4, 1 if explosion else 0)
 
     def puede_herirse(self, u):
         """Con un hospital de campaña, la infantería que cae por fuego de fusil, metralla o sable
         queda herida (los héroes, los que van embarcados y los propios camilleros mueren)."""
         t = u.tipo
-        if t.clase != "infanteria" or not t.biologica or t.heroe or t.autonomo or u.capa != TIERRA or u.dentro:
+        if (t.clase not in ("infanteria", "caballeria") or not t.biologica or t.heroe or t.autonomo
+                or u.capa != TIERRA or u.dentro):
             return False
         j = self.jugadores[u.dueno]
         return j.vivo and j.tiene("hospital_campana")
 
-    def crear_herido(self, tipo, dueno, x, y, hasta, direccion=2):
-        h = Herido(self._nuevo_id(), tipo, dueno, x, y, hasta, direccion)
+    def crear_herido(self, tipo, dueno, x, y, hasta, direccion=2, hoja=None):
+        h = Herido(self._nuevo_id(), tipo, dueno, x, y, hasta, direccion, hoja)
         self.ent[h.id] = h
         self.heridos[h.id] = h
         return h
 
+    @staticmethod
+    def _ficha(tipo_id, hoja, estado):
+        xp, grado, nombre, ficha, batallas, bajas = hoja
+        return {"tipo": tipo_id, "xp": xp, "grado": grado, "nombre": nombre, "ficha": ficha,
+                "batallas": batallas, "bajas": bajas, "estado": estado}
+
+    def veteranos_de(self, p):
+        """Los veteranos vivos del jugador al terminar (en filas, guarecidos, embarcados o heridos
+        en manos de la sanidad): los que pasan a la siguiente batalla de la campaña."""
+        out = []
+        for u in self.unidades.values():
+            if u.vivo and u.dueno == p and u.grado:
+                out.append(self._ficha(u.tipo.id, hoja_de(u), "en filas"))
+            if u.vivo and u.dueno == p and u.paciente and u.paciente_hoja and u.paciente_hoja[1]:
+                out.append(self._ficha(u.paciente, u.paciente_hoja, "herido"))
+        for h in self.heridos.values():
+            if h.vivo and h.dueno == p and h.hoja and h.hoja[1]:
+                out.append(self._ficha(h.tipo.id, h.hoja, "herido"))
+        for b in self.edificios.values():
+            if b.vivo and b.dueno == p and b.pacientes:
+                for pac in b.pacientes:
+                    if len(pac) > 2 and pac[2] and pac[2][1]:
+                        out.append(self._ficha(pac[0], pac[2], "herido"))
+        out.sort(key=lambda v: (-v["grado"], -v["xp"], v["nombre"]))
+        return out
+
+    def caidos_de(self, p):
+        return [self._ficha(tid, hoja, "caído") for dueno, tid, hoja in self.caidos if dueno == p]
+
+    def anotar_caido(self, dueno, tipo, hoja):
+        """Un veterano muerto: cuenta en el parte de guerra y en el libro de los caídos."""
+        if hoja and (hoja[1] or hoja[3]):
+            self.jugadores[dueno].est["veteranos_caidos"] += 1
+            self.caidos.append((dueno, tipo.id, hoja))
+
     def _soltar_paciente(self, camilla, explosion):
         """Cayeron los camilleros: el herido que llevaban queda en el suelo (o muere con ellos)."""
         tipo = self.cat.unidades[camilla.paciente]
+        hoja = camilla.paciente_hoja
         camilla.paciente = None
+        camilla.paciente_hoja = None
         if explosion:
+            self.anotar_caido(camilla.dueno, tipo, hoja)
             self.ev_pos(camilla.x, camilla.y, "mue", camilla.id, tipo.idx, camilla.dueno,
                         camilla.x >> 4, camilla.y >> 4, 1)
             return
         h = self.crear_herido(tipo, camilla.dueno, camilla.x + TILE // 4, camilla.y,
-                              self.tick + self.cat.ticks_herido // 2)
+                              self.tick + self.cat.ticks_herido // 2, hoja=hoja)
         self.ev_pos(h.x, h.y, "herido", camilla.id, h.id, tipo.idx, camilla.dueno, h.x >> 4, h.y >> 4)
 
     def _heridos(self):
@@ -710,6 +768,7 @@ class Mundo:
             if h.vivo and h.hasta <= t:
                 h.vivo = False
                 self.muertos.append(h)
+                self.anotar_caido(h.dueno, h.tipo, h.hoja)
                 self.ev_pos(h.x, h.y, "mue", h.id, h.tipo.idx, h.dueno, h.x >> 4, h.y >> 4, 0)
 
     def agotar(self, r):
@@ -888,6 +947,8 @@ class Mundo:
             self._minas()
         if t % 8 == 0:
             self._auras()
+        if t % TICKS == TICKS // 2:
+            veterania.instruccion(self)
         if self.heridos and t % 4 == 0:
             self._heridos()
         self._limpiar()
@@ -949,6 +1010,7 @@ class Mundo:
                 if combate.dist2_a(v.x, v.y, b) <= r * r:
                     if b.tipo.regen_hps > v.aura.get("regeneracion", 0):
                         v.aura["regeneracion"] = b.tipo.regen_hps
+        veterania.auras(self)
 
     def _actualizar_vision(self):
         m = self.mapa

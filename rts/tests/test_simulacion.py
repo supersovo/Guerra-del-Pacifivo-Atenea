@@ -167,7 +167,7 @@ def test_artilleria_se_emplaza_y_alcance_minimo():
     # el infante pegado al cañón está dentro del alcance mínimo: no lo puede batir
     m.comando(0, {"c": "atacar", "u": [c.id], "t": cerca.id})
     U.avanzar(m, 3 * S)
-    assert cerca.vida == 10 ** 6
+    assert cerca.vida >= 10 ** 6      # (puede ganar vida al ascender: pelea contra el cañón)
 
 
 def test_ventaja_de_altura():
@@ -289,6 +289,174 @@ def test_heridos_camilleros_y_hospital():
     m.comando(0, {"c": "mover", "u": [cam[0].id], "x": 10, "y": 10})
     U.avanzar(m, 3 * S)
     assert abs(cam[0].x - x0) < TILE
+
+
+def _abatir(m, victima, tirador):
+    """El tirador abate a la víctima de un solo golpe (toda su vida restante)."""
+    from salitre.sim import combate
+    combate.danar(m, victima, victima.vida, tirador.id, tirador.dueno)
+
+
+def test_veterania_experiencia_y_grados():
+    from salitre.red import instantanea as I
+    m = U.mundo()
+    j0 = m.jugadores[0]
+    a = _unidad(m, 0, "infante", 20, 20)
+    base = j0.stats["infante"]
+    # abatir a un enemigo de su mismo valor: Fogueado (1 galón), con vida, daño y nombre
+    _abatir(m, _unidad(m, 1, "infante", 22, 20), a)
+    assert a.grado == 1 and a.nombre
+    assert a.st.vida == base.vida * 110 // 100 and a.vida == a.st.vida
+    assert a.st.danio == (base.danio * 110 + 50) // 100 > base.danio
+    assert any(ev[0] == "ascenso" and ev[1] == a.id and ev[2] == 1 for _d, ev in m.eventos)
+    # tres enemigos: Veterano (+1 de alcance y de armadura); seis: Aguerrido
+    for _ in range(2):
+        _abatir(m, _unidad(m, 1, "infante", 22, 20), a)
+    assert a.grado == 2
+    assert a.st.alcance == base.alcance + TILE and a.st.armadura == base.armadura + 1
+    for _ in range(3):
+        _abatir(m, _unidad(m, 1, "infante", 22, 20), a)
+    assert a.grado == 3 and a.st.vida == base.vida * 130 // 100
+    assert j0.est["ascensos"] == 3
+    # el grado se ve desde el otro bando (galones, vida máxima y nombre)
+    reg = I.registro(m, a, False, m.tick)
+    assert reg[8]["v"] == 3 and reg[8]["vm"] == a.st.vida and reg[8]["n"] == a.nombre
+    # la experiencia se reparte según el daño, las obras valen la mitad y el fogueo enseña
+    b = _unidad(m, 0, "infante", 20, 22)
+    c = _unidad(m, 0, "infante", 20, 23)
+    v = _unidad(m, 1, "infante", 22, 22)
+    from salitre.sim import combate
+    combate.danar(m, v, 20, b.id, 0)
+    combate.danar(m, v, v.vida, c.id, 0)
+    assert b.xp == 20 * 50 * 16 // 45 and c.xp == 25 * 50 * 16 // 45
+    assert v.xp == 20 * 50 * 16 * 25 // (100 * 45)       # recibió fuego y siguió en pie
+    cg_rival = U.de(m, 1, "cuartel_general")[0]
+    d = _unidad(m, 0, "infante", 20, 24)
+    combate.danar(m, cg_rival, 100, d.id, 0)
+    assert d.xp == 100 * cg_rival.tipo.valor * 16 * 50 // (100 * cg_rival.st.vida)
+    # los trabajadores, los héroes y los camilleros no ganan grados
+    w = U.de(m, 0, "trabajador")[0]
+    _abatir(m, _unidad(m, 1, "infante", 22, 26), w)
+    heroe = _unidad(m, 0, "baquedano", 20, 26)
+    _abatir(m, _unidad(m, 1, "infante", 22, 26), heroe)
+    assert w.xp == 0 and heroe.xp == 0 and not w.grado and not heroe.grado
+
+
+def test_veterano_herido_conserva_el_grado():
+    m = U.mundo()
+    j = m.jugadores[0]
+    hosp = m.crear_edificio(0, "hospital_campana", 14, 20, construido=True)
+    U.avanzar(m, 10 * S)
+    vet = _unidad(m, 0, "infante", 22, 24)
+    for _ in range(3):
+        _abatir(m, _unidad(m, 1, "infante", 40, 40), vet)
+    assert vet.grado == 2
+    hoja = (vet.xp, vet.grado, vet.nombre, vet.abatidos)
+    recluta = _unidad(m, 0, "infante", 19, 22)          # cae más cerca, pero es recluta
+    m.matar(recluta, 0, 1)
+    m.matar(vet, 0, 1)
+    caido = [h for h in m.heridos.values() if h.hoja]
+    assert len(caido) == 1 and caido[0].hoja[1] == 2
+    # los camilleros van primero por el veterano
+    U.avanzar(m, 4)
+    objetivos = {m.ent[c].objetivo for c in hosp.camilleros}
+    assert caido[0].id in objetivos
+    vuelto = None
+    for _ in range(60 * S):
+        m.paso()
+        for _d, ev in m.eventos:
+            if ev[0] == "recuperado" and m.ent[ev[2]].grado:
+                vuelto = m.ent[ev[2]]
+                vida_al_volver = vuelto.vida
+    assert vuelto is not None
+    assert (vuelto.xp, vuelto.grado, vuelto.nombre, vuelto.abatidos) == hoja
+    assert vuelto.st is j.stats_de("infante", 2) and vida_al_volver == vuelto.st.vida // 2
+    assert any(v["nombre"] == hoja[2] and v["grado"] == 2 for v in m.veteranos_de(0))
+    # Convalecencia: aguanta 60 s y vuelve con el 75 %; Ambulancias: un tercer equipo
+    j.aplicar_mejora(m.cat.mejoras["convalecencia"])
+    j.aplicar_mejora(m.cat.mejoras["ambulancias"])
+    m.refrescar_stats(j)
+    U.avanzar(m, 35 * S)
+    assert len(hosp.camilleros) == 3
+    otro = vuelto
+    m.matar(otro, 0, 1)
+    h = next(h for h in m.heridos.values() if h.hoja)
+    assert h.hasta - m.tick == 60 * S
+    vuelto = None
+    for _ in range(60 * S):
+        m.paso()
+        for _d, ev in m.eventos:
+            if ev[0] == "recuperado" and m.ent[ev[2]].grado:
+                vuelto = m.ent[ev[2]]
+                vida_al_volver = vuelto.vida
+    assert vuelto is not None and vida_al_volver == vuelto.st.vida * 75 // 100
+    # un veterano que se desangra lejos del hospital queda en el libro de los caídos
+    lejos = _unidad(m, 0, "granadero", 60, 60)
+    _abatir(m, _unidad(m, 1, "infante", 62, 60), lejos)
+    assert lejos.grado == 0                    # un infante no basta: el granadero vale más
+    _abatir(m, _unidad(m, 1, "granadero", 62, 62), lejos)
+    assert lejos.grado == 1
+    m.matar(lejos, 0, 1)
+    assert any(h.tipo.id == "granadero" for h in m.heridos.values())   # la caballería también cae herida
+    U.avanzar(m, 65 * S)
+    assert j.est["veteranos_caidos"] == 1
+    assert [c["tipo"] for c in m.caidos_de(0)] == ["granadero"]
+
+
+def test_instruccion_encuadramiento_y_repliegue():
+    m = U.mundo()
+    j = m.jugadores[0]
+    m.crear_edificio(0, "barracon_instruccion", 14, 20, construido=True)
+    j.aplicar_mejora(m.cat.mejoras["ejercicios_tiro"])
+    cerca = _unidad(m, 0, "infante", 16, 23)
+    lejos = _unidad(m, 0, "infante", 40, 40)
+    U.avanzar(m, 55 * S)
+    # la instrucción lleva al recluta hasta Fogueado y no más allá
+    assert cerca.grado == 1 and lejos.grado == 0 and lejos.xp == 0
+    xp = cerca.xp
+    U.avanzar(m, 20 * S)
+    assert cerca.xp == xp
+    # el recluta junto a un Aguerrido de su arma aprende un 50 % más rápido
+    sargento = _unidad(m, 0, "infante", 30, 30)
+    from salitre.sim import veterania
+    veterania.aplicar_hoja(m, sargento, (0, 3, 12345, "", 2, 9))
+    recluta = _unidad(m, 0, "infante", 31, 30)
+    U.avanzar(m, 8)
+    assert recluta.aura.get("experiencia_pct") == 50
+    _abatir(m, _unidad(m, 1, "infante", 33, 30), recluta)
+    assert recluta.xp == 50 * 16 * 150 // 100
+    # repliegue sanitario: sin hospital, aviso; con hospital, los heridos van a curarse
+    sargento.vida = 10
+    m.comando(0, {"c": "replegar", "u": [sargento.id]})
+    U.avanzar(m, 1)
+    assert any(ev[0] == "err" for _d, ev in m.eventos)
+    hosp = m.crear_edificio(0, "hospital_campana", 20, 34, construido=True)
+    m.comando(0, {"c": "replegar", "u": [sargento.id, recluta.id]})
+    U.avanzar(m, 1)
+    assert sargento.orden is not None and recluta.orden is None     # solo los heridos
+    U.avanzar(m, 25 * S)
+    assert (sargento.x - hosp.x) ** 2 + (sargento.y - hosp.y) ** 2 < (5 * TILE) ** 2
+    assert sargento.vida > 10
+
+
+def test_veteranos_llegan_con_el_cuartel():
+    from salitre.sim.mundo import Mundo
+    veteranos = [{"tipo": "infante", "grado": 2, "xp": 160 * 16, "nombre": 777, "ficha": "c1-3",
+                  "batallas": 1, "bajas": 4},
+                 {"tipo": "granadero", "grado": 1, "xp": 230 * 16, "nombre": 778, "ficha": "c1-4",
+                  "batallas": 1, "bajas": 1},
+                 {"tipo": "zapador", "grado": 1, "xp": 0, "nombre": 779, "ficha": "c1-5"}]   # no es de Perú
+    configs = [{"nombre": "A", "faccion": "chile", "equipo": 0, "posicion": 0, "veteranos": veteranos[:2]},
+               {"nombre": "B", "faccion": "peru", "equipo": 1, "posicion": 1, "veteranos": veteranos[2:]}]
+    m = Mundo(U.cat(), U.mapa_llano(), configs, semilla=3)
+    llegados = [u for u in m.unidades.values() if u.ficha]
+    assert sorted((u.tipo.id, u.grado, u.nombre, u.ficha, u.abatidos) for u in llegados) == [
+        ("granadero", 1, 778, "c1-4", 1), ("infante", 2, 777, "c1-3", 4)]
+    assert all(u.vida == u.st.vida for u in llegados)
+    assert m.jugadores[0].pob_usada == 6 + 1 + 5
+    # al terminar se informa la hoja de cada veterano vivo
+    fichas = {v["ficha"]: v for v in m.veteranos_de(0)}
+    assert fichas["c1-3"]["grado"] == 2 and fichas["c1-3"]["bajas"] == 4
 
 
 def test_llegada_del_cuartel_en_tren_y_en_carreta():

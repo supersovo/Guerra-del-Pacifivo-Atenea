@@ -241,6 +241,31 @@ def c_detener(m, p, cmd):
         siguiente_orden(u)
 
 
+def c_replegar(m, p, cmd):
+    """Repliegue sanitario: los seleccionados con menos de la mitad de la vida (o, si ninguno
+    está tan mal, todos los heridos) van a curarse junto al hospital de campaña más cercano."""
+    us = [u for u in _propias(m, p, cmd.get("u", [])) if u.tipo.biologica and u.capa == TIERRA]
+    heridos = [u for u in us if u.vida * 2 < u.st.vida] or [u for u in us if u.vida < u.st.vida]
+    if not heridos:
+        m.ev_jugador(p, "err", "No hay heridos que replegar")
+        return
+    cx = sum(u.x for u in heridos) // len(heridos)
+    cy = sum(u.y for u in heridos) // len(heridos)
+    hosp = None
+    mejor = None
+    for b in m.edificios.values():
+        if b.dueno != p or not b.vivo or not b.construido or not b.tipo.regen_radio:
+            continue
+        d = (b.x - cx) ** 2 + (b.y - cy) ** 2
+        if mejor is None or d < mejor:
+            hosp, mejor = b, d
+    if hosp is None:
+        m.ev_jugador(p, "err", "Hace falta un hospital de campaña terminado")
+        return
+    # frente a la puerta del hospital, dentro del radio en que cura
+    _mover_grupo(m, heridos, hosp.x, hosp.y + hosp.h * TILE // 2 + TILE, MOVER, False)
+
+
 def c_mantener(m, p, cmd):
     for u in _propias(m, p, cmd.get("u", [])):
         dar(m, u, Orden(MANTENER, u.x, u.y), bool(cmd.get("cola")))
@@ -575,6 +600,7 @@ MANEJADORES = {
     "atacar": c_atacar,
     "detener": c_detener,
     "mantener": c_mantener,
+    "replegar": c_replegar,
     "recolectar": c_recolectar,
     "regresar": c_regresar,
     "reparar": c_reparar,

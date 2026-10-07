@@ -11,16 +11,18 @@ import json
 from pathlib import Path
 
 from .. import rutas
-from ..sim.constantes import EFP, HFP, TICKS, TILE, sub, ticks, vel
+from ..sim.constantes import EFP, HFP, TICKS, TILE, XPF, sub, ticks, vel
 
 ARCHIVOS = ("tablas.json", "unidades.json", "edificios.json", "mejoras.json",
             "habilidades.json", "facciones.json")
 
 # Campos que modifican las estadísticas de un tipo (investigaciones y bonificaciones).
 CAMPOS_ESTATICOS = {
-    "danio", "armadura", "alcance", "vida", "vida_pct", "velocidad_pct", "ataque_vel_pct",
+    "danio", "danio_pct", "armadura", "alcance", "vida", "vida_pct", "velocidad_pct", "ataque_vel_pct",
     "vision", "curacion_pct", "energia_max", "salpicadura", "carga_pct", "costo_pct",
 }
+# Lo que una investigación del hospital agrega a la sanidad del jugador.
+CAMPOS_SANIDAD = {"equipos", "segundos_herido", "vida_al_volver"}
 # Campos de los efectos temporales (auras y habilidades).
 CAMPOS_DINAMICOS = {
     "danio_pct", "armadura", "velocidad_pct", "ataque_vel_pct", "alcance", "regeneracion",
@@ -310,7 +312,59 @@ class Mejora:
         self.previa = d.get("previa")
         self.requisitos = tuple(d.get("requisitos", []))
         self.efectos = tuple(Efecto(e, CAMPOS_ESTATICOS, donde) for e in d.get("efectos", []))
+        self.sanidad = {}
+        for k, v in d.get("sanidad", {}).items():
+            if k not in CAMPOS_SANIDAD:
+                raise ContenidoError(f"{donde}: campo de sanidad desconocido '{k}'")
+            self.sanidad[k] = int(v)
         self.atajo = (d.get("atajo") or "").upper()[:1]
+
+
+class Grado:
+    """Un grado de veteranía: experiencia necesaria, bonos y nombre."""
+
+    __slots__ = ("nivel", "nombre", "umbral", "rango", "efectos", "fallo_altura_pct", "emplazar_pct",
+                 "regeneracion")
+
+    def __init__(self, nivel, d, donde):
+        self.nivel = nivel
+        self.nombre = d.get("nombre", f"Grado {nivel}")
+        self.umbral = int(d.get("umbral", 0))
+        self.rango = d.get("rango", "Soldado")
+        self.efectos = tuple(Efecto(e, CAMPOS_ESTATICOS, donde) for e in d.get("efectos", []))
+        self.fallo_altura_pct = int(d.get("fallo_altura_pct", 100))
+        self.emplazar_pct = int(d.get("emplazar_pct", 0))
+        self.regeneracion = float(d.get("regeneracion", 0.0))
+
+
+class Veterania:
+    """Cómo aprende la tropa: grados, fuentes de experiencia e instrucción (tablas.json)."""
+
+    def __init__(self, d):
+        donde = "tablas.json:veterania"
+        grados = d.get("grados") or [{"nombre": "Recluta", "umbral": 0}]
+        self.grados = tuple(Grado(i, g, f"{donde}.grados[{i}]") for i, g in enumerate(grados))
+        for a, b in zip(self.grados, self.grados[1:]):
+            if b.umbral <= a.umbral:
+                raise ContenidoError(f"{donde}: los umbrales de los grados deben crecer")
+        self.maximo = len(self.grados) - 1
+        x = d.get("experiencia", {})
+        self.edificios_pct = int(x.get("edificios_pct", 50))
+        self.fogueo_pct = int(x.get("fogueo_pct", 25))
+        self.curacion_xp = int(round(float(x.get("curacion_por_vida", 0.5)) * XPF))
+        enc = x.get("encuadramiento", {})
+        self.encuadre_radio = sub(enc.get("radio", 4))
+        self.encuadre_pct = int(enc.get("pct", 50))
+        self.heroe_pct = int(x.get("heroe_pct", 25))
+        ins = x.get("instruccion", {})
+        self.instruccion_mejora = ins.get("mejora")
+        self.instruccion_radio = sub(ins.get("radio", 6))
+        self.instruccion_xp = int(round(float(ins.get("por_segundo", 1.0)) * XPF))
+        self.regen_tras = ticks(x.get("regeneracion_tras", 10))
+
+    def umbral(self, tipo, nivel):
+        """Experiencia interna (en 1/XPF) que necesita una unidad de ese tipo para el grado."""
+        return tipo.valor * self.grados[nivel].umbral * XPF // 100
 
 
 class Habilidad:
@@ -416,6 +470,7 @@ class Catalogo:
         self.minas_maximas = int(t.get("minas_maximas", 15))
         self.ticks_herido = ticks(t.get("segundos_herido", 40))
         self.dist_recursos_cuartel = int(t.get("distancia_minima_recursos_cuartel", 3))
+        self.veterania = Veterania(t.get("veterania", {}))
 
         def sin_comentarios(d):
             return {k: v for k, v in d.items() if not k.startswith("_")}
@@ -439,11 +494,22 @@ class Catalogo:
         for i, m in enumerate(self.mejoras.values()):
             m.idx = i
         self.tipos_por_id = {tp.id: tp for tp in self.tipos}
+        for tu in self.unidades.values():
+            # valor de combate (lo que vale abatirla) y si aprende con la experiencia: la tropa
+            # que combate o cura; no los héroes (ya son jefes), trabajadores ni camilleros
+            tu.valor = max(1, tu.costo[0] + tu.costo[1])
+            tu.veterania = (not tu.heroe and not tu.trabajador and not tu.autonomo
+                            and (tu.arma is not None or tu.curar_ritmo > 0))
+        for te in self.edificios.values():
+            te.valor = max(1, te.costo[0] + te.costo[1])
         self._validar()
 
     # ------------------------------------------------------------------
     def _validar(self):
         U, E, M, H = self.unidades, self.edificios, self.mejoras, self.habilidades
+        im = self.veterania.instruccion_mejora
+        if im and im not in M:
+            raise ContenidoError(f"tablas.json:veterania: la instrucción usa una mejora desconocida {im}")
         if set(U) & set(E):
             raise ContenidoError(f"Ids repetidos entre unidades y edificios: {sorted(set(U) & set(E))}")
         for u in U.values():

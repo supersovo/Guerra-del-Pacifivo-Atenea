@@ -13,6 +13,7 @@ TILE = TILE_PX * SUB       # subunidades por casilla
 MEDIA = TILE // 2
 EFP = 256                  # energía interna por punto de energía
 HFP = 64                   # vida interna por punto de vida (fracciones)
+XPF = 16                   # experiencia interna por punto (un punto = 1 $ de valor de combate)
 
 NEUTRAL = -1
 

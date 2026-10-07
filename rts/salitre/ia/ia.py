@@ -64,6 +64,7 @@ class IA:
         self.umbral = self.dif["ataque"]
         self.oleadas = 0
         self.atacando = set()
+        self.convalecientes = set()     # veteranos replegados al hospital hasta curarse
         self.objetivo = None
         self.naval = None
         self.reunion = None
@@ -636,10 +637,27 @@ class IA:
                 mejor, mejor_k = b, k
         return mejor
 
+    def _cuidar_veteranos(self):
+        """Los veteranos muy heridos se repliegan al hospital y no vuelven al frente hasta curarse."""
+        m = self.m
+        if not any(b.construido for b in self.por_tipo.get("hospital_campana", [])):
+            self.convalecientes = set()
+            return
+        self.convalecientes = {i for i in self.convalecientes
+                               if (u := m.entidad(i)) is not None and u.vivo and u.vida * 100 < u.st.vida * 85}
+        graves = [u.id for u in self.ejercito
+                  if u.grado >= 2 and u.tipo.biologica and u.vida * 100 < u.st.vida * 35
+                  and u.id not in self.convalecientes]
+        if graves:
+            self.cmd(c="replegar", u=graves)
+            self.convalecientes.update(graves)
+        self.atacando -= self.convalecientes
+
     def _militar(self):
         m = self.m
+        self._cuidar_veteranos()
         amenaza, n = self._amenaza()
-        defensores = [u for u in self.ejercito if u.id not in self.atacando]
+        defensores = [u for u in self.ejercito if u.id not in self.atacando and u.id not in self.convalecientes]
         if amenaza is not None and n > 0:
             ociosos = [u.id for u in defensores
                        if u.orden is None or u.orden.tipo != ATACAR_MOVER]

@@ -414,7 +414,7 @@ class Partida:
             resultados.append({
                 "indice": i, "nombre": j.nombre, "faccion": j.faccion.id, "equipo": j.equipo,
                 "es_ia": j.es_ia, "usuario_id": info.get("usuario_id"), "est": dict(j.est),
-                "vivo": j.vivo,
+                "vivo": j.vivo, "veteranos": m.veteranos_de(i), "caidos": m.caidos_de(i),
             })
         nombre_rep = None
         ruta_rep = None

@@ -3,7 +3,7 @@ sabotajes, cargas de demolición, espolonazos, reconocimiento y emplazamiento.""
 
 from math import isqrt
 
-from . import combate
+from . import combate, veterania
 from .constantes import AGUA, TIERRA, TILE, vel
 from .entidades import Mina, Proyectil
 
@@ -62,9 +62,14 @@ def lanzar(m, c, h, x, y, obj):
     elif k == "potenciar_propio":
         _potenciar(m, [c], h)
     elif k == "curar_area":
+        curados = 0
         for v in _en_radio(m, c, h.radio):
             if v.tipo.biologica or (h.incluye_naval and v.capa == AGUA):
+                antes = v.vida
                 v.vida = min(v.st.vida, v.vida + h.cantidad)
+                curados += v.vida - antes
+        if c.es_unidad:
+            veterania.por_curacion(m, c, curados)
     elif k == "revelar":
         tx, ty = m.mapa.casilla(x, y)
         m.revelados.append((j.equipo, tx, ty, h.radio / TILE, t + h.duracion))
@@ -111,7 +116,7 @@ def lanzar(m, c, h, x, y, obj):
         m.ev_pos(obj.x, obj.y, "golpe", c.id, obj.id)
     elif k == "emplazar":
         if c.es_unidad and c.tipo.emplazar and not c.emplazando:
-            c.emplazando = c.tipo.emplazar
+            c.emplazando = veterania.tiempo_emplazar(m, c)
             c.orden = None
             c.cola = []
             c.ruta = []

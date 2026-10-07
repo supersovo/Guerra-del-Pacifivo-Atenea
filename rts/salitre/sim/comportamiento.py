@@ -8,7 +8,7 @@ defiende, cura (las cantineras) o vuelve a su puesto.
 
 from math import isqrt
 
-from . import combate, habilidades
+from . import combate, habilidades, veterania
 from .constantes import AGUA, HFP, MEDIA, TICKS, TIERRA, TILE
 from .entidades import (ATACAR, ATACAR_MOVER, CARGAR, CONSTRUIR, CURAR, DESCARGAR, HABILIDAD,
                         MANTENER, MOVER, PATRULLAR, RECOLECTAR, REGRESAR, REPARAR, SEGUIR, Orden)
@@ -104,7 +104,7 @@ def ir_a(m, u, x, y, cerca=0):
     tipo = u.tipo
     if tipo.emplazar and (u.emplazada or u.emplazando):
         if u.emplazada and not u.emplazando:
-            u.emplazando = tipo.emplazar
+            u.emplazando = veterania.tiempo_emplazar(m, u)
         return 0
     dx = x - u.x
     dy = y - u.y
@@ -299,7 +299,7 @@ def atacar(m, u, obj, puede_mover):
         if u.emplazando:
             return 1
         if tipo.emplazar and not u.emplazada:
-            u.emplazando = tipo.emplazar
+            u.emplazando = veterania.tiempo_emplazar(m, u)
             u.ruta = []
             u.ruta_meta = None
             return 1
@@ -394,13 +394,17 @@ def curar_paso(m, u, obj):
     if obj is not u:
         u.dir = direccion(obj.x - u.x, obj.y - u.y)
     u.acum += u.st.curar_ritmo
+    curados = 0
     while u.acum >= HFP and obj.vida < obj.st.vida:
         u.acum -= HFP
         obj.vida += 1
+        curados += 1
         if tipo.curar_costo:
             u.energia -= tipo.curar_costo
             if u.energia < tipo.curar_costo:
                 break
+    if curados:
+        veterania.por_curacion(m, u, curados)
     if u.acum >= HFP:
         u.acum = 0
     if (m.tick + u.id) % 12 == 0:
@@ -1013,7 +1017,9 @@ def _buscar_caido(m, u, hosp):
             continue
         if (h.x - hosp.x) ** 2 + (h.y - hosp.y) ** 2 > radio2:
             continue
-        k = ((h.x - u.x) ** 2 + (h.y - u.y) ** 2, h.id)
+        # primero los veteranos de más grado: su experiencia no se recupera
+        grado = h.hoja[1] if h.hoja else 0
+        k = (-grado, (h.x - u.x) ** 2 + (h.y - u.y) ** 2, h.id)
         if mejor_k is None or k < mejor_k:
             mejor, mejor_k = h, k
     return mejor
@@ -1031,9 +1037,10 @@ def camilleros(m, u):
     if u.paciente:
         r = acercarse_rect(m, u, hosp)
         if r == 1:
-            hosp.pacientes.append([u.paciente, hosp.tipo.recuperacion])
+            hosp.pacientes.append([u.paciente, hosp.tipo.recuperacion, u.paciente_hoja])
             m.ev_pos(hosp.x, hosp.y, "ingresa", hosp.id, m.cat.unidades[u.paciente].idx)
             u.paciente = None
+            u.paciente_hoja = None
             u.ruta = []
             u.ruta_meta = None
         return
@@ -1057,6 +1064,7 @@ def camilleros(m, u):
     r = ir_a(m, u, h.x, h.y, cerca=TILE // 2)
     if r == 1:
         u.paciente = h.tipo.id
+        u.paciente_hoja = h.hoja
         h.vivo = False
         m.muertos.append(h)
         m.ev_pos(h.x, h.y, "recogido", h.id, u.id)

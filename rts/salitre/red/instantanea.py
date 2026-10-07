@@ -63,9 +63,18 @@ def registro(m, e, propio, t, detectado=False):
             fl |= F_POTENCIADO
         if e.paciente:
             fl |= F_CAMILLA
-        extra = 0
+        ex = {}
+        if e.grado:
+            # los galones se ven desde los dos bandos: grado, vida máxima y nombre del veterano
+            ex["v"] = e.grado
+            ex["vm"] = e.st.vida
+            ex["n"] = e.nombre
         if propio:
-            ex = {}
+            if e.tipo.veterania and e.grado < m.cat.veterania.maximo:
+                vet = m.cat.veterania
+                piso = vet.umbral(e.tipo, e.grado)
+                techo = vet.umbral(e.tipo, e.grado + 1)
+                ex["x"] = (e.xp - piso) * 100 // max(1, techo - piso)
             if e.st.energia_max:
                 ex["en"] = e.energia // EFP
             if e.cargamento:
@@ -76,9 +85,7 @@ def registro(m, e, propio, t, detectado=False):
                 cds = {h: c - t for h, c in e.cd.items() if c > t}
                 if cds:
                     ex["cd"] = cds
-            if ex:
-                extra = ex
-        return [e.id, e.tipo.idx, e.dueno, e.x >> 4, e.y >> 4, e.vida, e.dir, fl, extra]
+        return [e.id, e.tipo.idx, e.dueno, e.x >> 4, e.y >> 4, e.vida, e.dir, fl, ex or 0]
     if e.es_edificio:
         fl = 0
         ex = {}
@@ -112,7 +119,8 @@ def registro(m, e, propio, t, detectado=False):
                 ex["cm"] = len(e.camilleros)
                 if e.pacientes:
                     total = max(1, e.tipo.recuperacion)
-                    ex["pc"] = [[m.cat.unidades[p[0]].idx, 100 - p[1] * 100 // total] for p in e.pacientes]
+                    ex["pc"] = [[m.cat.unidades[p[0]].idx, 100 - p[1] * 100 // total,
+                                 p[2][1] if len(p) > 2 and p[2] else 0] for p in e.pacientes]
             if e.cd:
                 cds = {h: c - t for h, c in e.cd.items() if c > t}
                 if cds:
@@ -128,8 +136,11 @@ def registro(m, e, propio, t, detectado=False):
                  "r": [[x >> 4, y >> 4] for x, y in e.ruta]}]
     if e.es_herido:
         # "u": tipo de la unidad caída; "h": tick en que muere si nadie lo recoge; "c": ya va un camillero
-        return [e.id, TIPO_HERIDO, e.dueno, e.x >> 4, e.y >> 4, 1, e.dir, 0,
-                {"u": e.tipo.idx, "h": e.hasta, "c": 1 if e.camillero > 0 else 0}]
+        ex = {"u": e.tipo.idx, "h": e.hasta, "c": 1 if e.camillero > 0 else 0}
+        if e.hoja and e.hoja[1]:
+            ex["v"] = e.hoja[1]          # un veterano caído: los camilleros lo buscan primero
+            ex["n"] = e.hoja[2]
+        return [e.id, TIPO_HERIDO, e.dueno, e.x >> 4, e.y >> 4, 1, e.dir, 0, ex]
     return [e.id, TIPO_MINA, e.dueno, e.x >> 4, e.y >> 4, 1, 0, 0, 0]
 
 
