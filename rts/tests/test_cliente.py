@@ -309,6 +309,39 @@ def test_imagen_centrada_y_recortes_con_franjas(app):
     assert img.get_at((450, 250))[:3] == (255, 0, 0)
 
 
+def test_uniformes_distintos_por_arma(app):
+    """Cada arma se reconoce por su uniforme: infantes, zapadores, dinamiteros y las dos
+    caballerías no se dibujan iguales, y los colores propios de cada nación se aplican."""
+    from salitre.cliente.graficos.sprites import Sprites
+    sp = Sprites(app.lz, app.cat)
+    chile = app.cat.facciones["chile"]
+
+    def pixeles(uid, faccion=chile, vista="lado"):
+        s = sp.superficie(app.cat.unidades[uid], faccion, (200, 30, 30), vista, 0)
+        return s, pygame.image.tobytes(s, "RGBA")
+
+    def distintos(a, b):
+        (sa, pa), (sb, pb) = a, b
+        assert sa.get_size() == sb.get_size()
+        opacos = sum(1 for k in range(3, len(pa), 4) if pa[k] > 128 or pb[k] > 128)
+        dif = sum(1 for k in range(0, len(pa), 4) if (pa[k + 3] > 128 or pb[k + 3] > 128)
+                  and sum(abs(pa[k + c] - pb[k + c]) for c in range(4)) > 60)
+        return dif / max(1, opacos)
+
+    a_pie = {u: pixeles(u) for u in ("infante", "zapador", "ingeniero")}
+    for u, v in (("infante", "zapador"), ("infante", "ingeniero"), ("zapador", "ingeniero")):
+        assert distintos(a_pie[u], a_pie[v]) > 0.25, (u, v)
+    assert distintos(pixeles("granadero"), pixeles("cazador")) > 0.25
+    # el morrión garance de los granaderos chilenos (reglamento de 1878)
+    s, _ = pixeles("granadero")
+    garance = chile.uniformes["jinete_sable"]["morrion"]
+    cercanos = [(x, y) for x in range(s.get_width()) for y in range(s.get_height())
+                if s.get_at((x, y))[3] > 200 and sum(abs(s.get_at((x, y))[c] - garance[c]) for c in range(3)) < 12]
+    assert len(cercanos) >= 10
+    # las vistas de frente y de espalda también cambian con el arma
+    assert distintos(pixeles("infante", vista="frente"), pixeles("zapador", vista="frente")) > 0.25
+
+
 def test_camara_con_el_borde_y_raton_encerrado(app, sdl, monkeypatch):
     lz = app.lz
     lz.window.size = (1920, 1009)

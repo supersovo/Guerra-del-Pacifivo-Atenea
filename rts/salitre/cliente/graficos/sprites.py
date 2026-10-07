@@ -39,6 +39,19 @@ FORMA_TAM = {
 }
 LONA_CAMILLA = (226, 220, 200)
 CRUZ_ROJA = (200, 30, 30)
+CARMESI = (150, 24, 52)                 # vivos y franjas del arma de ingenieros
+BRIN = (182, 160, 116)                  # blusa de brin (lino crudo) para el trabajo
+MANDIL = (146, 100, 58)                 # mandil de cuero del zapador
+BARBA = (86, 60, 38)
+DINAMITA = (198, 42, 34)
+MECHA = (236, 226, 196)
+CHISPA = (255, 214, 90)
+TORPEDO = (40, 38, 36)
+MARINO = (32, 40, 72)
+MORCILLO = (38, 32, 30)                 # caballo negro de los granaderos
+ALAZAN = (152, 90, 48)                  # caballo alazán de los cazadores
+# infantes con correaje cruzado y mochila
+DE_LINEA = ("infante", "colorado", "zapador")
 
 
 def oscuro(c, f=0.7):
@@ -111,10 +124,36 @@ def _ropa(uniforme, color_jugador, especial=None):
     return r
 
 
+def _uniforme_de_arma(r, forma, propio=None):
+    """Rasgos de cada arma sobre los colores de la nación, para distinguirlas de un vistazo.
+
+    Las bases siguen el reglamento chileno de 1878 donde se conoce (quepí de paño azul
+    con vivos carmesí de los zapadores, morrión garance con banda azul oscuro y granada
+    de metal amarillo de los granaderos); 'propio' son los colores que facciones.json
+    fija para esa arma en cada nación (clave "uniformes")."""
+    if forma == "zapador":
+        r.update(kepi=oscuro(r["casaca"], 0.75), franja=CARMESI, correaje=CUERO, barba=True)
+    elif forma == "ingeniero":
+        r.update(casaca=BRIN, kepi=oscuro(r["casaca"], 0.75), cinta=CARMESI)
+    elif forma == "torpedista":
+        r.update(casaca=MARINO, pantalon=(228, 226, 218), kepi=(28, 32, 54), cuello=(238, 238, 232))
+    elif forma == "jinete_sable":
+        r.update(morrion=r["kepi"], banda=r["franja"], pompon=r["kepi"], chabraque=r["casaca"],
+                 galon=r["detalle"], caballo=MORCILLO)
+    elif forma == "jinete_carabina":
+        r.update(alamares=r["detalle"], chabraque=r["casaca"], galon=r["franja"], caballo=ALAZAN)
+    if propio:
+        r.update(propio)
+    return r
+
+
 def _cabeza_lado(p, x, y, ropa, sombrero, mirar=1):
     piel = ropa["piel"]
     p.circ(x, y, 2.9, piel)
     p.circ(x + 1.5 * mirar, y - 0.3, 0.45, (40, 30, 20))
+    if ropa.get("barba"):
+        p.poli([(x - 0.4 * mirar, y + 1.3), (x + 2.6 * mirar, y + 1.1), (x + 1.9 * mirar, y + 3.0),
+                (x + 0.4 * mirar, y + 3.4), (x - 0.8 * mirar, y + 2.4)], BARBA)
     if sombrero == "kepi":
         if ropa.get("cubre", True):
             p.poli([(x - 2.8 * mirar, y - 2), (x - 4.6 * mirar, y + 3.6), (x - 0.8 * mirar, y + 2.6)], ropa["cubrenuca"])
@@ -129,8 +168,24 @@ def _cabeza_lado(p, x, y, ropa, sombrero, mirar=1):
         p.rect(x - 2.6, y - 6.2, 5.2, 3.6, ropa["kepi"], 1)
     elif sombrero == "gorra":
         p.rect(x - 3, y - 5.2, 6, 3.4, ropa["kepi"], 1)
-        p.rect(x - 3, y - 2.6, 6, 0.9, ropa["detalle"])
+        p.rect(x - 3, y - 2.6, 6, 0.9, ropa.get("cinta", ropa["detalle"]))
         p.poli([(x + 1.2 * mirar, y - 1.8), (x + 4.4 * mirar, y - 1.2), (x + 1 * mirar, y - 1)], (24, 20, 16))
+    elif sombrero == "morrion":
+        # morrión alto, algo acampanado, con banda, granada de metal y pompón
+        mor = ropa.get("morrion", ropa["kepi"])
+        p.poli([(x - 2.9 * mirar, y - 1.6), (x + 2.9 * mirar, y - 1.6), (x + 3.2 * mirar, y - 7.8),
+                (x - 2.5 * mirar, y - 8.1)], mor)
+        p.rect(x - 2.9, y - 3.1, 5.8, 1.5, ropa.get("banda", ropa["franja"]))
+        p.circ(x + 2.0 * mirar, y - 2.4, 0.95, ropa.get("galon", ropa["detalle"]))
+        p.circ(x + 0.5 * mirar, y - 8.8, 1.4, ropa.get("pompon", mor))
+        p.poli([(x + 1.5 * mirar, y - 1.7), (x + 4.6 * mirar, y - 1.1), (x + 1.2 * mirar, y - 0.9)], (24, 20, 16))
+        p.linea(x - 0.8 * mirar, y - 1.6, x + 1.2 * mirar, y + 2.6, (200, 170, 90), 0.4)
+    elif sombrero == "marinero":
+        # gorra de marinero: plato redondo, cinta negra y sus dos puntas sueltas atrás
+        p.linea(x - 2.4 * mirar, y - 2.4, x - 4.6 * mirar, y + 1.8, (24, 22, 22), 0.6)
+        p.linea(x - 2.8 * mirar, y - 2.4, x - 3.4 * mirar, y + 2.6, (24, 22, 22), 0.6)
+        p.rect(x - 2.8, y - 3.4, 5.6, 1.6, (24, 22, 22))
+        p.elipse(x - 3.9, y - 4.9, 7.8, 2.2, ropa["kepi"])
     elif sombrero == "pelo":
         p.circ(x - 1.4 * mirar, y - 1.2, 2.6, (60, 40, 28))
         p.circ(x - 2.8 * mirar, y + 0.6, 1.4, (60, 40, 28))
@@ -143,6 +198,9 @@ def _cabeza_frente(p, x, y, ropa, sombrero, espalda=False):
     if not espalda:
         p.circ(x - 1, y - 0.2, 0.42, (40, 30, 20))
         p.circ(x + 1, y - 0.2, 0.42, (40, 30, 20))
+        if ropa.get("barba"):
+            p.poli([(x - 2.4, y + 1.3), (x - 1.0, y + 1.0), (x, y + 1.6), (x + 1.0, y + 1.0), (x + 2.4, y + 1.3),
+                    (x + 1.5, y + 3.3), (x - 1.5, y + 3.3)], BARBA)
     if sombrero == "kepi":
         p.rect(x - 2.9, y - 6.2, 5.8, 4.6, ropa["kepi"], 1)
         p.rect(x - 2.9, y - 2.6, 5.8, 1.1, ropa["franja"])
@@ -158,7 +216,21 @@ def _cabeza_frente(p, x, y, ropa, sombrero, espalda=False):
         p.rect(x - 2.6, y - 6.4, 5.2, 3.6, ropa["kepi"], 1)
     elif sombrero == "gorra":
         p.rect(x - 3, y - 5.4, 6, 3.6, ropa["kepi"], 1)
-        p.rect(x - 3, y - 2.6, 6, 0.9, ropa["detalle"])
+        p.rect(x - 3, y - 2.6, 6, 0.9, ropa.get("cinta", ropa["detalle"]))
+    elif sombrero == "morrion":
+        mor = ropa.get("morrion", ropa["kepi"])
+        p.poli([(x - 2.9, y - 1.6), (x + 2.9, y - 1.6), (x + 3.2, y - 8.0), (x - 3.2, y - 8.0)], mor)
+        p.rect(x - 2.9, y - 3.1, 5.8, 1.5, ropa.get("banda", ropa["franja"]))
+        if not espalda:
+            p.circ(x, y - 2.4, 0.95, ropa.get("galon", ropa["detalle"]))
+            p.rect(x - 3, y - 1.6, 6, 0.8, (24, 20, 16))
+        p.circ(x, y - 8.8, 1.4, ropa.get("pompon", mor))
+    elif sombrero == "marinero":
+        if espalda:
+            p.linea(x - 0.8, y - 2.6, x - 1.6, y + 2.8, (24, 22, 22), 0.6)
+            p.linea(x + 0.8, y - 2.6, x + 1.8, y + 2.6, (24, 22, 22), 0.6)
+        p.rect(x - 2.9, y - 3.6, 5.8, 1.5, (24, 22, 22))
+        p.elipse(x - 3.9, y - 5.6, 7.8, 2.8, ropa["kepi"])
     elif sombrero == "pelo":
         p.circ(x, y - 1.6, 2.9, (60, 40, 28))
         if espalda:
@@ -168,6 +240,32 @@ def _cabeza_frente(p, x, y, ropa, sombrero, espalda=False):
             p.circ(x - 1, y + 0.2, 0.4, (40, 30, 20))
             p.circ(x + 1, y + 0.2, 0.4, (40, 30, 20))
         p.rect(x - 2.4, y - 5.6, 4.8, 2.2, ropa["kepi"], 1)
+
+
+def _pico(p, x0, y0, x1, y1, cabeza=3.4):
+    """Zapapico: mango de (x0, y0) a (x1, y1) y la cabeza de acero atravesada en (x1, y1)."""
+    p.linea(x0, y0, x1, y1, MADERA_FUSIL, 1.1)
+    largo = math.hypot(x1 - x0, y1 - y0) or 1.0
+    ux, uy = (x1 - x0) / largo, (y1 - y0) / largo
+    nx, ny = -uy, ux
+    p.poli([(x1 + nx * cabeza, y1 + ny * cabeza), (x1 + ux * 0.9, y1 + uy * 0.9),
+            (x1 - nx * cabeza, y1 - ny * cabeza), (x1 - ux * 0.7, y1 - uy * 0.7)], ACERO)
+
+
+def _cartucho(p, x, y, encendido=False):
+    """Cartucho de dinamita en la mano (x, y); encendido, con la mecha chispeando."""
+    p.rect(x - 0.65, y - 2.6, 1.3, 3.2, DINAMITA, 0.4)
+    p.linea(x, y - 2.6, x + 0.9, y - 3.9, MECHA, 0.4)
+    if encendido:
+        p.circ(x + 1.0, y - 4.1, 1.2, CHISPA)
+        p.circ(x + 1.0, y - 4.1, 0.55, (255, 255, 236))
+
+
+def _torpedo(p, x, y):
+    """Mina ('polvorazo') de casco negro con el detonador rojo, centrada en (x, y)."""
+    p.rect(x - 2.4, y - 2.0, 4.8, 4.0, TORPEDO, 1.4)
+    p.rect(x - 1.2, y - 2.8, 2.4, 1.0, DINAMITA)
+    p.linea(x - 1.6, y - 0.4, x + 1.6, y - 0.4, (70, 66, 60), 0.4)
 
 
 def _arma_lado(p, x, y_hombro, y_cadera, arma, frame, mirar=1):
@@ -220,14 +318,20 @@ def figura(nombre_forma, ropa, vista, frame, insignia=None):
     elif nombre_forma == "cantinera":
         sombrero, arma, falda = "pelo", None, True
     elif nombre_forma == "ingeniero":
-        arma = "fusil"
+        # dinamitero: gorra de cuartel, blusa de brin arremangada, canana de cartuchos y sin fusil
+        sombrero, arma = "gorra", "dinamita"
+        ropa["cubre"] = False
     elif nombre_forma == "espia":
         sombrero, arma = "sombrero", None
         ropa["cubre"] = False
     elif nombre_forma == "zapador":
-        arma = "fusil"
+        # zapapico al hombro; tira con el fusil y cava con el pico
+        arma = {3: "fusil", 4: "pico"}.get(frame, "zapapico")
+        ropa["cubre"] = False
     elif nombre_forma == "torpedista":
-        arma = None
+        # marinero con su gorra y la mina en brazos; tira con la carabina
+        sombrero, arma = "marinero", ("carabina" if frame == 3 else "torpedo")
+        ropa["cubre"] = False
     elif nombre_forma == "montonero":
         sombrero, arma = "sombrero", "fusil"
         ropa["cubre"] = False
@@ -243,8 +347,14 @@ def figura(nombre_forma, ropa, vista, frame, insignia=None):
     cabeza = hombro - 3.4
     casaca = ropa["casaca"]
     pant = ropa["pantalon"]
+    correaje = ropa.get("correaje", CUERO_BLANCO)
+    cinturon = CUERO if nombre_forma != "colorado" else CUERO_BLANCO
+    blusa = nombre_forma == "ingeniero"
     if vista == "lado":
         paso = {1: 2.2, 2: -2.2}.get(frame, 0.0)
+        if blusa:
+            p.rect(x - 5.4, cadera - 3.8, 3.0, 3.6, CUERO, 0.6)            # morral a la espalda
+            p.rect(x - 5.0, cadera - 3.0, 2.2, 0.7, DINAMITA)
         # piernas
         if falda:
             p.poli([(x - 4.4, pie - 0.8), (x + 4.6, pie - 0.8), (x + 2.6, cadera - 1), (x - 2.6, cadera - 1)], pant)
@@ -254,24 +364,55 @@ def figura(nombre_forma, ropa, vista, frame, insignia=None):
             p.poli([(x - 1.2, cadera), (x + 1.4, cadera), (x + paso + 1.2, pie - 1), (x + paso - 1, pie - 1)], pant)
             p.rect(x - paso - 1.8, pie - 1.6, 3, 1.6, BOTAS)
             p.rect(x + paso - 1.1, pie - 1.6, 3.2, 1.6, BOTAS)
-        # torso (levita con faldones)
-        p.poli([(x - 3.2, hombro), (x + 2.8, hombro), (x + 3.2, cadera + 1.6), (x - 3.4, cadera + 1.6)], casaca)
-        p.linea(x - 3.2, cadera - 0.6, x + 3.1, cadera - 0.6, CUERO if nombre_forma != "colorado" else CUERO_BLANCO, 0.9)
-        if nombre_forma in ("infante", "zapador", "ingeniero", "colorado", "torpedista"):
-            p.linea(x - 2.6, hombro + 0.6, x + 2.4, cadera - 1, CUERO_BLANCO, 0.7)
+        # torso: levita con faldones (la blusa del dinamitero, más holgada)
+        if blusa:
+            p.poli([(x - 3.4, hombro), (x + 3.0, hombro), (x + 3.8, cadera + 2.0), (x - 3.8, cadera + 2.0)], casaca)
+        else:
+            p.poli([(x - 3.2, hombro), (x + 2.8, hombro), (x + 3.2, cadera + 1.6), (x - 3.4, cadera + 1.6)], casaca)
+        p.linea(x - 3.2, cadera - 0.6, x + 3.1, cadera - 0.6, cinturon, 0.9)
+        if nombre_forma in DE_LINEA:
+            p.linea(x - 2.6, hombro + 0.6, x + 2.4, cadera - 1, correaje, 0.7)
             p.rect(x - 4.6, hombro + 2, 2.2, 4.4, oscuro(CUERO, 0.6), 0.6)   # mochila
+            p.rect(x - 4.9, hombro + 1.0, 2.8, 1.4, (206, 196, 176), 0.6)   # manta enrollada
+        if nombre_forma == "zapador":
+            # pala sujeta a la mochila y mandil de cuero por delante
+            p.linea(x - 4.4, hombro - 1, x - 4.4, cadera + 1, MADERA_FUSIL, 0.8)
+            p.elipse(x - 5.6, hombro - 3.4, 2.4, 3, ACERO)
+            p.poli([(x + 0.2, hombro + 1.0), (x + 3.0, hombro + 1.0), (x + 4.0, cadera + 5.0), (x + 0.4, cadera + 5.0)],
+                   MANDIL)
+            p.linea(x + 3.0, hombro + 1.0, x + 4.0, cadera + 5.0, oscuro(MANDIL, 0.7), 0.5)
+        if blusa:
+            # canana cruzada, cargada de cartuchos de dinamita
+            p.linea(x - 2.8, hombro + 0.6, x + 2.8, cadera - 1.2, CUERO, 1.1)
+            for k in range(4):
+                t = 0.15 + k * 0.22
+                p.rect(x - 2.8 + 5.6 * t - 0.45, hombro + 0.6 + (cadera - 1.8 - hombro) * t - 0.9, 0.9, 1.6, DINAMITA)
+        if nombre_forma == "torpedista":
+            p.rect(x - 3.8, hombro - 0.4, 3.0, 3.6, ropa["cuello"])          # cuello marinero
+            p.linea(x - 3.6, hombro + 2.4, x - 1.0, hombro + 2.4, casaca, 0.45)
         if nombre_forma == "cantinera" or (nombre_forma == "heroina" and insignia != "cantinera"):
             p.rect(x - 0.4, cadera - 0.4, 3.6, 3, CUERO_BLANCO)            # delantal
             p.elipse(x - 5.2, cadera - 2.2, 3.4, 3.4, MADERA_FUSIL)          # barrilito
             p.linea(x - 5.2, cadera - 0.6, x - 1.8, cadera - 0.6, oscuro(MADERA_FUSIL), 0.5)
-        if nombre_forma == "trabajador" and frame in (5, 6):
-            pass
         if insignia in ("general", "coronel", "comandante", "artillero"):
             p.linea(x - 3, hombro + 0.8, x + 2.6, cadera - 0.8, ropa["detalle"], 0.9)   # banda
             p.rect(x - 0.4, hombro - 0.4, 3, 1.2, ropa["detalle"])                      # charretera
         # brazo con el distintivo del jugador
         bx = x + 0.6
-        if frame == 3 and arma in ("fusil", "carabina", "revolver"):
+        mano = None
+        if arma == "dinamita":
+            if frame == 3:
+                codo, mano = (x - 1.8, hombro - 0.4), (x - 4.8, hombro - 3.0)   # atrás, por lanzar
+            else:
+                codo, mano = (bx + 1.2, hombro + 4.4), (bx + 2.4, cadera - 1.2)
+            p.linea(bx, hombro + 1.4, codo[0], codo[1], casaca, 1.7)
+            p.linea(codo[0], codo[1], mano[0], mano[1], ropa["piel"], 1.4)     # arremangado
+        elif arma == "torpedo":
+            p.linea(bx, hombro + 1.4, bx + 2.6, cadera - 2.6, casaca, 1.7)
+        elif arma == "zapapico":
+            p.linea(bx, hombro + 1.4, bx + 2.0, hombro + 3.4, casaca, 1.7)
+            _pico(p, bx + 2.0, hombro + 3.6, x - 5.6, hombro - 4.6)
+        elif frame == 3 and arma in ("fusil", "carabina", "revolver"):
             p.linea(bx, hombro + 1.4, bx + 4.6, hombro + 2.4, casaca, 1.7)
         elif frame == 4:
             p.linea(bx, hombro + 1.4, bx + 1.2, hombro - 3, casaca, 1.7)
@@ -279,18 +420,12 @@ def figura(nombre_forma, ropa, vista, frame, insignia=None):
             p.linea(bx, hombro + 1.4, bx + 2.4, cadera - 1.4, casaca, 1.7)
         p.rect(bx - 0.8, hombro + 1.4, 1.8, 1.4, ropa["jugador"])
         _cabeza_lado(p, x + 0.4, cabeza, ropa, sombrero)
-        if arma:
+        if arma == "dinamita":
+            _cartucho(p, mano[0], mano[1], frame == 3)
+        elif arma == "torpedo":
+            _torpedo(p, x + 3.6, cadera - 2.2)
+        elif arma and arma != "zapapico":
             _arma_lado(p, x + 1, hombro, cadera, arma, frame)
-        if nombre_forma == "ingeniero":
-            p.rect(x + 2.4, cadera - 4, 1.2, 3.2, (190, 40, 30))
-            p.rect(x + 3.8, cadera - 4, 1.2, 3.2, (190, 40, 30))
-            p.linea(x + 3.6, cadera - 4, x + 4.8, cadera - 5.6, (240, 220, 160), 0.4)
-        if nombre_forma == "zapador":
-            p.linea(x - 4.4, hombro - 1, x - 4.4, cadera + 1, MADERA_FUSIL, 0.8)
-            p.elipse(x - 5.6, hombro - 3.4, 2.4, 3, ACERO)
-        if nombre_forma == "torpedista":
-            p.rect(x + 1.4, cadera - 3.6, 4.4, 3.4, (60, 60, 56), 0.6)
-            p.circ(x + 3.6, cadera - 1.9, 0.9, (190, 40, 30))
         if nombre_forma == "montonero":
             p.poli([(x - 4, hombro - 0.4), (x + 4, hombro - 0.4), (x + 4.6, cadera + 0.4), (x - 4.6, cadera + 0.4)],
                    (172, 58, 44))
@@ -308,14 +443,43 @@ def figura(nombre_forma, ropa, vista, frame, insignia=None):
             p.rect(x + 0.4, cadera, 2.2, pierna - 1 - max(0, -alt), pant)
             p.rect(x - 2.8, pie - 1.6 - max(0, alt), 2.6, 1.6, BOTAS)
             p.rect(x + 0.2, pie - 1.6 - max(0, -alt), 2.6, 1.6, BOTAS)
-        p.rect(x - 3.6, hombro, 7.2, torso + 1.4, casaca, 1)
-        p.linea(x - 3.6, cadera - 0.6, x + 3.6, cadera - 0.6, CUERO if nombre_forma != "colorado" else CUERO_BLANCO, 0.9)
-        if nombre_forma in ("infante", "zapador", "ingeniero", "colorado", "torpedista") and not espalda:
-            p.linea(x - 3, hombro + 0.4, x + 3, cadera - 1, CUERO_BLANCO, 0.6)
-            p.linea(x + 3, hombro + 0.4, x - 3, cadera - 1, CUERO_BLANCO, 0.6)
-        if espalda and nombre_forma in ("infante", "zapador", "ingeniero", "colorado", "torpedista"):
+        if blusa:
+            p.rect(x - 4.0, hombro, 8.0, torso + 2.0, casaca, 1.4)
+        else:
+            p.rect(x - 3.6, hombro, 7.2, torso + 1.4, casaca, 1)
+        p.linea(x - 3.6, cadera - 0.6, x + 3.6, cadera - 0.6, cinturon, 0.9)
+        if nombre_forma in DE_LINEA and not espalda:
+            p.linea(x - 3, hombro + 0.4, x + 3, cadera - 1, correaje, 0.6)
+            p.linea(x + 3, hombro + 0.4, x - 3, cadera - 1, correaje, 0.6)
+        if espalda and nombre_forma in DE_LINEA:
             p.rect(x - 2.8, hombro + 1, 5.6, 5, oscuro(CUERO, 0.6), 0.8)
             p.rect(x - 3, hombro + 0.6, 6, 1.2, (210, 200, 180))
+        if nombre_forma == "zapador":
+            if espalda:
+                p.linea(x, hombro + 5.6, x, hombro - 3.2, MADERA_FUSIL, 0.9)      # pala en la mochila
+                p.elipse(x - 1.3, hombro - 5.8, 2.6, 3.2, ACERO)
+            else:
+                p.rect(x - 3.0, hombro + 1.4, 6.0, torso + 3.4, MANDIL, 0.8)       # mandil de cuero
+                p.linea(x - 2.4, hombro + 1.4, x - 1.4, hombro - 0.2, oscuro(MANDIL, 0.7), 0.5)
+                p.linea(x + 2.4, hombro + 1.4, x + 1.4, hombro - 0.2, oscuro(MANDIL, 0.7), 0.5)
+        if blusa:
+            if espalda:
+                p.linea(x + 3.2, hombro + 0.4, x - 3.2, cadera - 1.0, CUERO, 1.0)  # correa del morral
+                p.rect(x - 4.8, cadera - 2.6, 3.0, 3.4, CUERO, 0.6)
+            else:
+                p.linea(x - 3.2, hombro + 0.4, x + 3.2, cadera - 1.0, CUERO, 1.1)  # canana
+                for k in range(4):
+                    t = 0.15 + k * 0.22
+                    p.rect(x - 3.2 + 6.4 * t - 0.45, hombro + 0.4 + (cadera - 1.4 - hombro) * t - 0.9, 0.9, 1.6,
+                           DINAMITA)
+                p.rect(x + 2.4, cadera - 2.6, 3.0, 3.4, CUERO, 0.6)                # morral al costado
+        if nombre_forma == "torpedista":
+            if espalda:
+                p.rect(x - 3.4, hombro - 0.2, 6.8, 4.2, ropa["cuello"])           # cuello marinero
+                p.rect(x - 3.0, hombro + 3.0, 6.0, 0.5, casaca)
+            else:
+                p.linea(x - 3.0, hombro + 0.2, x, hombro + 3.6, ropa["cuello"], 1.0)
+                p.linea(x + 3.0, hombro + 0.2, x, hombro + 3.6, ropa["cuello"], 1.0)
         if nombre_forma == "cantinera" and not espalda:
             p.rect(x - 2.2, cadera - 1, 4.4, 4.4, CUERO_BLANCO)
         if nombre_forma == "montonero":
@@ -325,16 +489,35 @@ def figura(nombre_forma, ropa, vista, frame, insignia=None):
             p.linea(x - 3.4, hombro + 0.8, x + 3.2, cadera - 0.8, ropa["detalle"], 0.9)
             p.rect(x - 4.2, hombro - 0.4, 2.2, 1.2, ropa["detalle"])
             p.rect(x + 2, hombro - 0.4, 2.2, 1.2, ropa["detalle"])
-        p.rect(x - 5, hombro + 0.6, 1.6, torso - 1, casaca, 0.6)
-        p.rect(x + 3.4, hombro + 0.6, 1.6, torso - 1, casaca, 0.6)
+        mano = None
+        if blusa:
+            # arremangado: los antebrazos a la vista; al lanzar, el brazo en alto
+            mitad = (torso - 1) / 2
+            p.rect(x - 5, hombro + 0.6, 1.6, mitad, casaca, 0.6)
+            p.rect(x - 5, hombro + 0.6 + mitad, 1.6, mitad, ropa["piel"], 0.6)
+            if frame == 3:
+                p.rect(x + 3.4, hombro - 1.8, 1.6, 2.6, casaca, 0.6)
+                p.rect(x + 3.4, hombro - 4.6, 1.6, 2.8, ropa["piel"], 0.6)
+                mano = (x + 4.2, hombro - 4.6)
+            else:
+                p.rect(x + 3.4, hombro + 0.6, 1.6, mitad, casaca, 0.6)
+                p.rect(x + 3.4, hombro + 0.6 + mitad, 1.6, mitad, ropa["piel"], 0.6)
+                mano = (x + 4.2, hombro + torso - 0.4)
+        else:
+            p.rect(x - 5, hombro + 0.6, 1.6, torso - 1, casaca, 0.6)
+            p.rect(x + 3.4, hombro + 0.6, 1.6, torso - 1, casaca, 0.6)
         p.rect(x - 5, hombro + 0.8, 1.6, 1.4, ropa["jugador"])
         if arma in ("fusil", "carabina"):
             p.linea(x + 4.4, cadera + 2, x + 4.4, hombro - 9, MADERA_FUSIL, 1.0)
             p.linea(x + 4.4, hombro - 4, x + 4.4, hombro - 10, ACERO, 0.6)
-        elif arma == "pico":
+        elif arma in ("pico", "zapapico"):
             p.linea(x + 4.4, hombro + 2, x + 4.4, hombro - 8, MADERA_FUSIL, 1.0)
             p.poli([(x + 1.4, hombro - 7.6), (x + 7.4, hombro - 8.4), (x + 4.4, hombro - 6.6)], ACERO)
+        elif arma == "torpedo" and not espalda:
+            _torpedo(p, x, cadera + 0.6)
         _cabeza_frente(p, x, cabeza, ropa, sombrero, espalda)
+        if mano is not None:
+            _cartucho(p, mano[0], mano[1], frame == 3)
     return p.resultado()
 
 
@@ -406,39 +589,69 @@ def jinete(nombre_forma, ropa, vista, frame, insignia=None):
     x = fx
     base = fy
     mirar = 1
-    color_c = (110, 72, 44)
+    color_c = ropa.get("caballo", (110, 72, 44))
     if nombre_forma == "heroe_montado":
         color_c = (200, 196, 188) if insignia == "general" else (60, 44, 34)
     elif nombre_forma == "baqueano":
         color_c = (150, 116, 80)
     caballo(p, x, base, frame, color_c, mirar)
-    # silla y jinete
     sy = base - 13
+    de_linea = "chabraque" in ropa      # granaderos y cazadores de línea
+    if de_linea:
+        # mantilla bajo la montura, del color del cuerpo con el galón del arma
+        p.poli([(x - 6.6, sy + 1.0), (x + 3.4, sy + 1.0), (x + 3.0, sy + 6.6), (x - 6.2, sy + 7.4)], ropa["chabraque"])
+        p.linea(x - 6.2, sy + 6.6, x + 3.0, sy + 5.8, ropa["galon"], 0.9)
+        p.linea(x - 6.4, sy + 1.4, x - 6.2, sy + 7.0, ropa["galon"], 0.9)
+    # silla y jinete
     p.rect(x - 4, sy, 7, 2.2, (70, 40, 24))
     pant = ropa["pantalon"]
     p.poli([(x - 1.2, sy), (x + 1.8, sy), (x + 2.6, sy + 6.8), (x + 0.4, sy + 6.8)], pant)
-    p.rect(x + 0.2, sy + 6, 2.6, 1.6, BOTAS)
+    if de_linea:
+        p.rect(x + 0.1, sy + 3.0, 2.8, 4.6, BOTAS, 0.5)                   # botas altas de montar
+    else:
+        p.rect(x + 0.2, sy + 6, 2.6, 1.6, BOTAS)
     torso_alto = 8.0
     hombro = sy - torso_alto
     casaca = ropa["casaca"]
     p.poli([(x - 2.8, hombro), (x + 2.6, hombro), (x + 3, sy + 1), (x - 3.2, sy + 1)], casaca)
+    if nombre_forma == "jinete_sable":
+        # bandolera blanca y charretera
+        p.linea(x - 2.4, hombro + 0.6, x + 2.4, sy - 0.2, CUERO_BLANCO, 0.9)
+        p.elipse(x - 2.0, hombro - 0.8, 3.8, 1.8, ropa["galon"])
+    elif nombre_forma == "jinete_carabina":
+        # dolmán con alamares cruzados al pecho y canana
+        for k in range(3):
+            yy = hombro + 1.8 + k * 1.7
+            p.linea(x - 1.4, yy, x + 2.8, yy, ropa["alamares"], 0.75)
+        p.linea(x - 2.6, hombro + 0.4, x + 2.2, sy - 0.4, CUERO, 0.9)
     if nombre_forma == "baqueano":
         p.poli([(x - 4, hombro - 0.2), (x + 4, hombro - 0.2), (x + 4.6, sy + 1.6), (x - 4.6, sy + 1.6)], (150, 110, 70))
         p.linea(x - 4, hombro + 3, x + 4, hombro + 3, (200, 170, 110), 0.6)
     if insignia in ("general", "coronel", "comandante", "artillero"):
         p.linea(x - 2.6, hombro + 0.8, x + 2.4, sy - 0.6, ropa["detalle"], 0.9)
         p.rect(x - 0.4, hombro - 0.4, 3, 1.2, ropa["detalle"])
-    sombrero = "sombrero" if nombre_forma == "baqueano" else ("gorra" if nombre_forma == "heroe_montado" else "kepi")
+    if nombre_forma == "baqueano":
+        sombrero = "sombrero"
+    elif nombre_forma == "heroe_montado":
+        sombrero = "gorra"
+    elif nombre_forma == "jinete_sable":
+        sombrero = "morrion"
+    else:
+        sombrero = "kepi"
     ropa["cubre"] = nombre_forma not in ("baqueano", "heroe_montado")
     _cabeza_lado(p, x + 0.4, hombro - 3.4, ropa, sombrero)
     # brazo y arma
     if nombre_forma == "jinete_sable" or (nombre_forma == "heroe_montado" and insignia != "artillero"):
         if frame == 3:
-            p.linea(x + 0.6, hombro + 1.4, x + 4, hombro - 2.6, casaca, 1.6)
-            p.linea(x + 4, hombro - 2.6, x + 9, hombro - 11, ACERO, 0.9)
+            mano = (x + 4, hombro - 2.6)
+            p.linea(x + 0.6, hombro + 1.4, mano[0], mano[1], casaca, 1.6)
+            p.linea(mano[0], mano[1], x + 9, hombro - 11, ACERO, 0.9)
         else:
-            p.linea(x + 0.6, hombro + 1.4, x + 3, sy - 1, casaca, 1.6)
-            p.linea(x + 3, sy - 1, x + 8, hombro - 6, ACERO, 0.9)
+            mano = (x + 3, sy - 1)
+            p.linea(x + 0.6, hombro + 1.4, mano[0], mano[1], casaca, 1.6)
+            p.linea(mano[0], mano[1], x + 8, hombro - 6, ACERO, 0.9)
+        if nombre_forma == "jinete_sable":
+            p.circ(mano[0], mano[1], 0.95, CUERO_BLANCO)                     # guantelete
     else:
         if frame == 3:
             p.linea(x + 0.6, hombro + 1.4, x + 4.6, hombro + 2.2, casaca, 1.6)
@@ -590,7 +803,8 @@ class Sprites:
         forma = tipo.sprite.get("forma", "infante")
         insignia = tipo.sprite.get("insignia")
         especial = forma if forma in ("colorado", "trabajador", "espia", "montonero", "baqueano") else None
-        ropa = _ropa(faccion.uniforme, color_jugador, especial)
+        ropa = _uniforme_de_arma(_ropa(faccion.uniforme, color_jugador, especial), forma,
+                                 faccion.uniformes.get(forma))
         tam = FORMA_TAM.get(forma, "pie")
         if tam == "pie":
             return figura(forma, ropa, vista, frame, insignia)

@@ -92,7 +92,23 @@ reductos, y los ingenieros abren brechas.
 
 Las unidades comunes cambian de **nombre** según la nación (Infante de línea
 Comblain, Peabody, Remington o Remington Patria; Húsar de Junín; Cañón Grieve…),
-y los uniformes se dibujan con los colores de cada ejército.
+y los uniformes se dibujan con los colores de cada ejército. Además cada **arma**
+se reconoce de un vistazo:
+
+| Arma | Rasgos del uniforme |
+|---|---|
+| Infante de línea | Quepí con cubrenuca blanco, correaje blanco cruzado, mochila y fusil con bayoneta |
+| Zapador | Quepí de paño azul oscuro con franja carmesí, barba, mandil de cuero, zapapico al hombro y pala en la mochila |
+| Ingeniero dinamitero | Gorra de cuartel con cinta carmesí, blusa de brin arremangada, canana con cartuchos de dinamita y morral; lanza el cartucho con la mecha encendida |
+| Torpedista | Gorra de marinero con cintas, chaquetón azul con cuello marinero, pantalón blanco y la mina en brazos |
+| Granadero a caballo | Morrión con banda, granada de metal y pompón, charreteras, bandolera blanca, guanteletes, botas altas y caballo morcillo (negro) |
+| Cazador a caballo | Quepí con cubrenuca, dolmán con alamares, canana, carabina y caballo alazán |
+
+Los rasgos chilenos siguen el reglamento de 1878 donde se conoce (morrión garance
+con banda azul oscuro y granada de metal amarillo de los Granaderos; quepí de paño
+azul con vivos carmesí de los Zapadores); el resto es una estilización legible a
+escala de estrategia. Los colores de cada arma por nación están en
+`datos/facciones.json` (clave `uniformes`).
 
 ## Héroes
 

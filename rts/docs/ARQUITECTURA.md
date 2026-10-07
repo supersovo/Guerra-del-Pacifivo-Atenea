@@ -149,7 +149,8 @@ montoneros quietos, minas) solo se ven con un **detector** cerca.
   suave alineado entre bloques, grano, detalles por casilla, acantilados con
   sombra, caminos y vías férreas.
 - **Sprites generados por código** a tres veces su tamaño y reducidos con
-  suavizado, con el uniforme de cada nación y el color del jugador; se pueden
+  suavizado, con el uniforme de cada nación (y los rasgos propios de cada arma:
+  zapadores, dinamiteros, torpedistas, granaderos y cazadores) y el color del jugador; se pueden
   reemplazar por imágenes propias en `recursos/graficos/`.
 - **Efectos**: humo de pólvora negra, fogonazos, explosiones, cráteres, polvo de
   obra y de marcha, curaciones.

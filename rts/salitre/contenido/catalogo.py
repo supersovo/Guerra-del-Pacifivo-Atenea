@@ -355,6 +355,9 @@ class Faccion:
         self.descripcion = d.get("descripcion", "")
         self.historia = d.get("historia", "")
         self.uniforme = {k: tuple(v) for k, v in d.get("uniforme", {}).items()}
+        # colores propios de cada arma (zapadores, dinamiteros, granaderos, cazadores...)
+        self.uniformes = {forma: {k: tuple(v) for k, v in colores.items()}
+                          for forma, colores in d.get("uniformes", {}).items()}
         self.bandera = d.get("bandera", fid)
         self.unidades = tuple(comunes["unidades"]) + tuple(d.get("unidades", []))
         self.edificios = tuple(comunes["edificios"]) + tuple(d.get("edificios", []))

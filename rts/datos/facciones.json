@@ -1,5 +1,5 @@
 {
-  "_comentario": "Naciones jugables. 'unidades' y 'edificios' son los que cada país puede formar o construir. 'nombres' cambia el nombre que se muestra de una unidad. 'bonificaciones' son ventajas permanentes con el mismo formato de efectos que las investigaciones (más 'costo_pct').",
+  "_comentario": "Naciones jugables. 'unidades' y 'edificios' son los que cada país puede formar o construir. 'nombres' cambia el nombre que se muestra de una unidad. 'uniforme' son los colores de la nación y 'uniformes' los propios de cada arma, por la forma del dibujo (zapador, ingeniero, torpedista, jinete_sable, jinete_carabina). 'bonificaciones' son ventajas permanentes con el mismo formato de efectos que las investigaciones (más 'costo_pct').",
   "_comunes": {
     "unidades": ["trabajador", "infante", "cantinera", "camilleros", "ingeniero", "granadero", "cazador", "artilleria_montana", "canon_campana", "gatling", "espia", "transporte", "canonera"],
     "edificios": ["cuartel_general", "deposito", "molino_agua", "barracas", "maestranza", "hospital_campana", "trinchera", "reducto", "barracon_instruccion", "caballeriza", "central_telegrafos", "parque_artilleria", "estado_mayor", "muelle"]
@@ -11,6 +11,12 @@
     "descripcion": "La artillería más moderna y el dominio del mar. Zapadores que detectan minas y demuelen fortificaciones.",
     "historia": "Chile movilizó un ejército de línea reforzado por batallones cívicos (Atacama, Coquimbo, Chacabuco, Esmeralda...) armado con fusiles Comblain y Gras y artillería Krupp. Tras Angamos (1879) dominó el mar y llevó la guerra por desembarcos: Pisagua, Pacocha, Pisco y Curayaco.",
     "uniforme": {"casaca": [34, 44, 98], "pantalon": [168, 32, 36], "kepi": [172, 34, 38], "franja": [34, 44, 98], "cubrenuca": [232, 228, 214], "detalle": [222, 196, 92]},
+    "uniformes": {
+      "zapador": {"kepi": [28, 34, 72], "franja": [150, 24, 52]},
+      "ingeniero": {"casaca": [180, 158, 114], "kepi": [28, 34, 72], "cinta": [150, 24, 52]},
+      "jinete_sable": {"morrion": [172, 34, 38], "banda": [26, 30, 62], "pompon": [172, 34, 38], "galon": [222, 196, 92], "chabraque": [34, 44, 98]},
+      "jinete_carabina": {"franja": [52, 124, 70], "alamares": [222, 196, 92], "galon": [52, 124, 70], "chabraque": [34, 44, 98]}
+    },
     "bandera": "chile",
     "unidades": ["zapador", "baquedano", "san_martin", "velasquez", "irene_morales", "prat"],
     "edificios": [],
@@ -37,6 +43,12 @@
     "descripcion": "Maestro de la defensa: fortificaciones más resistentes y baratas, minas ocultas de los torpedistas y montoneras de la Breña.",
     "historia": "El Perú defendió su costa con fuertes, baterías y minas, fabricó cañones Grieve y White y fusiles Castañón, y tras la caída de Lima sostuvo la resistencia de la Breña con Cáceres hasta 1883. Su marina, con Grau en el Huáscar, retrasó seis meses la campaña terrestre.",
     "uniforme": {"casaca": [214, 208, 190], "pantalon": [44, 58, 112], "kepi": [176, 36, 42], "franja": [44, 58, 112], "cubrenuca": [236, 232, 220], "detalle": [222, 196, 92]},
+    "uniformes": {
+      "ingeniero": {"casaca": [176, 150, 104], "kepi": [44, 58, 112], "cinta": [176, 36, 42]},
+      "torpedista": {"casaca": [30, 38, 70], "pantalon": [230, 228, 220], "kepi": [26, 30, 52]},
+      "jinete_sable": {"casaca": [40, 52, 112], "pantalon": [228, 224, 212], "morrion": [176, 36, 42], "banda": [30, 36, 70], "pompon": [236, 232, 220], "galon": [222, 196, 92], "chabraque": [176, 36, 42]},
+      "jinete_carabina": {"casaca": [40, 52, 112], "pantalon": [228, 224, 212], "alamares": [222, 196, 92], "galon": [176, 36, 42], "chabraque": [44, 58, 112]}
+    },
     "bandera": "peru",
     "unidades": ["torpedista", "montonero", "bolognesi", "caceres", "ugarte", "grau"],
     "edificios": [],
@@ -63,6 +75,11 @@
     "descripcion": "Infantería endurecida en el altiplano (+10 % de vida) y los Colorados, la infantería de élite que resiste en cuadro.",
     "historia": "Bolivia aportó al ejército aliado batallones como los Colorados, Aroma, Padilla, Chorolque, Grau y Loa, armados con Remington, y una pequeña artillería Krupp. Tras Tacna (1880) no volvió a combatir; el Pacto de Tregua se firmó en 1884.",
     "uniforme": {"casaca": [118, 116, 106], "pantalon": [104, 102, 94], "kepi": [92, 90, 82], "franja": [42, 122, 64], "cubrenuca": [226, 222, 208], "detalle": [42, 122, 64]},
+    "uniformes": {
+      "ingeniero": {"casaca": [164, 142, 102], "kepi": [64, 62, 56], "cinta": [176, 36, 42]},
+      "jinete_sable": {"morrion": [42, 122, 64], "banda": [176, 36, 42], "pompon": [176, 36, 42], "galon": [222, 196, 92], "chabraque": [42, 122, 64]},
+      "jinete_carabina": {"franja": [176, 36, 42], "alamares": [222, 196, 92], "galon": [222, 196, 92], "chabraque": [176, 36, 42]}
+    },
     "bandera": "bolivia",
     "unidades": ["colorado", "campero", "abaroa", "camacho", "zeballos"],
     "edificios": [],
@@ -88,6 +105,11 @@
     "descripcion": "Jinetes de la pampa: caballería más barata y rápida, baqueanos que todo lo ven y fortines que defienden y alojan tropa.",
     "historia": "La Argentina se declaró neutral en 1879, aunque el conflicto de límites con Chile por la Patagonia la llevó al borde de la guerra hasta el Tratado de 1881. Su ejército, armado con Remington Patria y Krupp, hacía entonces las campañas de Roca y Villegas. En el juego es una facción hipotética ('¿y si...?'), con héroes reales de su historia militar.",
     "uniforme": {"casaca": [36, 46, 82], "pantalon": [124, 132, 146], "kepi": [36, 46, 82], "franja": [112, 172, 222], "cubrenuca": [234, 232, 222], "detalle": [222, 196, 92]},
+    "uniformes": {
+      "ingeniero": {"casaca": [172, 152, 112], "kepi": [36, 46, 82], "cinta": [150, 24, 52]},
+      "jinete_sable": {"morrion": [30, 30, 36], "banda": [176, 36, 42], "pompon": [176, 36, 42], "galon": [222, 196, 92], "chabraque": [36, 46, 82]},
+      "jinete_carabina": {"alamares": [112, 172, 222], "galon": [112, 172, 222], "chabraque": [36, 46, 82]}
+    },
     "bandera": "argentina",
     "unidades": ["baqueano", "roca", "villegas", "saenz_pena", "piedrabuena"],
     "edificios": ["fortin"],
