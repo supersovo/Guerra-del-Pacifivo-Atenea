@@ -62,7 +62,7 @@ class Unidad(Entidad):
         "emplazando", "quieto", "dentro", "cargamento", "abatidos", "mov_ticks", "atasco",
         "casa_x", "casa_y", "cd", "regen", "acum", "oculta", "ataco_t", "golpeado_por",
         "golpeado_t", "fantasma", "recurso_id", "moviendo", "disparo_t", "espera", "creada_t",
-        "buscar_t", "ultimo_x", "ultimo_y", "base_id", "paciente", "paciente_hoja",
+        "buscar_t", "ultimo_x", "ultimo_y", "base_id", "paciente", "paciente_hoja", "pacientes",
         "xp", "grado", "nombre", "ficha", "batallas",
     )
     es_unidad = True
@@ -123,6 +123,7 @@ class Unidad(Entidad):
         self.base_id = 0         # camilleros: su hospital
         self.paciente = None     # camilleros: tipo del herido que llevan en la camilla
         self.paciente_hoja = None
+        self.pacientes = []      # ambulancia: convalecientes que viajan en el carro (como en el hospital)
         # veteranía: experiencia (en 1/XPF), grado, nombre (semilla, 0 = sin nombre todavía),
         # ficha del escalafón de la campaña y batallas en que estuvo
         self.xp = 0
@@ -147,7 +148,8 @@ class Edificio(Entidad):
         "tx", "ty", "w", "h", "construido", "progreso", "constructor", "acum_vida", "cola",
         "reunion", "energia", "sabotaje_hasta", "guarnicion", "pozo", "ocupante",
         "ocupante_hasta", "enfr", "objetivo", "cd", "abatidos", "radio", "golpeado_t",
-        "enfr_guarnicion", "dir", "camilleros", "camilleros_t", "pacientes",
+        "enfr_guarnicion", "dir", "camilleros", "camilleros_t", "pacientes", "desmontando",
+        "pob_reservada",
     )
     es_edificio = True
 
@@ -187,7 +189,9 @@ class Edificio(Entidad):
         self.dir = 2
         self.camilleros = []     # hospital: ids de sus equipos de camilleros
         self.camilleros_t = 0    # hospital: cuándo puede mandar un equipo nuevo
-        self.pacientes = []      # hospital: [tipo de unidad, ticks que le faltan para volver a filas]
+        self.pacientes = []      # hospital: [tipo de unidad, ticks que le faltan para volver a filas, hoja]
+        self.desmontando = 0     # hospital de sangre: ticks que faltan para volver a ser ambulancia
+        self.pob_reservada = 0   # la población de la ambulancia que lo montó (vuelve al desmontarlo)
 
     def rect(self):
         return (self.tx * TILE, self.ty * TILE, (self.tx + self.w) * TILE, (self.ty + self.h) * TILE)

@@ -243,7 +243,8 @@ def c_detener(m, p, cmd):
 
 def c_replegar(m, p, cmd):
     """Repliegue sanitario: los seleccionados con menos de la mitad de la vida (o, si ninguno
-    está tan mal, todos los heridos) van a curarse junto al hospital de campaña más cercano."""
+    está tan mal, todos los heridos) van a curarse junto al hospital más cercano (el de campaña
+    o un hospital de sangre)."""
     us = [u for u in _propias(m, p, cmd.get("u", [])) if u.tipo.biologica and u.capa == TIERRA]
     heridos = [u for u in us if u.vida * 2 < u.st.vida] or [u for u in us if u.vida < u.st.vida]
     if not heridos:
@@ -254,13 +255,13 @@ def c_replegar(m, p, cmd):
     hosp = None
     mejor = None
     for b in m.edificios.values():
-        if b.dueno != p or not b.vivo or not b.construido or not b.tipo.regen_radio:
+        if b.dueno != p or not b.vivo or not b.construido or not b.tipo.regen_radio or b.desmontando:
             continue
         d = (b.x - cx) ** 2 + (b.y - cy) ** 2
         if mejor is None or d < mejor:
             hosp, mejor = b, d
     if hosp is None:
-        m.ev_jugador(p, "err", "Hace falta un hospital de campaña terminado")
+        m.ev_jugador(p, "err", "Hace falta un hospital terminado")
         return
     # frente a la puerta del hospital, dentro del radio en que cura
     _mover_grupo(m, heridos, hosp.x, hosp.y + hosp.h * TILE // 2 + TILE, MOVER, False)
@@ -301,12 +302,24 @@ def c_regresar(m, p, cmd):
             dar(m, u, Orden(REGRESAR), bool(cmd.get("cola")))
 
 
+def puede_levantar(u, b):
+    """¿Puede trabajar en la obra b? Los trabajadores levantan cualquiera, salvo las que monta una
+    unidad (el hospital de sangre solo lo levanta la ambulancia); los zapadores, las suyas."""
+    if b.tipo.id in u.tipo.construye:
+        return True
+    return u.tipo.trabajador and not b.tipo.desmonta_en
+
+
 def c_reparar(m, p, cmd):
     obj = _objetivo(m, p, cmd)
     if obj is None or obj.dueno != p:
         return
     for u in _propias(m, p, cmd.get("u", [])):
-        if u.tipo.trabajador or (obj.es_edificio and obj.tipo.id in u.tipo.construye and not obj.construido):
+        if obj.es_edificio and not obj.construido:
+            puede = puede_levantar(u, obj)
+        else:
+            puede = u.tipo.trabajador
+        if puede:
             dar(m, u, Orden(REPARAR, obj=obj.id), bool(cmd.get("cola")))
 
 
@@ -364,7 +377,7 @@ def _inteligente_una(m, p, u, obj, cola):
     if obj is u:
         return True
     if obj.es_edificio:
-        if obj.dueno == p and not obj.construido and (tipo.trabajador or obj.tipo.id in tipo.construye):
+        if obj.dueno == p and not obj.construido and puede_levantar(u, obj):
             dar(m, u, Orden(REPARAR, obj=obj.id), cola)
             return True
         if tipo.trabajador and obj.dueno == p:
@@ -404,7 +417,7 @@ def c_construir(m, p, cmd):
         return
     tx, ty = int(cmd["tx"]), int(cmd["ty"])
     us = [u for u in _propias(m, p, cmd.get("u", []))
-          if u.tipo.trabajador or tipo.id in u.tipo.construye]
+          if (u.tipo.trabajador and not tipo.desmonta_en) or tipo.id in u.tipo.construye]
     if not us:
         return
     err = m.validar_construccion(j, tipo, tx, ty)
@@ -529,11 +542,16 @@ def c_habilidad(m, p, cmd):
             if c.es_unidad:
                 habilidades.lanzar(m, c, h, c.x, c.y, None)
         return
+    if h.tipo == "desmontar":
+        for c in lanzadores:
+            if c.es_edificio and not c.desmontando:
+                habilidades.lanzar(m, c, h, c.x, c.y, None)
+        return
     if h.tipo == "descargar":
         c_descargar(m, p, cmd)
         return
-    if h.tipo in ("orden_reparar", "menu_construir"):
-        return
+    if h.tipo in ("orden_reparar", "menu_construir", "montar"):
+        return      # "montar" llega como una orden de construir con el lugar elegido
     x, y = _xy(m, cmd) if "x" in cmd else (lanzadores[0].x, lanzadores[0].y)
     obj = _objetivo(m, p, cmd)
     if h.objetivo in ("unidad_enemiga", "edificio_enemigo"):

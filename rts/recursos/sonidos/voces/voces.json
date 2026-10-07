@@ -76,6 +76,10 @@
   "texto": "Hemos sido derrotados.",
   "voz": "em_santa"
  },
+ "desmontar_ambulancia_1.ogg": {
+  "texto": "¡Carpas al carro, seguimos a la tropa!",
+  "voz": "em_alex"
+ },
  "falta_agua_1.ogg": {
   "texto": "Falta agua, mi comandante.",
   "voz": "em_santa"
@@ -86,6 +90,10 @@
  },
  "herido_veterano_1.ogg": {
   "texto": "¡Camilleros! ¡Cayó herido un veterano!",
+  "voz": "em_santa"
+ },
+ "hospital_montado_1.ogg": {
+  "texto": "Hospital de sangre listo para recibir heridos.",
   "voz": "em_santa"
  },
  "investigado_1.ogg": {
@@ -99,6 +107,10 @@
  "lista_abaroa_1.ogg": {
   "texto": "¿Rendirme yo? ¡Que se rinda su abuela!",
   "voz": "em_santa"
+ },
+ "lista_ambulancia_1.ogg": {
+  "texto": "Ambulancia lista: camillas, vendas y cirujanos.",
+  "voz": "em_alex"
  },
  "lista_artilleria_montana_1.ogg": {
   "texto": "¡Cañón de montaña en batería!",
@@ -240,6 +252,22 @@
   "texto": "¡Llegó el cuartel general!",
   "voz": "em_santa"
  },
+ "montar_ambulancia_1.ogg": {
+  "texto": "¡Montamos el hospital aquí!",
+  "voz": "em_alex"
+ },
+ "montar_ambulancia_2.ogg": {
+  "texto": "¡Arriba las carpas!",
+  "voz": "em_alex"
+ },
+ "mover_ambulancia_1.ogg": {
+  "texto": "¡Arreen las mulas!",
+  "voz": "em_alex"
+ },
+ "mover_ambulancia_2.ogg": {
+  "texto": "Vamos tras la tropa.",
+  "voz": "em_alex"
+ },
  "mover_artilleria_1.ogg": {
   "texto": "¡Enganchen la pieza!",
   "voz": "em_alex"
@@ -318,6 +346,14 @@
  },
  "replegar_2.ogg": {
   "texto": "¡Heridos, a retaguardia!",
+  "voz": "em_alex"
+ },
+ "seleccion_ambulancia_1.ogg": {
+  "texto": "Ambulancia, a la orden.",
+  "voz": "em_alex"
+ },
+ "seleccion_ambulancia_2.ogg": {
+  "texto": "¿Dónde montamos el hospital?",
   "voz": "em_alex"
  },
  "seleccion_artilleria_1.ogg": {

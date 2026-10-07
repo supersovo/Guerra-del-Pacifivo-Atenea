@@ -315,6 +315,8 @@ def dibujar_edificio(tipo, nacion, color_jugador, capa="todo"):
         p.rect(x0 + fw / 2 + 5.2, y0 - 23, 2.6, 6, (210, 30, 30))
         p.rect(x0 + fw / 2 + 2.5, y0 - 21.3, 8, 2.6, (210, 30, 30))
         p.poli([(x0 + fw / 2, y0 - 14), (x0 + fw / 2 + 7, y0 - 12), (x0 + fw / 2, y0 - 10)], color_jugador)
+    elif forma == "hospital_sangre":
+        _hospital_sangre(p, x0, y0, fw, fh, color_jugador)
     elif forma == "trinchera":
         p.rect(x0 + 6, y0 + 10, fw - 12, fh - 22, (110, 90, 66), 2)
         for fila, yy in enumerate((y0 + 4, y0 + fh - 14)):
@@ -419,6 +421,67 @@ def dibujar_edificio(tipo, nacion, color_jugador, capa="todo"):
         caja(p, x0 + 4, y0 + 8, fw - 8, fh - 16, 18, ADOBE, TEJA, "tejas")
         bandera_en_mastil(p, x0 + fw / 2, y0, 20, nacion, color_jugador)
     return p.resultado()
+
+
+def _bandera_cruz_roja(p, x, y, alto, color_jugador):
+    """Mástil con la bandera blanca de la Cruz Roja y el gallardete del jugador."""
+    p.linea(x, y, x, y - alto, (80, 64, 50), 0.9)
+    p.rect(x + 0.5, y - alto, 12, 8, (250, 250, 250))
+    p.rect(x + 5.2, y - alto + 1, 2.6, 6, CRUZ)
+    p.rect(x + 2.5, y - alto + 2.7, 8, 2.6, CRUZ)
+    p.poli([(x, y - alto + 10), (x + 7, y - alto + 12), (x, y - alto + 14)], color_jugador)
+
+
+CRUZ = (210, 30, 30)
+
+
+def _hospital_sangre(p, x0, y0, fw, fh, color_jugador):
+    """Hospital de sangre: la carpa de la sala con la cruz roja en el techo, una carpa chica,
+    catres a la puerta, el botiquín y el carro de la ambulancia desenganchado."""
+    sombra = oscuro(LONA, 0.84)
+    # el carro desenganchado, detrás, a la derecha
+    cx, cy = x0 + fw - 15, y0 + 20
+    p.rect(cx - 9, cy - 2, 18, 5, MADERA)
+    p.elipse(cx - 9, cy - 14, 18, 10, LONA)
+    p.rect(cx - 9, cy - 9, 18, 8, LONA)
+    p.rect(cx - 1.4, cy - 11, 2.8, 7, CRUZ)
+    p.rect(cx - 3.6, cy - 8.6, 7.2, 2.6, CRUZ)
+    p.circ(cx - 5, cy + 4, 3.4, MADERA_OSC, borde=0.9)
+    p.circ(cx + 6, cy + 4, 3.0, MADERA_OSC, borde=0.9)
+    p.linea(cx + 9, cy + 1, cx + 16, cy + 4, MADERA_OSC, 0.9)
+    # carpa de la sala: muro al frente y techo a dos aguas con la cruz roja
+    tx0, tx1 = x0 + 3, x0 + 45
+    pie, alero, cumbre = y0 + fh - 18, y0 + fh - 30, y0 + 10
+    p.rect(tx0, alero, tx1 - tx0, pie - alero, sombra)
+    p.poli([(tx0 - 1, alero), (tx0 + 8, cumbre), (tx1 - 8, cumbre), (tx1 + 1, alero)], LONA)
+    p.linea(tx0 + 8, cumbre, tx1 - 8, cumbre, oscuro(LONA, 0.7), 0.8)
+    for k in range(1, 4):
+        xx = tx0 + k * (tx1 - tx0) / 4
+        p.linea(xx, alero, xx + (xx - (tx0 + tx1) / 2) * -0.18, cumbre + 1, oscuro(LONA, 0.9), 0.5)
+    mx = (tx0 + tx1) / 2
+    p.rect(mx - 2.2, cumbre + 4, 4.4, 13, CRUZ)
+    p.rect(mx - 6.5, cumbre + 8.3, 13, 4.4, CRUZ)
+    # puerta abierta con la lona recogida
+    p.rect(mx - 4, alero + 2, 8, pie - alero - 2, (52, 40, 32))
+    p.poli([(mx - 4, alero + 2), (mx - 9, pie), (mx - 4, pie)], claro(LONA, 0.1))
+    for xx in (tx0, tx1):
+        p.linea(xx, pie, xx + (2 if xx == tx0 else -2), pie + 3, (110, 90, 66), 0.6)     # vientos
+    # carpa chica a la derecha, adelante
+    bx = x0 + fw - 13
+    p.poli([(bx - 11, y0 + fh - 6), (bx, y0 + fh - 30), (bx + 11, y0 + fh - 6)], LONA)
+    p.poli([(bx, y0 + fh - 30), (bx + 11, y0 + fh - 6), (bx + 3, y0 + fh - 6)], sombra)
+    p.rect(bx - 2.4, y0 + fh - 14, 4.8, 8, (70, 58, 46))
+    # dos catres con heridos frente a la sala y el botiquín
+    for k, xx in enumerate((x0 + 6, x0 + 22)):
+        yy = y0 + fh - 11 + k
+        p.rect(xx, yy, 13, 3.4, (236, 234, 226))
+        p.rect(xx + 1, yy - 1.4, 7, 2.2, (150, 120, 96))
+        p.circ(xx + 10.6, yy - 0.6, 1.7, (210, 170, 136))
+        p.linea(xx + 1, yy + 3.4, xx + 1, yy + 5, MADERA_OSC, 0.6)
+        p.linea(xx + 12, yy + 3.4, xx + 12, yy + 5, MADERA_OSC, 0.6)
+    p.rect(x0 + 37, y0 + fh - 12, 6, 5, MADERA)
+    p.rect(x0 + 39.2, y0 + fh - 11.4, 1.6, 3.8, CRUZ)
+    _bandera_cruz_roja(p, bx, y0 + fh - 30, 46, color_jugador)          # en el mástil de la carpa chica
 
 
 def aspas(radio=15):

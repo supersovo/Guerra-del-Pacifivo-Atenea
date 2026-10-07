@@ -4,7 +4,7 @@
 ;     cd rts
 ;     pyinstaller --noconfirm instalador\salitre.spec
 ; Luego, desde rts\instalador:
-;     iscc /DVersion=0.11.1 salitre.iss
+;     iscc /DVersion=0.12.0 salitre.iss
 ; El instalador queda en rts\instalador\Salida\. Requiere Inno Setup 6.3 o más nuevo.
 ;
 ; Los datos del jugador (configuración, cuentas del servidor, repeticiones y

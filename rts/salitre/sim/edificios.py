@@ -2,7 +2,7 @@
 guarniciones (en la trinchera o en el techo de las barracas y del cuartel
 general) y el ir y venir de los trabajadores del molino."""
 
-from . import combate, veterania
+from . import combate
 from .comportamiento import deposito_cercano, direccion
 from .constantes import TICKS, TIERRA, TILE
 
@@ -26,47 +26,34 @@ def actualizar(m, b):
         _fuego_guarnicion(m, b)
     if tipo.camilleros:
         _hospital(m, b)
+    if b.desmontando:
+        b.desmontando -= 1
+        if b.desmontando <= 0:
+            m.desmontar(b)
+
+
+def equipos_de(m, b):
+    """Cuántos equipos de camilleros mantiene un hospital (los suyos más los del Servicio sanitario)."""
+    return b.tipo.camilleros + m.jugadores[b.dueno].sanidad["equipos"]
 
 
 def _hospital(m, b):
     """Equipos de camilleros (se reponen si caen) y pacientes que se recuperan y vuelven a filas."""
     t = m.tick
     tipo = b.tipo
-    j = m.jugadores[b.dueno]
     vivos = [i for i in b.camilleros if m.entidad(i) is not None]
     if len(vivos) < len(b.camilleros):
         b.camilleros_t = max(b.camilleros_t, t + tipo.reposicion)     # cayó un equipo: tarda en reponerse
     b.camilleros = vivos
-    if len(vivos) < tipo.camilleros + j.sanidad["equipos"] and t >= b.camilleros_t:
+    if not b.desmontando and len(vivos) < equipos_de(m, b) and t >= b.camilleros_t:
         x, y = m.punto_salida(b, TIERRA)
         u = m.crear_unidad(b.dueno, "camilleros", x, y)
         u.base_id = b.id
         u.fantasma = True
         b.camilleros.append(u.id)
         b.camilleros_t = t + ARRANQUE_CAMILLEROS
-    if not b.pacientes:
-        return
-    quedan = []
-    for pac in b.pacientes:
-        if pac[1] > 0:
-            pac[1] -= 1
-            quedan.append(pac)
-            continue
-        ut = m.cat.unidades[pac[0]]
-        if j.pob_usada + ut.poblacion > j.pob_max:
-            if t - j.aviso_poblacion_t >= TICKS * 10:
-                j.aviso_poblacion_t = t
-                m.ev_jugador(j.idx, "pob")
-            quedan.append(pac)
-            continue
-        x, y = m.punto_salida(b, TIERRA)
-        u = m.crear_unidad(b.dueno, ut.id, x, y)
-        veterania.aplicar_hoja(m, u, pac[2] if len(pac) > 2 else None)    # vuelve con su grado
-        u.vida = max(1, u.st.vida * min(100, tipo.vida_al_volver + j.sanidad["vida_al_volver"]) // 100)
-        j.pob_usada += ut.poblacion
-        j.est["heridos_recuperados"] = j.est.get("heridos_recuperados", 0) + 1
-        m.ev_pos(b.x, b.y, "recuperado", b.id, u.id, ut.idx)
-    b.pacientes = quedan
+    if b.pacientes:
+        m.atender_pacientes(b)
 
 
 def _salir_molino(m, b):

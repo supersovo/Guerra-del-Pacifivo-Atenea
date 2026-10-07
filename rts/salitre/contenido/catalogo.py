@@ -33,7 +33,7 @@ CLASES_MECANICAS = ("artilleria", "naval")
 TIPOS_HABILIDAD = {
     "orden_reparar", "menu_construir", "emplazar", "descargar", "sabotaje", "mina",
     "demolicion", "revelar", "potenciar_area", "potenciar_propio", "bombardeo",
-    "curar_area", "golpe",
+    "curar_area", "golpe", "montar", "desmontar",
 }
 OBJETIVOS_HABILIDAD = {"ninguno", "punto", "unidad_enemiga", "edificio_enemigo", "propio"}
 
@@ -215,6 +215,11 @@ class TipoUnidad:
         else:
             self.construye = ()
             self.vel_construccion = 100
+        # se convierte en un edificio (la ambulancia monta el hospital de sangre): lo levanta
+        # como una obra y, al terminarla, queda dentro de él hasta que se desmonte
+        self.monta = d.get("monta")
+        if self.monta and self.monta not in self.construye:
+            self.construye = self.construye + (self.monta,)
 
 
 class TipoEdificio:
@@ -279,14 +284,17 @@ class TipoEdificio:
         c = d.get("camilleros")
         if c:
             self.camilleros = int(c.get("equipos", 2))
-            self.camilleros_radio = sub(c.get("radio", 30))
             self.recuperacion = max(1, ticks(c.get("recuperacion", 20)))
             self.reposicion = max(1, ticks(c.get("reposicion", 30)))
             self.vida_al_volver = max(1, min(100, int(c.get("vida_al_volver", 50))))
         else:
             self.camilleros = 0
-            self.camilleros_radio = self.recuperacion = self.reposicion = 0
+            self.recuperacion = self.reposicion = 0
             self.vida_al_volver = 100
+        # unidad en que se convierte al desmontarse (el hospital de sangre vuelve a ser ambulancia);
+        # solo esa unidad lo levanta: los trabajadores no lo construyen
+        self.desmonta_en = d.get("desmonta_en")
+        self.desmontar_ticks = 0     # lo que tarda en desmontarse (de su habilidad, al validar)
         en = d.get("energia")
         if en:
             self.energia_max = int(round(en.get("max", 200) * EFP))
@@ -399,6 +407,7 @@ class Habilidad:
         self.solo_naval = bool(d.get("solo_naval", False))
         self.incluye_naval = bool(d.get("incluye_naval", False))
         self.atajo = (d.get("atajo") or "").upper()[:1]
+        self.edificio = None        # "montar": el edificio que levanta quien la tiene (se completa al validar)
 
 
 class Faccion:
@@ -502,6 +511,8 @@ class Catalogo:
                             and (tu.arma is not None or tu.curar_ritmo > 0))
         for te in self.edificios.values():
             te.valor = max(1, te.costo[0] + te.costo[1])
+        # edificios con camilleros: con cualquiera de ellos en pie, la tropa que cae queda herida
+        self.hospitales = tuple(e.id for e in self.edificios.values() if e.camilleros)
         self._validar()
 
     # ------------------------------------------------------------------
@@ -531,6 +542,13 @@ class Catalogo:
             for b in u.construye:
                 if b not in E:
                     raise ContenidoError(f"{w}: 'constructor' incluye un edificio desconocido {b}")
+            if u.monta and E[u.monta].desmonta_en != u.id:
+                raise ContenidoError(f"{w}: 'monta' {u.monta}, pero ese edificio no se desmonta en {u.id}")
+            for hb in u.habilidades:
+                if H[hb].tipo == "montar":
+                    if not u.monta:
+                        raise ContenidoError(f"{w}: la habilidad {hb} necesita 'monta'")
+                    H[hb].edificio = u.monta
         for e in E.values():
             w = f"edificios.json:{e.id}"
             for p in e.produce:
@@ -549,6 +567,13 @@ class Catalogo:
                     raise ContenidoError(f"{w}: habilidad desconocida {hb}")
             if e.sobre_recurso not in (None, "agua"):
                 raise ContenidoError(f"{w}: 'sobre_recurso' solo admite 'agua'")
+            if e.desmonta_en is not None:
+                if e.desmonta_en not in U or U[e.desmonta_en].monta != e.id:
+                    raise ContenidoError(f"{w}: 'desmonta_en' debe ser la unidad que lo monta")
+                des = [H[hb] for hb in e.habilidades if H[hb].tipo == "desmontar"]
+                if not des:
+                    raise ContenidoError(f"{w}: un edificio que se desmonta necesita la habilidad 'desmontar'")
+                e.desmontar_ticks = max(1, des[0].duracion)
         for m in M.values():
             w = f"mejoras.json:{m.id}"
             if m.edificio not in E:

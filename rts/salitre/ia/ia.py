@@ -5,7 +5,8 @@ Juega con las mismas reglas que una persona: solo actúa mediante comandos
 (trabajadores, molinos, depósitos y expansiones), sigue un orden de
 construcción por niveles tecnológicos, forma un ejército mixto, investiga,
 defiende su base, ataca por oleadas cada vez mayores, usa las habilidades de
-sus héroes y, si el enemigo está en otra isla, embarca a su ejército.
+sus héroes, lleva ambulancias que montan hospitales de sangre detrás de su
+frente y, si el enemigo está en otra isla, embarca a su ejército.
 """
 
 from math import isqrt
@@ -17,13 +18,13 @@ from ..sim.entidades import ATACAR_MOVER, CARGAR, CONSTRUIR, RECOLECTAR, REPARAR
 DIFICULTADES = {
     "facil": {"nombre": "Recluta", "periodo": 24, "trabajadores": 12, "ataque": 12, "incremento": 6,
               "barracas": 1, "investiga": False, "expandir": False, "obras": 1, "agua": 2,
-              "habilidades": False},
+              "habilidades": False, "ambulancias": 0},
     "normal": {"nombre": "Soldado de línea", "periodo": 12, "trabajadores": 18, "ataque": 20,
                "incremento": 8, "barracas": 2, "investiga": True, "expandir": True, "obras": 2,
-               "agua": 3, "habilidades": True},
+               "agua": 3, "habilidades": True, "ambulancias": 1},
     "dificil": {"nombre": "Veterano de la campaña", "periodo": 6, "trabajadores": 22, "ataque": 24,
                 "incremento": 10, "barracas": 3, "investiga": True, "expandir": True, "obras": 3,
-                "agua": 3, "habilidades": True},
+                "agua": 3, "habilidades": True, "ambulancias": 2},
 }
 
 # (edificio, trabajadores mínimos, cantidad deseada)
@@ -65,6 +66,7 @@ class IA:
         self.oleadas = 0
         self.atacando = set()
         self.convalecientes = set()     # veteranos replegados al hospital hasta curarse
+        self.montados = {}              # hospital de sangre -> tick en que quedó montado
         self.objetivo = None
         self.naval = None
         self.reunion = None
@@ -552,6 +554,12 @@ class IA:
             elif t == "muelle" and self.naval is not None:
                 if self._contar("transporte") < 3:
                     tid = "transporte"
+            elif t == "hospital_campana":
+                # ambulancias para montar hospitales de sangre junto a la tropa que ataca
+                cuota = self.dif.get("ambulancias", 0)
+                if cuota and len(self.ejercito) >= 8 \
+                        and self._contar("ambulancia") + self._contar("hospital_sangre") < cuota:
+                    tid = "ambulancia"
             if tid is None or tid not in fac.unidades:
                 continue
             ut = self.m.cat.unidades[tid]
@@ -656,6 +664,7 @@ class IA:
     def _militar(self):
         m = self.m
         self._cuidar_veteranos()
+        self._ambulancias()
         amenaza, n = self._amenaza()
         defensores = [u for u in self.ejercito if u.id not in self.atacando and u.id not in self.convalecientes]
         if amenaza is not None and n > 0:
@@ -695,6 +704,76 @@ class IA:
                    (u.x - self.reunion[0]) ** 2 + (u.y - self.reunion[1]) ** 2 > (6 * TILE) ** 2]
         if sueltos:
             self.cmd(c="mover", u=sueltos, x=self.reunion[0] // 16, y=self.reunion[1] // 16)
+
+    def _ambulancias(self):
+        """Las ambulancias siguen a la tropa que ataca y, cuando se traba en combate, montan un
+        hospital de sangre detrás del frente; cuando la tropa sigue de largo o vuelve, lo desmontan
+        y la alcanzan."""
+        m = self.m
+        t = m.tick
+        carros = self.por_tipo.get("ambulancia", [])
+        tiendas = [b for b in self.por_tipo.get("hospital_sangre", []) if b.vivo]
+        self.montados = {b.id: self.montados.get(b.id, t) for b in tiendas if b.construido}
+        if not carros and not tiendas:
+            return
+        frente = [u for i in sorted(self.atacando) if (u := m.entidad(i)) is not None
+                  and u.vivo and u.capa == TIERRA and not u.dentro]
+        centro = None
+        trabado = False
+        if len(frente) >= 4:
+            centro = (sum(u.x for u in frente) // len(frente), sum(u.y for u in frente) // len(frente))
+            # la tropa está combatiendo (no solo marchando): ahí hace falta el hospital
+            trabado = sum(1 for u in frente if t - u.disparo_t < TICKS * 3) * 4 >= len(frente)
+
+        def cubre(b, radio=16):
+            return centro is not None and (b.x - centro[0]) ** 2 + (b.y - centro[1]) ** 2 <= (radio * TILE) ** 2
+
+        for b in tiendas:
+            if not b.construido or b.desmontando or b.pacientes or cubre(b, 24):
+                continue
+            if t - self.montados.get(b.id, t) < TICKS * 30:
+                continue        # recién montado: atiende a los heridos de la refriega
+            heridos = any(h.vivo and h.dueno == self.p and (h.x - b.x) ** 2 + (h.y - b.y) ** 2 < (14 * TILE) ** 2
+                          for h in m.heridos.values())
+            if not heridos and not self._enemigos_cerca(b, 8 * TILE):
+                self.cmd(c="habilidad", u=[b.id], h="desmontar_hospital")
+        if centro is None:
+            # sin ataque en curso: esperan en el punto de reunión
+            for u in carros:
+                if u.orden is None and (u.x - self.reunion[0]) ** 2 + (u.y - self.reunion[1]) ** 2 > (6 * TILE) ** 2:
+                    self.cmd(c="mover", u=[u.id], x=self.reunion[0] // 16, y=self.reunion[1] // 16)
+            return
+        cubierto = any(cubre(b) for b in tiendas) or any(
+            b.construido and cubre(b) for b in self.por_tipo.get("hospital_campana", []))
+        # unas nueve casillas detrás del frente, del lado de la base
+        bx, by = self.base
+        d = max(1, isqrt((centro[0] - bx) ** 2 + (centro[1] - by) ** 2))
+        atras = min(d, 9 * TILE)
+        px = centro[0] + (bx - centro[0]) * atras // d
+        py = centro[1] + (by - centro[1]) * atras // d
+        for u in carros:
+            o = u.orden
+            if o is not None and o.tipo == CONSTRUIR:
+                continue
+            if trabado and not cubierto and (u.x - px) ** 2 + (u.y - py) ** 2 <= (6 * TILE) ** 2:
+                lugar = self._lugar_cerca(m.cat.edificios["hospital_sangre"], u.x, u.y)
+                if lugar is not None:
+                    self.cmd(c="construir", u=[u.id], e="hospital_sangre", tx=lugar[0], ty=lugar[1])
+                    cubierto = True
+                    continue
+            if o is None or (o.x - px) ** 2 + (o.y - py) ** 2 > (4 * TILE) ** 2:
+                self.cmd(c="mover", u=[u.id], x=px // 16, y=py // 16)
+
+    def _lugar_cerca(self, tipo, x, y):
+        """Un lugar libre para la obra cerca del punto (x, y)."""
+        m = self.m
+        cx, cy = x // TILE - tipo.ancho // 2, y // TILE - tipo.alto // 2
+        for r in range(6):
+            for dy in range(-r, r + 1):
+                for dx in (-r, r) if abs(dy) != r else range(-r, r + 1):
+                    if m.validar_lugar(self.p, tipo, cx + dx, cy + dy) is None:
+                        return cx + dx, cy + dy
+        return None
 
     def _necesita_barco(self, blanco):
         mp = self.m.mapa

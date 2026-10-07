@@ -2,6 +2,7 @@
 
 Unidades: mover, detener, atacar, mantener, patrullar y sus habilidades;
 trabajadores: recolectar, regresar, reparar y los dos menús de construcción;
+ambulancia: montar el hospital de sangre donde se elija (como una obra);
 edificios: lo que forman, lo que investigan y el punto de reunión.
 """
 
@@ -111,7 +112,7 @@ def tarjeta(est, seleccion, submenu=None):
             slots[9] = Boton("menu_avanzado", "Construcción avanzada", "V", ("orden", "avanzado"), "menu",
                              "avanzado", descripcion="Barracón, caballeriza, telégrafos, parque, Estado Mayor, muelle.")
         if not trabajadores and any(t.biologica and t.capa == 0 for t in tipos.values()):
-            hospital = bool(terminados.get("hospital_campana"))
+            hospital = any(terminados.get(h) for h in cat.hospitales)
             slots[7] = Boton("replegar", "Replegar heridos", "J", ("orden", "replegar"), "orden", {"c": "replegar"},
                              hospital, descripcion="Los que tengan menos de la mitad de la vida vuelven a curarse "
                              "junto al hospital de campaña: un veterano salvado conserva su grado.",
@@ -135,6 +136,10 @@ def tarjeta(est, seleccion, submenu=None):
                           descripcion=h.descripcion)
             elif h.tipo == "emplazar":
                 b = Boton("emplazar", h.nombre, h.atajo, ("habilidad", h), "orden", {"c": "emplazar"},
+                          descripcion=h.descripcion)
+            elif h.tipo == "montar":
+                # se elige el lugar como el de una obra: la ambulancia va y levanta las carpas
+                b = Boton("b:" + h.edificio, h.nombre, h.atajo, ("habilidad", h), "construir", h.edificio,
                           descripcion=h.descripcion)
             else:
                 accion = "orden" if h.objetivo == "ninguno" else "objetivo"
@@ -192,10 +197,14 @@ def tarjeta(est, seleccion, submenu=None):
             k += 1
     for hid in tipo.habilidades:
         h = cat.habilidades[hid]
-        _poner(slots, 8, Boton("hab:" + hid, h.nombre, h.atajo, ("habilidad", h),
-                               "objetivo" if h.objetivo != "ninguno" else "orden",
-                               "hab:" + hid if h.objetivo != "ninguno" else {"c": "habilidad", "h": hid},
-                               descripcion=h.descripcion + (f" Energía: {h.energia // 256}." if h.energia else "")))
+        b = Boton("hab:" + hid, h.nombre, h.atajo, ("habilidad", h),
+                  "objetivo" if h.objetivo != "ninguno" else "orden",
+                  "hab:" + hid if h.objetivo != "ninguno" else {"c": "habilidad", "h": hid},
+                  descripcion=h.descripcion + (f" Energía: {h.energia // 256}." if h.energia else ""))
+        if h.tipo == "desmontar" and all(e.fl & I.F_DESMONTA for e in mismos):
+            b.activo = False
+            b.falta = "en curso"
+        _poner(slots, 8, b)
     if tipo.guarnicion:
         if tipo.guarnicion_vista == "trinchera":
             texto, desc = "Salir de la trinchera", "La tropa sale de la trinchera."

@@ -39,6 +39,8 @@ def grupo_voz(tipo):
     """Qué voces le tocan a una unidad al seleccionarla o al darle una orden."""
     if tipo.id in ("trabajador", "cantinera", "espia"):
         return tipo.id
+    if getattr(tipo, "monta", None):
+        return "ambulancia"
     if tipo.sprite.get("forma") == "heroina":
         return "heroina"
     if tipo.clase in ("caballeria", "artilleria", "naval"):
@@ -305,9 +307,33 @@ class Juego(Escena):
                 for kk in range(6):
                     efx.curacion(o.x + (kk - 3) * 8, o.y - 6)
                 if o.dueno == est.yo:
-                    self.hud.mensaje(f"Vuelve a filas, curado en el hospital: {self._nombre(est.yo, ev[4])}",
+                    donde = "en la ambulancia" if o.es_unidad else "en el hospital"
+                    self.hud.mensaje(f"Vuelve a filas, curado {donde}: {self._nombre(est.yo, ev[4])}",
                                      (150, 220, 140), 4)
                     snd.voz("recuperado", 0)
+        elif k == "monta":
+            # la ambulancia levantó las carpas: lo que se tenía seleccionado sigue seleccionado
+            self._reemplazar(ev[2], ev[3])
+            o = est.ents.get(ev[3])
+            if o is not None:
+                for kk in range(8):
+                    efx.polvo_obra(o.x + (kk % 4 - 1.5) * 14, o.y + (kk // 4) * 12)
+        elif k == "desmontando":
+            o = est.ents.get(ev[2])
+            if o is not None:
+                snd.en_mapa("martillo", o.x, o.y, cam, minimo_ms=300, volumen=0.5)
+                if o.dueno == est.yo:
+                    snd.voz("desmontar_ambulancia", 1)
+        elif k == "desmonta":
+            # el hospital de sangre vuelve a ser ambulancia, con sus convalecientes en el carro
+            self._reemplazar(ev[2], ev[3])
+            o = est.ents.get(ev[3])
+            if o is not None:
+                for kk in range(6):
+                    efx.polvo_marcha(o.x + (kk - 3) * 6, o.y)
+                if o.dueno == est.yo:
+                    self.hud.mensaje("Carpas al carro: la ambulancia está lista para seguir a la tropa.",
+                                     P.CREMA, 4)
         elif k == "carga":
             o = est.ents.get(ev[2])
             if o is not None:
@@ -332,9 +358,16 @@ class Juego(Escena):
             if o is not None:
                 snd.en_mapa("martillo", o.x, o.y, cam, minimo_ms=300, volumen=0.5)
         elif k == "fin_obra":
-            self.hud.mensaje(f"Obra terminada: {self._nombre(est.yo, ev[3])}", P.BRONCE_CLARO)
-            if not snd.voz("obra", 2):
-                snd.toque("obra")
+            tipo = est.tipo_por_idx(ev[3])
+            if tipo is not None and getattr(tipo, "desmonta_en", None):
+                self.hud.mensaje(f"{self._nombre(est.yo, ev[3])} montado: los camilleros salen a buscar "
+                                 "a los heridos.", P.BRONCE_CLARO)
+                if not snd.voz("hospital_montado", 2):
+                    snd.toque("obra")
+            else:
+                self.hud.mensaje(f"Obra terminada: {self._nombre(est.yo, ev[3])}", P.BRONCE_CLARO)
+                if not snd.voz("obra", 2):
+                    snd.toque("obra")
         elif k == "lista":
             # la unidad recién formada se presenta con su voz (o, sin voces, el toque de corneta)
             self.hud.mensaje(f"Lista: {self._nombre(est.yo, ev[3])}", P.CREMA, 4)
@@ -635,6 +668,15 @@ class Juego(Escena):
         if ids:
             self._voz_de_tropa("seleccion", self.seleccion)
 
+    def _reemplazar(self, viejo, nuevo):
+        """La ambulancia y su hospital de sangre son la misma tropa: al montarse o desmontarse
+        sigue seleccionada y en sus grupos."""
+        if viejo in self.seleccion:
+            self.seleccion = [nuevo if i == viejo else i for i in self.seleccion]
+        for n, ids in self.grupos.items():
+            if viejo in ids:
+                self.grupos[n] = [nuevo if i == viejo else i for i in ids]
+
     def _voz_de_tropa(self, momento, ids):
         """Responde la tropa propia: momento es "seleccion", "mover", "atacar" o "trabajar".
 
@@ -647,7 +689,10 @@ class Juego(Escena):
             return
         g = max(dict.fromkeys(grupos), key=grupos.count)
         if momento == "trabajar":
-            claves = ["trabajar"] if g == "trabajador" else ["mover_" + g]
+            claves = ["trabajar"] if g == "trabajador" else (["montar_ambulancia"] if g == "ambulancia"
+                                                               else ["mover_" + g])
+        elif momento == "atacar" and g == "ambulancia":
+            claves = ["mover_ambulancia"]          # la ambulancia no combate: acompaña
         else:
             claves = [momento + "_" + g]
         sonido().voz(claves, 0 if momento == "seleccion" else 1)

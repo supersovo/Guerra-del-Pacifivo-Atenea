@@ -353,11 +353,18 @@ class Vista:
             fx, fy = cam.a_pantalla(e.x - tipo.ancho * 16, e.y - tipo.alto * 16)
             lz.marco((fx - 2, fy - 2, tipo.ancho * 32 * z + 4, tipo.alto * 32 * z + 4),
                      (90, 230, 90) if est.aliado(e.dueno) else (230, 70, 60), 2)
-        if e.fl & I.F_OBRA:
-            prog = e.ex.get("o", 0) / 100 if isinstance(e.ex, dict) else 0.0
-            andamio = self.edificios.andamio(tipo)
-            lz.dibujar(andamio, sx, sy, W * z, H * z, alpha=alpha)
-            alto_vis = int(H * (0.15 + 0.85 * prog))
+        if e.fl & (I.F_OBRA | I.F_DESMONTA):
+            if e.fl & I.F_OBRA:
+                prog = e.ex.get("o", 0) / 100 if isinstance(e.ex, dict) else 0.0
+                if not tipo.desmonta_en:        # las carpas del hospital de sangre se levantan sin andamios
+                    andamio = self.edificios.andamio(tipo)
+                    lz.dibujar(andamio, sx, sy, W * z, H * z, alpha=alpha)
+            else:
+                # se recogen las carpas: bajan hasta quedar en el carro
+                prog = 1.0 - (e.ex.get("dm", 0) / 100 if isinstance(e.ex, dict) else 0.0)
+            # las carpas solo ocupan la parte baja del dibujo: suben y bajan dentro de su propia altura
+            contenido = min(H, tipo.alto * 32 + 48) if tipo.desmonta_en else H
+            alto_vis = int(contenido * (0.15 + 0.85 * prog))
             src = (0, H - alto_vis, W, alto_vis)
             lz.dibujar(tex, sx, sy + (H - alto_vis) * z, W * z, alto_vis * z, src=src, alpha=int(alpha * 0.9))
             if int(self.t * 6 + e.id) % 7 == 0:

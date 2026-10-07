@@ -247,7 +247,7 @@ def test_tiradores_en_el_techo_de_las_barracas_y_del_cuartel():
 
 
 def test_heridos_camilleros_y_hospital():
-    m = U.mundo()
+    m = U.mundo(mapa=U.mapa_llano(ancho=200))
     j = m.jugadores[0]
     # sin hospital, la infantería muere en el acto
     a = _unidad(m, 0, "infante", 20, 24)
@@ -255,9 +255,10 @@ def test_heridos_camilleros_y_hospital():
     U.avanzar(m, 1)
     assert not m.heridos
     hosp = m.crear_edificio(0, "hospital_campana", 14, 20, construido=True)
-    U.avanzar(m, 10 * S)
+    U.avanzar(m, 14 * S)
     cam = U.de(m, 0, "camilleros")
-    assert len(cam) == 2 and all(c.base_id == hosp.id for c in cam)
+    assert len(cam) == 4 and all(c.base_id == hosp.id for c in cam)     # cuatro equipos por hospital
+    assert len({c.x // (TILE // 2) for c in cam}) == 4                  # en fila frente a la puerta
     assert j.pob_usada == 6                         # los camilleros no ocupan población
     # caído por fuego de fusil: queda herido; por artillería: muere
     b = _unidad(m, 0, "infante", 24, 24)
@@ -278,12 +279,27 @@ def test_heridos_camilleros_y_hospital():
     assert not m.heridos and not hosp.pacientes
     assert len(U.de(m, 0, "infante")) == infantes_antes + 1
     assert j.est["heridos_recuperados"] == 1
-    # uno que cae lejos del radio del hospital se desangra
+    # lejos del hospital también lo van a buscar: va un solo equipo, el libre más cercano
     lejos = _unidad(m, 0, "infante", 60, 60)
     m.matar(lejos, 0, 1)
-    assert len(m.heridos) == 1
-    U.avanzar(m, 45 * S)
-    assert not m.heridos
+    U.avanzar(m, 8)
+    h = next(iter(m.heridos.values()))
+    van = [c for c in cam if c.objetivo == h.id]
+    assert len(van) == 1 and h.camillero == van[0].id
+    for _ in range(90 * S):         # unos 30 s de ida, 30 de vuelta y 20 de cura
+        m.paso()
+        if j.est["heridos_recuperados"] == 2:
+            break
+    assert j.est["heridos_recuperados"] == 2 and not m.heridos
+    # al que no alcanzan a salvar igual lo van a buscar (y se desangra antes de que lleguen)
+    U.avanzar(m, 20 * S)
+    muy_lejos = _unidad(m, 0, "infante", 185, 20)
+    m.matar(muy_lejos, 0, 1)
+    U.avanzar(m, 8)
+    h = next(iter(m.heridos.values()))
+    assert any(c.objetivo == h.id for c in cam)
+    U.avanzar(m, 41 * S)
+    assert not m.heridos and j.est["heridos_recuperados"] == 2
     # las órdenes del jugador no mueven a los camilleros
     x0 = cam[0].x
     m.comando(0, {"c": "mover", "u": [cam[0].id], "x": 10, "y": 10})
@@ -343,7 +359,7 @@ def test_veterania_experiencia_y_grados():
 
 
 def test_veterano_herido_conserva_el_grado():
-    m = U.mundo()
+    m = U.mundo(mapa=U.mapa_llano(ancho=200))
     j = m.jugadores[0]
     hosp = m.crear_edificio(0, "hospital_campana", 14, 20, construido=True)
     U.avanzar(m, 10 * S)
@@ -372,12 +388,12 @@ def test_veterano_herido_conserva_el_grado():
     assert (vuelto.xp, vuelto.grado, vuelto.nombre, vuelto.abatidos) == hoja
     assert vuelto.st is j.stats_de("infante", 2) and vida_al_volver == vuelto.st.vida // 2
     assert any(v["nombre"] == hoja[2] and v["grado"] == 2 for v in m.veteranos_de(0))
-    # Convalecencia: aguanta 60 s y vuelve con el 75 %; Ambulancias: un tercer equipo
+    # Convalecencia: aguanta 60 s y vuelve con el 75 %; Servicio sanitario: un quinto equipo
     j.aplicar_mejora(m.cat.mejoras["convalecencia"])
     j.aplicar_mejora(m.cat.mejoras["ambulancias"])
     m.refrescar_stats(j)
     U.avanzar(m, 35 * S)
-    assert len(hosp.camilleros) == 3
+    assert len(hosp.camilleros) == 5
     otro = vuelto
     m.matar(otro, 0, 1)
     h = next(h for h in m.heridos.values() if h.hoja)
@@ -391,16 +407,146 @@ def test_veterano_herido_conserva_el_grado():
                 vida_al_volver = vuelto.vida
     assert vuelto is not None and vida_al_volver == vuelto.st.vida * 75 // 100
     # un veterano que se desangra lejos del hospital queda en el libro de los caídos
-    lejos = _unidad(m, 0, "granadero", 60, 60)
-    _abatir(m, _unidad(m, 1, "infante", 62, 60), lejos)
+    lejos = _unidad(m, 0, "granadero", 190, 30)
+    _abatir(m, _unidad(m, 1, "infante", 192, 30), lejos)
     assert lejos.grado == 0                    # un infante no basta: el granadero vale más
-    _abatir(m, _unidad(m, 1, "granadero", 62, 62), lejos)
+    _abatir(m, _unidad(m, 1, "granadero", 192, 32), lejos)
     assert lejos.grado == 1
     m.matar(lejos, 0, 1)
     assert any(h.tipo.id == "granadero" for h in m.heridos.values())   # la caballería también cae herida
     U.avanzar(m, 65 * S)
     assert j.est["veteranos_caidos"] == 1
     assert [c["tipo"] for c in m.caidos_de(0)] == ["granadero"]
+
+
+def test_ambulancia_monta_y_desmonta_el_hospital_de_sangre():
+    from salitre.red import instantanea as I
+    m = U.mundo(mapa=U.mapa_llano(ancho=200))
+    j = m.jugadores[0]
+    m.comando(0, {"c": "truco", "revelar": 1})
+    hosp = m.crear_edificio(0, "hospital_campana", 14, 20, construido=True)
+    U.avanzar(m, 14 * S)
+    assert len(hosp.camilleros) == 4
+    # el hospital de campaña forma la ambulancia
+    j.dinero = j.agua = 1000
+    for k in range(2):
+        m.crear_edificio(0, "deposito", 20 + k * 3, 14, construido=True)
+    assert j.pob_max == 30
+    m.comando(0, {"c": "entrenar", "e": [hosp.id], "t": "ambulancia"})
+    U.avanzar(m, 31 * S)
+    formada = U.de(m, 0, "ambulancia")
+    assert len(formada) == 1
+    m.matar(formada[0], 0, 1)                   # el carro no cae herido: muere
+    U.avanzar(m, 1)
+    assert not m.heridos
+    amb = _unidad(m, 0, "ambulancia", 100, 30)
+    amb.vida = amb.st.vida // 2
+    pob = j.pob_usada
+    # los trabajadores no levantan el hospital de sangre: solo la ambulancia
+    trab = _unidad(m, 0, "trabajador", 98, 34)
+    pob += 1
+    m.comando(0, {"c": "construir", "u": [trab.id], "e": "hospital_sangre", "tx": 102, "ty": 32})
+    U.avanzar(m, 1)
+    assert trab.orden is None
+    m.comando(0, {"c": "construir", "u": [trab.id, amb.id], "e": "hospital_sangre", "tx": 102, "ty": 32})
+    U.avanzar(m, 1)
+    assert trab.orden is None and amb.orden is not None
+    obra = None
+    for _ in range(20 * S):
+        m.paso()
+        obra = obra or next(iter(U.de(m, 0, "hospital_sangre")), None)
+        if obra is not None and obra.construido:
+            break
+    assert obra is not None and obra.construido and not amb.vivo
+    U.avanzar(m, 1)
+    assert amb.id not in m.ent and obra.vida == obra.st.vida // 2        # el carro queda en el hospital
+    assert j.pob_usada == pob and j.tiene("hospital_sangre")
+    U.avanzar(m, 6 * S)
+    assert len(obra.camilleros) == 2
+    # el que cae junto al hospital de sangre lo recogen sus camilleros y se cura ahí mismo
+    caido = _unidad(m, 0, "infante", 106, 36)
+    pob += 1
+    m.matar(caido, 0, 1)
+    pob -= 1
+    U.avanzar(m, 8)
+    h = next(iter(m.heridos.values()))
+    assert m.ent[h.camillero].base_id == obra.id
+    for _ in range(15 * S):
+        m.paso()
+        if obra.pacientes:
+            break
+    assert len(obra.pacientes) == 1 and not hosp.pacientes
+    reg = I.registro(m, obra, True, m.tick)
+    assert reg[8]["cm"] == 2 and reg[8]["ce"] == 2 and len(reg[8]["pc"]) == 1
+    # desmontar: en 6 s vuelve a ser ambulancia, con el convaleciente en el carro
+    m.comando(0, {"c": "habilidad", "u": [obra.id], "h": "desmontar_hospital"})
+    U.avanzar(m, 1)
+    assert obra.desmontando > 0
+    assert I.registro(m, obra, True, m.tick)[7] & I.F_DESMONTA
+    U.avanzar(m, 6 * S + 1)
+    assert not obra.vivo and not j.tiene("hospital_sangre")
+    nueva = U.de(m, 0, "ambulancia")
+    assert len(nueva) == 1
+    amb = nueva[0]
+    assert amb.vida == amb.st.vida // 2 and len(amb.pacientes) == 1
+    assert not U.de(m, 0, "camilleros") or all(c.base_id != obra.id for c in U.de(m, 0, "camilleros"))
+    assert j.pob_usada == pob
+    assert len(I.registro(m, amb, True, m.tick)[8]["pc"]) == 1
+    # el convaleciente vuelve a filas junto al carro
+    vuelto = None
+    for _ in range(25 * S):
+        m.paso()
+        for _d, ev in m.eventos:
+            if ev[0] == "recuperado" and ev[1] == amb.id:
+                vuelto = m.ent[ev[2]]
+        if vuelto is not None:
+            break
+    assert vuelto is not None and vuelto.tipo.id == "infante" and not amb.pacientes
+    assert (vuelto.x - amb.x) ** 2 + (vuelto.y - amb.y) ** 2 < (3 * TILE) ** 2
+    assert j.pob_usada == pob + 1
+    # si cae el carro, los veteranos que se curaban en él van al libro de los caídos
+    amb.pacientes.append(["infante", 10 * S, (900, 2, 4321, "", 1, 3)])
+    assert any(v["nombre"] == 4321 for v in m.veteranos_de(0))
+    m.matar(amb, 0, 1)
+    U.avanzar(m, 1)
+    assert any(c["nombre"] == 4321 for c in m.caidos_de(0))
+
+
+def test_obra_del_hospital_de_sangre_solo_la_ambulancia():
+    m = U.mundo()
+    j = m.jugadores[0]
+    m.comando(0, {"c": "truco", "revelar": 1})
+    U.avanzar(m, 1)
+    amb = _unidad(m, 0, "ambulancia", 30, 30)
+    trab = _unidad(m, 0, "trabajador", 34, 34)
+    m.comando(0, {"c": "construir", "u": [amb.id], "e": "hospital_sangre", "tx": 31, "ty": 32})
+    for _ in range(10 * S):
+        m.paso()
+        if U.de(m, 0, "hospital_sangre"):
+            break
+    U.avanzar(m, 2 * S)
+    obra = U.de(m, 0, "hospital_sangre")[0]
+    assert not obra.construido and obra.constructor == amb.id
+    # se interrumpe el montaje: el trabajador no puede seguirlo, la ambulancia sí
+    m.comando(0, {"c": "detener", "u": [amb.id]})
+    m.comando(0, {"c": "inteligente", "u": [trab.id], "t": obra.id, "x": obra.x // 16, "y": obra.y // 16})
+    m.comando(0, {"c": "reparar", "u": [trab.id], "t": obra.id})
+    U.avanzar(m, 1)
+    assert trab.orden is None or trab.orden.obj != obra.id
+    avance = obra.progreso
+    U.avanzar(m, 2 * S)
+    assert obra.progreso == avance
+    m.comando(0, {"c": "inteligente", "u": [amb.id], "t": obra.id, "x": obra.x // 16, "y": obra.y // 16})
+    eventos = []
+    for _ in range(10 * S):
+        m.paso()
+        eventos += [ev for _d, ev in m.eventos]
+        if obra.construido:
+            break
+    assert obra.construido and not amb.vivo
+    assert any(ev[0] == "monta" and ev[1] == amb.id and ev[2] == obra.id for ev in eventos)
+    # cancelar la obra de un hospital de sangre no devuelve nada (no costó nada)
+    assert j.stats["hospital_sangre"].costo == (0, 0)
 
 
 def test_instruccion_encuadramiento_y_repliegue():

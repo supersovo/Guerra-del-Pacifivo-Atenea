@@ -266,9 +266,14 @@ class HUD:
             max_lineas = 3
         if tipo.es_edificio and tipo.guarnicion and not e.fl & I.F_OBRA:
             self._guarnicion(e, ex, r)
-        if e.es_edificio and e.fl & I.F_OBRA:
-            prog = ex.get("o", 0)
-            lz.texto(f"En construcción: {prog} %", x, y, fuentes.negrita(16), P.TINTA)
+        if e.es_edificio and e.fl & (I.F_OBRA | I.F_DESMONTA):
+            if e.fl & I.F_OBRA:
+                prog = ex.get("o", 0)
+                texto = "Montando las carpas" if tipo.desmonta_en else "En construcción"
+            else:
+                prog = ex.get("dm", 0)
+                texto = "Recogiendo las carpas"
+            lz.texto(f"{texto}: {prog} %", x, y, fuentes.negrita(16), P.TINTA)
             lz.rect((x, y + 22, 300, 10), (60, 40, 26))
             lz.rect((x + 1, y + 23, 298 * prog / 100, 8), (190, 150, 70))
             return
@@ -295,8 +300,12 @@ class HUD:
         if tipo.es_edificio and tipo.poblacion:
             lineas.append(f"Aloja {tipo.poblacion} de población")
         if tipo.es_edificio and tipo.camilleros:
-            lineas.append(f"Camilleros: {ex.get('cm', 0)} de {tipo.camilleros}  ·  "
+            lineas.append(f"Camilleros: {ex.get('cm', 0)} de {ex.get('ce', tipo.camilleros)}  ·  "
                           f"pacientes: {len(ex.get('pc', []))}")
+        if not tipo.es_edificio and getattr(tipo, "monta", None):
+            pc = ex.get("pc", [])
+            lineas.append(f"Convalecientes en el carro: {len(pc)}" if pc else
+                          "Monta un hospital de sangre donde se le ordene (B).")
         if not tipo.es_edificio and tipo.autonomo:
             lineas.append("Actúan solos: recogen a los heridos y los llevan al hospital.")
         if tipo.es_edificio and tipo.sobre_recurso == "agua":

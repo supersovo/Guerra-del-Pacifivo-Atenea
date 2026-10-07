@@ -515,8 +515,90 @@ class Mundo:
             b.vida = max(b.vida, b.st.vida * 95 // 100)
             b.vida = min(b.vida, b.st.vida)
             self._edificio_terminado(b)
+            if b.tipo.desmonta_en == u.tipo.id:
+                self._montar(b, u)
             return True
         return False
+
+    # ------------------------------------------------------------------
+    # Ambulancia y hospital de sangre
+    def _montar(self, b, u):
+        """La ambulancia levantó las carpas del hospital de sangre: el carro queda en él (con su vida,
+        su población y los convalecientes que llevaba) hasta que se desmonte."""
+        j = self.jugadores[u.dueno]
+        b.vida = max(1, b.st.vida * u.vida // max(1, u.st.vida))
+        b.pacientes.extend(u.pacientes)
+        u.pacientes = []
+        b.pob_reservada += u.tipo.poblacion
+        j.pob_usada += u.tipo.poblacion         # la descuenta _quitar_unidad: la conserva el hospital
+        u.vivo = False
+        self.muertos.append(u)
+        self.ev_pos(b.x, b.y, "monta", u.id, b.id)
+
+    def desmontar(self, b):
+        """El hospital de sangre vuelve a ser ambulancia: los camilleros suben al carro con el herido
+        que traían y los convalecientes siguen curándose en él."""
+        if not b.vivo or not b.construido or not b.tipo.desmonta_en:
+            return None
+        ut = self.cat.unidades[b.tipo.desmonta_en]
+        j = self.jugadores[b.dueno]
+        self.mapa.liberar(b.tx, b.ty, b.w, b.h)
+        u = self.crear_unidad(b.dueno, ut.id, b.x, b.y)
+        j.pob_usada += ut.poblacion             # la que el hospital reservaba se libera al quitarlo
+        u.vida = max(1, u.st.vida * b.vida // max(1, b.st.vida))
+        u.pacientes = b.pacientes
+        b.pacientes = []
+        for cid in b.camilleros:
+            c = self.ent.get(cid)
+            if c is None or not c.vivo:
+                continue
+            if c.paciente:
+                u.pacientes.append([c.paciente, b.tipo.recuperacion, c.paciente_hoja])
+                c.paciente = None
+                c.paciente_hoja = None
+            h = self.ent.get(c.objetivo) if c.objetivo else None
+            if h is not None and h.es_herido and h.camillero == c.id:
+                h.camillero = 0
+            c.vivo = False
+            self.muertos.append(c)
+        b.camilleros = []
+        b.desmontando = 0
+        b.vivo = False
+        self.muertos.append(b)
+        self.ev_pos(b.x, b.y, "desmonta", b.id, u.id, ut.idx)
+        return u
+
+    def atender_pacientes(self, ent):
+        """Los convalecientes de un hospital (o del carro de una ambulancia) se curan y vuelven a filas."""
+        sanidad = ent.tipo if ent.es_edificio else self.cat.edificios[ent.tipo.monta]
+        j = self.jugadores[ent.dueno]
+        t = self.tick
+        quedan = []
+        for pac in ent.pacientes:
+            if pac[1] > 0:
+                pac[1] -= 1
+                quedan.append(pac)
+                continue
+            ut = self.cat.unidades[pac[0]]
+            if j.pob_usada + ut.poblacion > j.pob_max:
+                if t - j.aviso_poblacion_t >= TICKS * 10:
+                    j.aviso_poblacion_t = t
+                    self.ev_jugador(j.idx, "pob")
+                quedan.append(pac)
+                continue
+            x, y = self.punto_salida(ent, TIERRA) if ent.es_edificio else self._junto_al_carro(ent)
+            u = self.crear_unidad(ent.dueno, ut.id, x, y)
+            veterania.aplicar_hoja(self, u, pac[2] if len(pac) > 2 else None)    # vuelve con su grado
+            u.vida = max(1, u.st.vida * min(100, sanidad.vida_al_volver + j.sanidad["vida_al_volver"]) // 100)
+            j.pob_usada += ut.poblacion
+            j.est["heridos_recuperados"] = j.est.get("heridos_recuperados", 0) + 1
+            self.ev_pos(ent.x, ent.y, "recuperado", ent.id, u.id, ut.idx)
+        ent.pacientes = quedan
+
+    def _junto_al_carro(self, u):
+        tx, ty = self.mapa.casilla(u.x, u.y)
+        i = self.mapa.pasable_cercana(TIERRA, tx, min(self.mapa.h - 1, ty + 1), 6)
+        return self.mapa.centro_idx(i) if i is not None else (u.x, u.y)
 
     def cancelar_obra(self, b):
         if b.construido or not b.vivo:
@@ -675,8 +757,8 @@ class Mundo:
                 j.est["unidades_perdidas"] += 1
             else:
                 j.est["edificios_perdidos"] += 1
-            if e.es_edificio and e.pacientes:
-                # cayó el hospital: los veteranos que se curaban en él no vuelven
+            if e.pacientes:
+                # cayó el hospital (o el carro de la ambulancia): los veteranos que se curaban no vuelven
                 for pac in e.pacientes:
                     if len(pac) > 2 and pac[0] in self.cat.unidades:
                         self.anotar_caido(e.dueno, self.cat.unidades[pac[0]], pac[2])
@@ -708,14 +790,15 @@ class Mundo:
             self.ev_pos(e.x, e.y, "mue", e.id, e.tipo.idx, e.dueno, e.x >> 4, e.y >> 4, 1 if explosion else 0)
 
     def puede_herirse(self, u):
-        """Con un hospital de campaña, la infantería que cae por fuego de fusil, metralla o sable
-        queda herida (los héroes, los que van embarcados y los propios camilleros mueren)."""
+        """Con un hospital en pie (el de campaña o un hospital de sangre), la infantería que cae por
+        fuego de fusil, metralla o sable queda herida (los héroes, los que van embarcados y los propios
+        camilleros mueren)."""
         t = u.tipo
         if (t.clase not in ("infanteria", "caballeria") or not t.biologica or t.heroe or t.autonomo
                 or u.capa != TIERRA or u.dentro):
             return False
         j = self.jugadores[u.dueno]
-        return j.vivo and j.tiene("hospital_campana")
+        return j.vivo and any(j.tiene(h) for h in self.cat.hospitales)
 
     def crear_herido(self, tipo, dueno, x, y, hasta, direccion=2, hoja=None):
         h = Herido(self._nuevo_id(), tipo, dueno, x, y, hasta, direccion, hoja)
@@ -738,16 +821,21 @@ class Mundo:
                 out.append(self._ficha(u.tipo.id, hoja_de(u), "en filas"))
             if u.vivo and u.dueno == p and u.paciente and u.paciente_hoja and u.paciente_hoja[1]:
                 out.append(self._ficha(u.paciente, u.paciente_hoja, "herido"))
+            if u.vivo and u.dueno == p and u.pacientes:
+                out.extend(self._fichas_pacientes(u.pacientes))
         for h in self.heridos.values():
             if h.vivo and h.dueno == p and h.hoja and h.hoja[1]:
                 out.append(self._ficha(h.tipo.id, h.hoja, "herido"))
         for b in self.edificios.values():
             if b.vivo and b.dueno == p and b.pacientes:
-                for pac in b.pacientes:
-                    if len(pac) > 2 and pac[2] and pac[2][1]:
-                        out.append(self._ficha(pac[0], pac[2], "herido"))
+                out.extend(self._fichas_pacientes(b.pacientes))
         out.sort(key=lambda v: (-v["grado"], -v["xp"], v["nombre"]))
         return out
+
+    def _fichas_pacientes(self, pacientes):
+        """Los veteranos que se curan en un hospital o en el carro de una ambulancia."""
+        return [self._ficha(pac[0], pac[2], "herido") for pac in pacientes
+                if len(pac) > 2 and pac[2] and pac[2][1]]
 
     def caidos_de(self, p):
         return [self._ficha(tid, hoja, "caído") for dueno, tid, hoja in self.caidos if dueno == p]
@@ -850,6 +938,9 @@ class Mundo:
         if b.construido:
             j.terminados[b.tipo.id] = j.terminados.get(b.tipo.id, 1) - 1
             self.recalcular_pob(j)
+        if b.pob_reservada:
+            j.pob_usada -= b.pob_reservada
+            b.pob_reservada = 0
         for item in b.cola:
             if item[0] == "u":
                 ut = self.cat.unidades[item[1]]
@@ -1106,15 +1197,15 @@ class Mundo:
                 fichas.append(self._ficha(u.tipo.id, hoja_de(u), "en retirada"))
             if u.paciente and u.paciente_hoja and u.paciente_hoja[1]:
                 fichas.append(self._ficha(u.paciente, u.paciente_hoja, "herido"))
+            fichas.extend(self._fichas_pacientes(u.pacientes))
             u.paciente = None
             u.paciente_hoja = None
+            u.pacientes = []
             u.vivo = False
             self.muertos.append(u)
         for b in self.edificios.values():
             if b.vivo and b.dueno == p and b.pacientes:
-                for pac in b.pacientes:
-                    if len(pac) > 2 and pac[2] and pac[2][1]:
-                        fichas.append(self._ficha(pac[0], pac[2], "herido"))
+                fichas.extend(self._fichas_pacientes(b.pacientes))
                 b.pacientes = []
         return fichas
 

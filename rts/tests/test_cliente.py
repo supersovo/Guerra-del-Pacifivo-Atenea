@@ -169,6 +169,96 @@ def en_servidor(app, f):
     assert hecho.wait(5)
 
 
+def test_ambulancia_monta_y_desmonta_el_hospital_de_sangre(app):
+    """La ambulancia: botón «Montar hospital» con el fantasma de las carpas, el hospital de sangre
+    con su botón «Desmontar», la selección que pasa del carro a las carpas y de vuelta, sus
+    voces y sus dibujos."""
+    from salitre.cliente.escenas.juego import grupo_voz
+    from salitre.cliente.graficos import edificios as G_E
+    from salitre.cliente.graficos import iconos
+    from salitre.sim.constantes import TILE
+    esc = Escaramuza(app)
+    app.cambiar(esc)
+    esc.elegir_mapa("pampa_del_tamarugal")
+    esc.comenzar()
+    hasta(app, lambda: escena(app) == "Juego")
+    juego = app.escena
+    est = juego.est
+    hasta(app, lambda: any(e.dueno == est.yo and e.es_edificio for e in est.ents.values()))
+    cg = next(e for e in est.ents.values() if e.dueno == est.yo and e.es_edificio)
+    partida = next(iter(app.servidor_local.servidor.partidas.values()))
+    partida.velocidad = 4.0
+    creada = {}
+
+    def preparar(m):
+        b = m.ent[cg.id]
+        m.comando(b.dueno, {"c": "truco", "revelar": 1})
+        hosp = m.crear_edificio(b.dueno, "hospital_campana", b.tx - 5, b.ty + 6, construido=True)
+        u = m.crear_unidad(b.dueno, "ambulancia", hosp.x + 6 * TILE, hosp.y + 2 * TILE)
+        m.jugadores[b.dueno].pob_usada += u.tipo.poblacion
+        creada["hosp"], creada["amb"] = hosp.id, u.id
+    en_servidor(app, preparar)
+    hasta(app, lambda: creada.get("amb") in est.ents, 10)
+    amb = est.ents[creada["amb"]]
+    assert grupo_voz(amb.tipo) == "ambulancia"
+    for clave in ("lista_ambulancia", "seleccion_ambulancia", "mover_ambulancia", "montar_ambulancia",
+                  "desmontar_ambulancia", "hospital_montado"):
+        assert clave in app.sonido.voces, clave
+    # el hospital de campaña cuenta sus cuatro equipos y forma la ambulancia
+    juego.seleccionar([creada["hosp"]])
+    cuadros(app)
+    assert any(b and b.clave == "u:ambulancia" for b in juego.botones)
+    hasta(app, lambda: est.ents[creada["hosp"]].ex.get("ce") == 4, 10)
+    # «Montar hospital»: se elige el lugar como el de una obra, con el fantasma de las carpas
+    juego.seleccionar([amb.id])
+    cuadros(app)
+    boton = next(b for b in juego.botones if b and b.clave == "b:hospital_sangre")
+    assert boton.accion == "construir" and boton.atajo == "B" and boton.texto == "Montar hospital"
+    juego.activar_boton(boton)
+    assert juego.modo == ("construir", "b:hospital_sangre", "hospital_sangre")
+    destino = (amb.x + 96, amb.y + 64)
+    juego.cam.centrar(*destino)
+    cuadros(app)
+    pos = tuple(int(v) for v in juego.cam.a_pantalla(*destino))
+    assert juego._lugar_obra(*juego.cam.a_mapa(*pos))[2]
+    juego.manejar(pygame.event.Event(pygame.MOUSEBUTTONDOWN, button=1, pos=pos))
+    juego.manejar(pygame.event.Event(pygame.MOUSEBUTTONUP, button=1, pos=pos))
+
+    def montado():
+        return any(e.tipo is not None and e.tipo.id == "hospital_sangre" and e.es_edificio
+                   and not e.fl & I.F_OBRA for e in est.ents.values())
+    from salitre.red import instantanea as I
+    hasta(app, montado, 20)
+    cuadros(app, 3)
+    hs = next(e for e in est.ents.values() if e.tipo is not None and e.tipo.id == "hospital_sangre")
+    assert amb.id not in est.ents and juego.seleccion == [hs.id]       # el carro quedó en las carpas
+    hasta(app, lambda: est.ents[hs.id].ex.get("cm") == 2, 10)
+    # «Desmontar»: las carpas bajan y vuelve la ambulancia, todavía seleccionada
+    boton = next(b for b in juego.botones if b and b.clave == "hab:desmontar_hospital")
+    assert boton.activo and boton.atajo == "D"
+    juego.activar_boton(boton)
+    hasta(app, lambda: est.ents.get(hs.id) is not None and est.ents[hs.id].fl & I.F_DESMONTA, 5)
+    cuadros(app)
+    boton = next(b for b in juego.botones if b and b.clave == "hab:desmontar_hospital")
+    assert not boton.activo and boton.falta == "en curso"
+    hasta(app, lambda: hs.id not in est.ents, 10)
+    cuadros(app)
+    nueva = [e for e in est.ents.values() if e.tipo is not None and e.tipo.id == "ambulancia"]
+    assert len(nueva) == 1 and juego.seleccion == [nueva[0].id]
+    # dibujos: el carro en marcha y destruido, las carpas y los íconos de sus órdenes
+    fac = est.faccion(est.yo)
+    for fr in range(3):
+        t = juego.vista.sprites.textura(amb.tipo, fac, (200, 40, 40), "frente", fr)
+        assert (t.width, t.height) == (68, 46)
+    juego.vista.sprites.caido(amb.tipo, fac, (200, 40, 40))
+    carpas = G_E.dibujar_edificio(app.cat.edificios["hospital_sangre"], "chile", (200, 40, 40))
+    assert carpas.get_at((G_E.MARGEN + 24, G_E.ALTO + 22)).a > 240        # la cruz roja en la carpa
+    for hid in ("montar_hospital", "desmontar_hospital"):
+        iconos.icono_habilidad(app.cat.habilidades[hid])
+    juego.abandonar()
+    cuadros(app)
+
+
 def test_volumen_de_musica_efectos_y_voces(app):
     snd = app.sonido
     # el mezclador a 44,1 kHz: los efectos (hechos a 22 050 Hz) duran lo que deben

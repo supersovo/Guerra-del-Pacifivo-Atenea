@@ -56,12 +56,34 @@ investigaciones: `Jugador.stats_de(tipo, grado)` calcula y guarda en caché las
 estadísticas de cada combinación, y una unidad que asciende cambia de tabla (la
 vida máxima sube y la vida actual con ella). La **hoja de servicio** de cada
 soldado — `(experiencia, grado, nombre, ficha, batallas, bajas)` — viaja con él
-cuando cae herido, en la camilla y en el hospital, y vuelve a filas intacta. Al
+cuando cae herido, en la camilla, en el hospital y en el carro de una ambulancia,
+y vuelve a filas intacta. Al
 terminar, `Mundo.veteranos_de(jugador)` y `Mundo.caidos_de(jugador)` dan las
 fichas para el parte de guerra, la campaña y la serie; los veteranos de la
 configuración de cada jugador bajan con el Cuartel General
 (`Mundo._desplegar_cuartel`). Cuando un jugador pierde, `Mundo._retirada` retira
 sus unidades del campo y guarda las fichas de sus veteranos.
+
+### Sanidad: camilleros, ambulancia y hospital de sangre
+
+Los camilleros (`comportamiento.camilleros`) no tienen límite de distancia: cada
+4 ticks un equipo libre busca entre todos los heridos de su bando el que le
+conviene (primero los que alcanza antes de `hasta`, después el más cercano) y
+deja el herido al equipo libre que lo tenga más cerca; el herido va al hospital
+más cercano (`hospital_cercano`). Los pacientes de un hospital y los de una
+ambulancia los atiende el mismo `Mundo.atender_pacientes`.
+
+La ambulancia es una unidad con `"monta"` y el hospital de sangre un edificio con
+`"desmonta_en"`: se monta con el mismo mecanismo de las obras (la orden
+`construir`, solo para la unidad que lo monta) y, al terminar la obra,
+`Mundo._montar` quita la unidad sin baja (evento `monta`), pasa su vida y sus
+pacientes a las carpas y deja su población reservada en el edificio
+(`pob_reservada`). La habilidad `desmontar` arma una cuenta regresiva
+(`desmontando`, bandera `F_DESMONTA` y `dm` en la instantánea) y
+`Mundo.desmontar` hace el camino inverso: crea la ambulancia en el lugar, con la
+misma proporción de vida y los pacientes, sube a los camilleros (evento
+`desmonta`) y libera el terreno. El cliente traspasa la selección y los grupos
+del carro a las carpas y de vuelta con esos eventos.
 
 ### Movimiento y caminos
 
@@ -110,7 +132,9 @@ montoneros quietos, minas) solo se ven con un **detector** cerca.
   viajan las guarniciones (`g`: tipos de los soldados guarecidos; `gf`: los que
   acaban de disparar desde su puesto) y, para todos los bandos, los galones de
   los veteranos (`v`: grado, `vm`: vida máxima, `n`: semilla del nombre); solo
-  el dueño recibe además el avance hacia el grado siguiente (`x`, en %).
+  el dueño recibe además el avance hacia el grado siguiente (`x`, en %), los
+  camilleros y los pacientes de cada hospital (`cm`, `ce`, `pc`) y los
+  convalecientes que viajan en el carro de una ambulancia (`pc`).
 - **Cliente**: el socket es no bloqueante y la conexión inicial va en un hilo, así
   la pantalla nunca se congela; las posiciones se **interpolan** entre
   instantáneas para que el movimiento se vea suave a cualquier cantidad de cuadros
@@ -243,8 +267,9 @@ ficticio de SDL):
 - **simulación**: recolección de salitre y agua, obras y población, requisitos,
   combate, curación, auras, habilidades y minas, artillería emplazada, ventaja de
   la altura, transporte naval, trincheras, experiencia y grados, heridos que
-  conservan el grado, instrucción y encuadramiento, veteranos que llegan con el
-  cuartel, retirada del vencido, determinismo y repeticiones;
+  conservan el grado, camilleros que buscan en todo el campo, la ambulancia que
+  monta y desmonta el hospital de sangre, instrucción y encuadramiento, veteranos
+  que llegan con el cuartel, retirada del vencido, determinismo y repeticiones;
 - **contenido**: además, la campaña del Salitre y su escalafón;
 - **red**: protocolo, huella, cuentas, partida de dos jugadores por TCP con ELO,
   escaramuza y reconexión, veteranos de la campaña y una **serie de campaña**

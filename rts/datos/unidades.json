@@ -75,7 +75,7 @@
 
   "camilleros": {
     "nombre": "Camilleros",
-    "descripcion": "Dos sanitarios con una camilla. El hospital de campaña los manda solos al frente a recoger a los heridos y los trae de vuelta para curarlos. No combaten ni reciben órdenes.",
+    "descripcion": "Dos sanitarios con una camilla. Cada hospital los manda solos a buscar a los heridos por todo el campo de batalla y los lleva al hospital más cercano para curarlos. No combaten ni reciben órdenes.",
     "historia": "Tras cada batalla las ambulancias recogían a los heridos en camillas y carretas: en Tacna, Chorrillos y Miraflores los cirujanos y sanitarios trabajaron bajo el fuego, y la Cruz Roja atendió a heridos de ambos bandos.",
     "clase": "infanteria",
     "categoria": "sanidad",
@@ -93,6 +93,30 @@
     "habilidades": [],
     "pasivas": {"autonomo": {}, "no_adquiere": {}},
     "sprite": {"forma": "camilleros"}
+  },
+
+  "ambulancia": {
+    "nombre": "Ambulancia",
+    "descripcion": "Carro sanitario tirado por mulas, con cirujanos, practicantes, carpas y camillas. Sigue a la tropa y monta un hospital de sangre donde se le ordene: sus camilleros recogen a los heridos del frente y los curan allí mismo. No combate.",
+    "historia": "Las ambulancias de la guerra eran hospitales que marchaban con el ejército: carros y mulas con cirujanos, practicantes, botiquines, carpas y camillas, que se instalaban detrás de la línea de fuego bajo la bandera de la Cruz Roja.",
+    "clase": "artilleria",
+    "categoria": "sanidad",
+    "costo": {"dinero": 150, "agua": 50},
+    "poblacion": 3,
+    "tiempo": 30,
+    "vida": 250,
+    "armadura": 1,
+    "velocidad": 1.6,
+    "vision": 7,
+    "radio": 0.6,
+    "capa": "tierra",
+    "monta": "hospital_sangre",
+    "produce_en": "hospital_campana",
+    "requisitos": ["hospital_campana"],
+    "habilidades": ["montar_hospital"],
+    "pasivas": {"no_adquiere": {}},
+    "atajo": "A",
+    "sprite": {"forma": "ambulancia"}
   },
 
   "ingeniero": {

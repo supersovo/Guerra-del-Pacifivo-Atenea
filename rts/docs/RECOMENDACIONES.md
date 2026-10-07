@@ -108,9 +108,12 @@ un 30 % de sus tiros.
 6. **Armas combinadas.** Ejército de un solo tipo contra ejército mixto de igual
    costo.
 7. **Servicio de sanidad.** Dos jugadores libran la *Campaña del Salitre*: uno con
-   hospital, *Ambulancias* y *Convalecencia* desde el comienzo, el otro sin
-   sanidad. Comparar el escalafón y el libro de los caídos al llegar al Morro de
-   Arica, y relacionarlo con el servicio de ambulancias de la guerra.
+   hospital, ambulancias que montan hospitales de sangre junto a la tropa,
+   *Servicio sanitario* y *Convalecencia* desde el comienzo, el otro sin sanidad.
+   Comparar el escalafón y el libro de los caídos al llegar al Morro de Arica, y
+   relacionarlo con las ambulancias que acompañaron a los ejércitos en la guerra.
+   Variante: el mismo ataque lejano con y sin ambulancia, contando los heridos
+   que vuelven a filas en el parte de guerra.
 8. **Victoria a cualquier costo o victoria con la fuerza intacta.** En una serie
    de tres batallas, un equipo busca ganar cada batalla con ataques masivos y el
    otro preserva a sus veteranos y elige cuándo combatir. ¿Quién llega mejor a la

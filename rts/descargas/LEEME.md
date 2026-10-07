@@ -14,7 +14,7 @@ evitarlo, descárguelo con PowerShell (tecla Windows → escriba *PowerShell* �
 Intro) y pegue:
 
 ```powershell
-curl.exe -L -o "$env:USERPROFILE\Downloads\GuerraDelPacifico-0.11.1-Instalador.exe" https://raw.githubusercontent.com/supersovo/Guerra-del-Pacifivo-Atenea/refs/heads/claude/friendly-keller-8ieqfo/rts/descargas/GuerraDelPacifico-0.11.1-Instalador.exe
+curl.exe -L -o "$env:USERPROFILE\Downloads\GuerraDelPacifico-0.12.0-Instalador.exe" https://raw.githubusercontent.com/supersovo/Guerra-del-Pacifivo-Atenea/refs/heads/claude/friendly-keller-8ieqfo/rts/descargas/GuerraDelPacifico-0.12.0-Instalador.exe
 ```
 
 El instalador queda en la carpeta *Descargas*. Si la rama ya se fusionó, cambie
@@ -34,8 +34,8 @@ Sirve para Mac con procesador Intel o Apple Silicon (M1 en adelante), con macOS
 ⌘ + espacio y escriba *Terminal*) y pegue:
 
 ```sh
-curl -L -o ~/Downloads/GuerraDelPacifico-0.11.1-macOS.dmg https://raw.githubusercontent.com/supersovo/Guerra-del-Pacifivo-Atenea/refs/heads/claude/friendly-keller-8ieqfo/rts/descargas/GuerraDelPacifico-0.11.1-macOS.dmg
-open ~/Downloads/GuerraDelPacifico-0.11.1-macOS.dmg
+curl -L -o ~/Downloads/GuerraDelPacifico-0.12.0-macOS.dmg https://raw.githubusercontent.com/supersovo/Guerra-del-Pacifivo-Atenea/refs/heads/claude/friendly-keller-8ieqfo/rts/descargas/GuerraDelPacifico-0.12.0-macOS.dmg
+open ~/Downloads/GuerraDelPacifico-0.12.0-macOS.dmg
 ```
 
 Se abre la imagen de disco: arrastre *Guerra del Pacífico* sobre *Aplicaciones*
@@ -62,6 +62,26 @@ encuentra las partidas de los compañeros y ellos pueden entrar a la suya.
 En Mac, ⌘ (Cmd) sirve igual que Ctrl. El servidor dedicado viene dentro de la
 aplicación y se usa desde la Terminal:
 `"/Applications/Guerra del Pacífico.app/Contents/MacOS/ServidorSalitre" --help`.
+
+## Novedades de la 0.12.0
+
+- **Hospitales con el doble de camilleros**: el hospital de campaña mantiene
+  cuatro equipos (antes dos), y el *Servicio sanitario* (antes «Ambulancias»)
+  suma uno más en cada hospital.
+- **Los camilleros buscan a los heridos en todo el campo de batalla**, sin
+  límite de distancia: va el equipo libre más cercano, primero por los que
+  alcanza a salvar (y por los veteranos de más grado), y lleva al herido al
+  hospital más cercano.
+- **Nueva unidad: la Ambulancia** (hospital de campaña, $ 150 y 50 de agua, 3 de
+  población). Carro sanitario con mulas que sigue a la tropa y **monta un
+  hospital de sangre** junto al combate (**B**): carpas con la cruz roja, dos
+  equipos de camilleros y curación de la tropa cercana. Se **desmonta** (**D**)
+  para seguir el avance, y los convalecientes viajan en el carro hasta volver a
+  filas. La IA también lleva ambulancias en sus ataques.
+- Nuevas voces de la ambulancia («¿Dónde montamos el hospital?», «¡Arriba las
+  carpas!», «¡Carpas al carro, seguimos a la tropa!»).
+- La 0.12.0 cambia los datos del juego: para jugar en red, todos deben tener la
+  0.12.0.
 
 ## Novedades de la 0.11.1
 

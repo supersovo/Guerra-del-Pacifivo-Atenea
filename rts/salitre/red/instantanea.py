@@ -30,6 +30,7 @@ F_POTENCIADO = 1024
 F_EMPLAZANDO = 2048
 F_DETECTADO = 4096
 F_CAMILLA = 8192          # camilleros que llevan a un herido
+F_DESMONTA = 16384        # hospital de sangre que recoge las carpas
 
 TIPO_SALITRE = -1
 TIPO_AGUA = -2
@@ -85,6 +86,9 @@ def registro(m, e, propio, t, detectado=False):
                 cds = {h: c - t for h, c in e.cd.items() if c > t}
                 if cds:
                     ex["cd"] = cds
+            if e.pacientes:
+                # convalecientes en el carro de la ambulancia
+                ex["pc"] = _pacientes(m, e.pacientes, m.cat.edificios[e.tipo.monta].recuperacion)
         return [e.id, e.tipo.idx, e.dueno, e.x >> 4, e.y >> 4, e.vida, e.dir, fl, ex or 0]
     if e.es_edificio:
         fl = 0
@@ -96,6 +100,9 @@ def registro(m, e, propio, t, detectado=False):
             fl |= F_PRODUCE
         if e.sabotaje_hasta > t:
             fl |= F_SABOTAJE
+        if e.desmontando:
+            fl |= F_DESMONTA
+            ex["dm"] = 100 - e.desmontando * 100 // max(1, e.tipo.desmontar_ticks)
         if e.guarnicion:
             # todos ven a los soldados en la trinchera o en el techo; el dueño también su vida y quiénes son
             gu = [m.ent[i] for i in e.guarnicion if i in m.ent]
@@ -117,10 +124,9 @@ def registro(m, e, propio, t, detectado=False):
                 ex["oc"] = 1
             if e.tipo.camilleros:
                 ex["cm"] = len(e.camilleros)
+                ex["ce"] = e.tipo.camilleros + m.jugadores[e.dueno].sanidad["equipos"]
                 if e.pacientes:
-                    total = max(1, e.tipo.recuperacion)
-                    ex["pc"] = [[m.cat.unidades[p[0]].idx, 100 - p[1] * 100 // total,
-                                 p[2][1] if len(p) > 2 and p[2] else 0] for p in e.pacientes]
+                    ex["pc"] = _pacientes(m, e.pacientes, e.tipo.recuperacion)
             if e.cd:
                 cds = {h: c - t for h, c in e.cd.items() if c > t}
                 if cds:
@@ -142,6 +148,13 @@ def registro(m, e, propio, t, detectado=False):
             ex["n"] = e.hoja[2]
         return [e.id, TIPO_HERIDO, e.dueno, e.x >> 4, e.y >> 4, 1, e.dir, 0, ex]
     return [e.id, TIPO_MINA, e.dueno, e.x >> 4, e.y >> 4, 1, 0, 0, 0]
+
+
+def _pacientes(m, pacientes, total):
+    """[tipo, % de la cura, grado] de cada convaleciente."""
+    total = max(1, total)
+    return [[m.cat.unidades[p[0]].idx, 100 - p[1] * 100 // total, p[2][1] if len(p) > 2 and p[2] else 0]
+            for p in pacientes]
 
 
 class Emisor:

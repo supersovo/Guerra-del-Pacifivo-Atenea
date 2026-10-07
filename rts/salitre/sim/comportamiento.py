@@ -739,6 +739,9 @@ def construir(m, u, o):
 
 
 def trabajar_obra(m, u, b):
+    if b.tipo.desmonta_en and b.tipo.id not in u.tipo.construye:
+        siguiente_orden(u)          # el hospital de sangre lo levanta solo la ambulancia
+        return
     if b.constructor and b.constructor != u.id:
         otro = m.entidad(b.constructor)
         if otro is not None and otro.orden is not None and otro.orden.obj == b.id:
@@ -915,6 +918,8 @@ def actualizar(m, u):
         if u.regen >= HFP:
             u.vida = min(u.st.vida, u.vida + u.regen // HFP)
             u.regen %= HFP
+    if u.pacientes:
+        m.atender_pacientes(u)      # los convalecientes que viajan en el carro de la ambulancia
     if u.emplazando:
         u.emplazando -= 1
         if u.emplazando == 0:
@@ -989,15 +994,21 @@ def _hospital_de(m, u):
     b = m.entidad(u.base_id) if u.base_id else None
     if b is not None and b.es_edificio and b.construido and b.tipo.camilleros:
         return b
+    b = hospital_cercano(m, u.dueno, u.x, u.y)
+    u.base_id = b.id if b is not None else 0
+    return b
+
+
+def hospital_cercano(m, p, x, y):
+    """El hospital propio terminado más cercano al punto (sin contar los que se están desmontando)."""
     mejor = None
     mejor_d = None
     for e in m.edificios.values():
-        if e.dueno != u.dueno or not e.vivo or not e.construido or not e.tipo.camilleros:
+        if e.dueno != p or not e.vivo or not e.construido or not e.tipo.camilleros or e.desmontando:
             continue
-        d = (e.x - u.x) ** 2 + (e.y - u.y) ** 2
+        d = (e.x - x) ** 2 + (e.y - y) ** 2
         if mejor_d is None or d < mejor_d:
             mejor, mejor_d = e, d
-    u.base_id = mejor.id if mejor is not None else 0
     return mejor
 
 
@@ -1008,26 +1019,70 @@ def _herido_libre(m, h, u):
     return c is None or c.objetivo != h.id
 
 
-def _buscar_caido(m, u, hosp):
-    radio2 = hosp.tipo.camilleros_radio ** 2
+def _equipos_libres(m, u):
+    """Los demás equipos de camilleros del bando que no llevan ni van a buscar a nadie."""
+    out = []
+    for c in m.unidades.values():
+        if c is u or not c.vivo or c.dueno != u.dueno or not c.tipo.autonomo or c.paciente:
+            continue
+        h = m.ent.get(c.objetivo) if c.objetivo else None
+        if h is not None and h.vivo and h.es_herido:
+            continue
+        b = m.ent.get(c.base_id) if c.base_id else None
+        if b is not None and b.es_edificio and b.desmontando:
+            continue        # vuelven a subir al carro de la ambulancia
+        out.append(c)
+    return out
+
+
+def _a_tiempo(m, u, h):
+    """¿Llegan antes de que el herido muera? (el camino de verdad es algo más largo que la recta)"""
+    d = isqrt((h.x - u.x) ** 2 + (h.y - u.y) ** 2)
+    return m.tick + d * 5 // (4 * max(1, u.st.velocidad)) <= h.hasta
+
+
+def _buscar_caido(m, u):
+    """El herido propio que conviene ir a buscar, esté donde esté: primero los que se alcanza a
+    salvar antes de que mueran (y entre ellos los veteranos de más grado); si no queda ninguno a
+    tiempo, igual se va por el más cercano. Cada herido es del equipo libre que tiene más cerca."""
+    libres = None
     mejor = None
     mejor_k = None
     for h in m.heridos.values():
         if not h.vivo or h.dueno != u.dueno or h.camillero < 0 or not _herido_libre(m, h, u):
             continue
-        if (h.x - hosp.x) ** 2 + (h.y - hosp.y) ** 2 > radio2:
+        d2 = (h.x - u.x) ** 2 + (h.y - u.y) ** 2
+        if libres is None:
+            libres = _equipos_libres(m, u)
+        if any(((h.x - c.x) ** 2 + (h.y - c.y) ** 2, c.id) < (d2, u.id) for c in libres):
             continue
-        # primero los veteranos de más grado: su experiencia no se recupera
         grado = h.hoja[1] if h.hoja else 0
-        k = (-grado, (h.x - u.x) ** 2 + (h.y - u.y) ** 2, h.id)
+        k = (0 if _a_tiempo(m, u, h) else 1, -grado, d2, h.id)
         if mejor_k is None or k < mejor_k:
             mejor, mejor_k = h, k
     return mejor
 
 
+def _esperar_en_puerta(m, u, hosp):
+    """Sin heridos que recoger, los equipos esperan en fila frente a la puerta, cada uno en su lugar."""
+    n = max(2, len(hosp.camilleros))
+    k = hosp.camilleros.index(u.id) if u.id in hosp.camilleros else u.id % n
+    paso = min(TILE, hosp.w * TILE // n)
+    ex = hosp.x - (n - 1) * paso // 2 + k * paso
+    ey = hosp.y + hosp.h * TILE // 2 + TILE
+    if (u.x - ex) ** 2 + (u.y - ey) ** 2 > (TILE // 6) ** 2:
+        if ir_a(m, u, ex, ey, cerca=TILE // 8) == -1:
+            u.ruta = []
+            u.ruta_meta = None
+    else:
+        u.ruta = []
+        u.ruta_meta = None
+
+
 def camilleros(m, u):
-    """Sin órdenes del jugador: buscan a los heridos propios cerca de su hospital, los cargan en
-    la camilla y los llevan a curar; si no hay nadie que recoger, esperan junto al hospital."""
+    """Sin órdenes del jugador: salen a buscar a los heridos propios por todo el campo, los cargan
+    en la camilla y los llevan al hospital más cercano (el de la retaguardia o el hospital de sangre
+    que la ambulancia montó junto a la tropa); si no hay nadie que recoger, esperan junto al suyo."""
     u.fantasma = True
     hosp = _hospital_de(m, u)
     if hosp is None:
@@ -1035,30 +1090,37 @@ def camilleros(m, u):
         u.ruta_meta = None
         return
     if u.paciente:
-        r = acercarse_rect(m, u, hosp)
+        dest = hospital_cercano(m, u.dueno, u.x, u.y) or hosp
+        r = acercarse_rect(m, u, dest)
         if r == 1:
-            hosp.pacientes.append([u.paciente, hosp.tipo.recuperacion, u.paciente_hoja])
-            m.ev_pos(hosp.x, hosp.y, "ingresa", hosp.id, m.cat.unidades[u.paciente].idx)
+            dest.pacientes.append([u.paciente, dest.tipo.recuperacion, u.paciente_hoja])
+            m.ev_pos(dest.x, dest.y, "ingresa", dest.id, m.cat.unidades[u.paciente].idx)
             u.paciente = None
             u.paciente_hoja = None
             u.ruta = []
             u.ruta_meta = None
         return
+    if hosp.desmontando:
+        # su hospital de sangre se desmonta: vuelven a la puerta para subir al carro
+        u.objetivo = 0
+        _esperar_en_puerta(m, u, hosp)
+        return
     h = m.ent.get(u.objetivo) if u.objetivo else None
+    if h is not None and h.vivo and h.es_herido and _herido_libre(m, h, u) \
+            and (m.tick + u.id) % 16 == 0 and not _a_tiempo(m, u, h):
+        # va por uno que ya no alcanza a salvar: si aparece otro a tiempo, cambia de rumbo
+        otro = _buscar_caido(m, u)
+        if otro is not None and otro is not h and _a_tiempo(m, u, otro):
+            if h.camillero == u.id:
+                h.camillero = 0
+            h = otro
+            u.objetivo = h.id
+            h.camillero = u.id
     if h is None or not h.vivo or not h.es_herido or not _herido_libre(m, h, u):
-        h = _buscar_caido(m, u, hosp)
+        h = _buscar_caido(m, u) if (m.tick + u.id) % 4 == 0 else None
         u.objetivo = h.id if h is not None else 0
         if h is None:
-            # esperan junto al hospital, cada equipo en su lugar (a un lado y al otro de la puerta)
-            lado = 1 if u.id % 2 else -1
-            ex, ey = hosp.x + lado * (hosp.w * TILE // 2 - TILE // 2), hosp.y + hosp.h * TILE // 2 + TILE
-            if (u.x - ex) ** 2 + (u.y - ey) ** 2 > TILE * TILE:
-                if ir_a(m, u, ex, ey, cerca=TILE // 2) == -1:
-                    u.ruta = []
-                    u.ruta_meta = None
-            else:
-                u.ruta = []
-                u.ruta_meta = None
+            _esperar_en_puerta(m, u, hosp)
             return
         h.camillero = u.id
     r = ir_a(m, u, h.x, h.y, cerca=TILE // 2)

@@ -151,6 +151,27 @@ def icono_habilidad(h):
         return icono_orden("descargar")
     elif tipo == "menu_construir":
         return icono_orden("construir")
+    elif tipo == "montar":
+        # la carpa del hospital de sangre con la cruz roja, clavada en el suelo
+        lona = (236, 232, 220)
+        p.poli([(5, 34), (20, 9), (35, 34)], lona)
+        p.poli([(20, 9), (35, 34), (24, 34)], (200, 194, 180))
+        p.rect(17, 26, 6, 8, (70, 56, 44))
+        p.rect(18.5, 14, 3, 9, (210, 30, 30))
+        p.rect(15.5, 17, 9, 3, (210, 30, 30))
+        p.linea(5, 34, 2, 37, MADERA, 1.2)
+        p.linea(35, 34, 38, 37, MADERA, 1.2)
+    elif tipo == "desmontar":
+        # las carpas vuelven al carro: flecha hacia el carro toldado con la cruz roja
+        lona = (236, 232, 220)
+        p.elipse(6, 16, 26, 14, lona)
+        p.rect(6, 22, 26, 8, lona)
+        p.rect(5, 29, 28, 4, MADERA)
+        p.circ(11, 34, 4, (76, 56, 38), borde=1.2)
+        p.circ(27, 34, 4, (76, 56, 38), borde=1.2)
+        p.rect(17.5, 18, 3, 10, (210, 30, 30))
+        p.rect(14, 21.5, 10, 3, (210, 30, 30))
+        _flecha(p, 30, 2, 30, 14, TINTA, 2.2)
     else:
         p.circ(20, 20, 12, DORADO, borde=3)
     return p.resultado()

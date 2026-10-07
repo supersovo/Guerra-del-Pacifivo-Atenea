@@ -99,8 +99,8 @@
 
   "hospital_campana": {
     "nombre": "Hospital de campaña",
-    "descripcion": "La Ambulancia: habilita a las cantineras, cura lentamente a la tropa cercana y mantiene dos equipos de camilleros que recogen a los heridos del frente. Los heridos se recuperan en el hospital y vuelven a filas.",
-    "historia": "Las 'ambulancias' eran los hospitales de sangre que seguían al ejército. La boliviana Ignacia Zeballos sirvió en la Ambulancia en Tacna.",
+    "descripcion": "Hospital de la retaguardia: habilita a las cantineras, forma las ambulancias, cura lentamente a la tropa cercana y mantiene cuatro equipos de camilleros que salen a buscar a los heridos a todo el campo de batalla. Los heridos se recuperan en el hospital y vuelven a filas.",
+    "historia": "Los ejércitos de 1879 tenían hospitales fijos en la retaguardia y 'ambulancias' que seguían a las tropas. La boliviana Ignacia Zeballos sirvió en la Ambulancia en Tacna.",
     "tamano": [3, 2],
     "vida": 600,
     "armadura": 1,
@@ -108,13 +108,34 @@
     "tiempo": 40,
     "vision": 7,
     "regeneracion": {"radio": 5, "ritmo": 1.0},
-    "camilleros": {"equipos": 2, "radio": 30, "recuperacion": 20, "reposicion": 30, "vida_al_volver": 50},
-    "produce": [],
+    "camilleros": {"equipos": 4, "recuperacion": 20, "reposicion": 30, "vida_al_volver": 50},
+    "produce": ["ambulancia"],
     "investiga": ["cirugia_campana", "botiquines", "ambulancias", "convalecencia"],
     "requisitos": ["barracas"],
     "menu": "basico",
     "atajo": "H",
     "sprite": {"forma": "hospital"}
+  },
+
+  "hospital_sangre": {
+    "nombre": "Hospital de sangre",
+    "descripcion": "Las carpas que la ambulancia monta junto a la tropa: cura a los que están cerca, mantiene dos equipos de camilleros y recibe a los heridos del frente para devolverlos a filas sin el viaje a la retaguardia. Se desmonta para seguir el avance; los convalecientes viajan en el carro.",
+    "historia": "Detrás de la línea de fuego las ambulancias levantaban 'hospitales de sangre' en carpas, casas o iglesias, donde cirujanos y practicantes atendían a los heridos que traían los camilleros.",
+    "tamano": [2, 2],
+    "vida": 400,
+    "armadura": 0,
+    "costo": {"dinero": 0, "agua": 0},
+    "tiempo": 8,
+    "vision": 7,
+    "regeneracion": {"radio": 4, "ritmo": 1.0},
+    "camilleros": {"equipos": 2, "recuperacion": 20, "reposicion": 30, "vida_al_volver": 50},
+    "desmonta_en": "ambulancia",
+    "produce": [],
+    "investiga": [],
+    "requisitos": [],
+    "habilidades": ["desmontar_hospital"],
+    "menu": "ambulancia",
+    "sprite": {"forma": "hospital_sangre"}
   },
 
   "trinchera": {

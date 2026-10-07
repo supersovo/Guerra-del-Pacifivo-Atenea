@@ -29,6 +29,21 @@
     "objetivo": "punto",
     "atajo": "D"
   },
+  "montar_hospital": {
+    "nombre": "Montar hospital",
+    "descripcion": "Elija el lugar, cerca de la tropa: la ambulancia va hasta allí, levanta las carpas de un hospital de sangre en 8 segundos y manda a sus camilleros a recoger a los heridos.",
+    "tipo": "montar",
+    "objetivo": "punto",
+    "atajo": "B"
+  },
+  "desmontar_hospital": {
+    "nombre": "Desmontar",
+    "descripcion": "Recoge las carpas en el carro en 6 segundos para seguir el avance. Los camilleros suben al carro y los convalecientes siguen curándose en él hasta volver a filas.",
+    "tipo": "desmontar",
+    "objetivo": "ninguno",
+    "duracion": 6,
+    "atajo": "D"
+  },
   "sabotaje": {
     "nombre": "Sabotaje",
     "descripcion": "Paraliza un edificio enemigo durante 20 s: no produce ni investiga.",

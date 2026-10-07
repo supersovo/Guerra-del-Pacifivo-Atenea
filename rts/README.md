@@ -101,12 +101,12 @@ registros) se guardan en `%APPDATA%\GuerraDelPacifico` en Windows, en
 - La **población** limita el ejército: el Cuartel General y cada **Depósito de
   Intendencia** dan 10 (el Fortín argentino, 5), hasta un máximo de **200**.
 - Costo en población: trabajador, infante y cantinera **1**; ingeniero **2**;
-  caballería **5**; artillería y ametralladoras **10**; héroes 4.
+  ambulancia **3**; caballería **5**; artillería y ametralladoras **10**; héroes 4.
 
 ### Árbol de edificios
 
 ```
-Cuartel General ── Barracas ─┬─ Hospital de campaña (cantineras)
+Cuartel General ── Barracas ─┬─ Hospital de campaña (cantineras, ambulancias)
    │                         ├─ Trinchera
    │                         └─ Barracón de Instrucción ── Caballeriza ── Central de Telégrafos ─┬─ Estado Mayor (héroes, espías)
    │                                                                                            └─ Parque de Artillería*
@@ -124,6 +124,8 @@ Las cifras completas de cada unidad, edificio, investigación y héroe están en
 
 - **Infante de línea** (barracas): la base del ejército.
 - **Cantinera** o **rabona** (barracas, requiere hospital): cura a la tropa.
+- **Ambulancia** (hospital de campaña): carro sanitario tirado por mulas que
+  sigue a la tropa y **monta un hospital de sangre** junto al combate. No combate.
 - **Ingeniero dinamitero** (barracas, requiere barracón): lanza dinamita contra
   tropas y fortificaciones.
 - **Granadero** y **Cazador a caballo** (caballeriza): carga al sable y
@@ -169,14 +171,40 @@ uno para que baje) y el botón «Salir de la trinchera» o «Desalojar».
 
 ### Heridos, camilleros y sangre
 
-- Con un **hospital de campaña**, el infante o el jinete que cae por fusil,
-  metralla o sable queda **herido** en el suelo 40 segundos. El hospital manda **dos equipos de
-  camilleros** al frente: lo recogen, lo curan en 20 segundos y vuelve a filas
-  con media vida (sobre el hospital se ve la cruz verde). Si nadie lo recoge,
-  muere. Los equipos caídos se reponen a los 30 segundos.
+- Con un **hospital de campaña** (o un hospital de sangre) en pie, el infante o
+  el jinete que cae por fusil, metralla o sable queda **herido** en el suelo 40
+  segundos. Cada hospital de campaña mantiene **cuatro equipos de camilleros**,
+  que salen solos a buscar a los heridos **por todo el campo de batalla**: va el
+  equipo libre que esté más cerca, recoge primero a los que alcanza a salvar (y
+  entre ellos a los veteranos de más grado) y lleva al herido al **hospital más
+  cercano**, donde se cura en 20 segundos y vuelve a filas con media vida (sobre
+  el hospital se ve la cruz verde). Al que está demasiado lejos igual lo van a
+  buscar, pero puede desangrarse antes de que lleguen: para eso está la
+  ambulancia. Los equipos caídos se reponen a los 30 segundos.
 - Las bajas dejan **sangre** en el terreno; las causadas por **artillería,
   dinamita o minas despedazan** el cuerpo. Se puede desactivar en Opciones
   («Sangre en las bajas»).
+
+### Ambulancia y hospital de sangre
+
+La **ambulancia** se forma en el hospital de campaña ($ 150 y 50 de agua, 3 de
+población) y acompaña a la tropa en los ataques:
+
+- **Montar hospital** (tecla **B**): se elige el lugar como el de una obra, cerca
+  de la tropa; el carro va hasta allí y en 8 segundos levanta las carpas de un
+  **hospital de sangre**, con dos equipos de camilleros propios y la cruz roja
+  que cura a los que están cerca. Los heridos del frente se curan ahí mismo, sin
+  el largo viaje a la retaguardia. No cuesta nada: las carpas van en el carro.
+- **Desmontar** (tecla **D**, con el hospital de sangre seleccionado): en 6
+  segundos las carpas vuelven al carro para seguir el avance. Los camilleros
+  suben con el herido que traían y los **convalecientes viajan en el carro** y
+  siguen curándose hasta volver a filas junto a él.
+- El carro y las carpas son la misma tropa: conservan la vida que tenían y
+  siguen seleccionados al montarse y desmontarse. Si el enemigo destruye el
+  carro o el hospital de sangre, los convalecientes caen con ellos.
+- Los trabajadores no levantan hospitales de sangre: solo la ambulancia. La IA
+  también las usa: las lleva detrás de su frente y monta sus carpas cuando su
+  tropa entra en combate.
 
 ### Veteranía: la tropa aprende combatiendo
 
@@ -209,16 +237,17 @@ hospital: vuelve a filas con su nombre, sus galones y su hoja de servicio. Los
 camilleros recogen primero a los de mayor grado.
 
 - **Replegar heridos** (tecla **J** en la tarjeta): las unidades seleccionadas
-  que están heridas van al hospital de campaña a curarse.
-- En el hospital se investigan **Ambulancias** (un tercer equipo de camilleros,
-  todos un 20 % más rápidos) y **Convalecencia** (los heridos aguantan 60
-  segundos en el suelo y vuelven con el 75 % de la vida).
+  que están heridas van a curarse al hospital más cercano (de campaña o de sangre).
+- En el hospital se investigan **Servicio sanitario** (un equipo más de
+  camilleros en cada hospital, todos un 20 % más rápidos) y **Convalecencia**
+  (los heridos aguantan 60 segundos en el suelo y vuelven con el 75 % de la vida).
 - Si el enemigo destruye el hospital, los veteranos que se curaban en él caen;
   los heridos que nadie recoge, también. Al terminar la batalla, el parte de
   guerra cuenta los veteranos en filas por grado, los ascensos y los caídos.
 - **El vencido se retira**: cuando un ejército pierde, sus unidades dejan el
   campo (no mueren) y sus veteranos, con los heridos que llevan los camilleros
-  y los que se curan en el hospital, siguen en filas para la batalla siguiente.
+  y los que se curan en el hospital o en el carro de una ambulancia, siguen en
+  filas para la batalla siguiente.
 
 ### Campaña del Salitre (contra la IA)
 
@@ -253,8 +282,9 @@ Arica**, con Chile, el Perú o Bolivia (el rival cambia según la nación elegid
 Las unidades **hablan** en lugar de los toques de corneta: se presentan al
 formarse («¡Granadero a caballo, listo para la carga!»), responden al
 seleccionarlas y al recibir una orden («¡En marcha!», «¡Calen bayoneta!», «¡A la
-carga!»), y el ayudante avisa de las obras terminadas, la falta de dinero o de
-agua y los ataques. Los héroes dicen sus palabras más conocidas (Bolognesi,
+carga!»; la ambulancia: «¿Dónde montamos el hospital?», «¡Arriba las carpas!»),
+y el ayudante avisa de las obras terminadas, la falta de dinero o de agua y los
+ataques. Los héroes dicen sus palabras más conocidas (Bolognesi,
 Prat, Abaroa…). Se desactivan en Opciones («Voces de las tropas») y entonces
 vuelven los toques de corneta.
 
@@ -274,7 +304,7 @@ vuelven los toques de corneta.
 |--------|------|
 | Seleccionar | Clic izquierdo; arrastrar para un recuadro; doble clic o Ctrl + clic: todas las del mismo tipo en pantalla; Mayúsculas + clic: agregar |
 | Mover, atacar, recolectar, reparar | Clic derecho sobre el terreno, el enemigo, el recurso o el edificio |
-| Órdenes de la tarjeta | Botones abajo a la derecha o su tecla (M mover, S detener, A atacar, H mantener posición, P patrullar, G recolectar, B construir, V construcción avanzada…) |
+| Órdenes de la tarjeta | Botones abajo a la derecha o su tecla (M mover, S detener, A atacar, H mantener posición, P patrullar, G recolectar, B construir o montar el hospital de sangre, D desmontarlo, V construcción avanzada…) |
 | Encolar órdenes | Mayúsculas + orden |
 | Grupos | Ctrl + 1…9 forma; 1…9 selecciona; dos veces centra la cámara |
 | Cámara | Flechas, borde de la pantalla, arrastrar con el botón central o clic en el minimapa; rueda para acercar. En ventana, el puntero queda encerrado durante la batalla para mover la cámara con el borde (se suelta con F10 o Alt + Tab; se desactiva en Opciones) |

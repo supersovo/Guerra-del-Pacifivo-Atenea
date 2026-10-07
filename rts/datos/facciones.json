@@ -1,8 +1,8 @@
 {
   "_comentario": "Naciones jugables. 'unidades' y 'edificios' son los que cada país puede formar o construir. 'nombres' cambia el nombre que se muestra de una unidad. 'uniforme' son los colores de la nación y 'uniformes' los propios de cada arma, por la forma del dibujo (zapador, ingeniero, torpedista, jinete_sable, jinete_carabina). 'bonificaciones' son ventajas permanentes con el mismo formato de efectos que las investigaciones (más 'costo_pct').",
   "_comunes": {
-    "unidades": ["trabajador", "infante", "cantinera", "camilleros", "ingeniero", "granadero", "cazador", "artilleria_montana", "canon_campana", "gatling", "espia", "transporte", "canonera"],
-    "edificios": ["cuartel_general", "deposito", "molino_agua", "barracas", "maestranza", "hospital_campana", "trinchera", "reducto", "barracon_instruccion", "caballeriza", "central_telegrafos", "parque_artilleria", "estado_mayor", "muelle"]
+    "unidades": ["trabajador", "infante", "cantinera", "camilleros", "ambulancia", "ingeniero", "granadero", "cazador", "artilleria_montana", "canon_campana", "gatling", "espia", "transporte", "canonera"],
+    "edificios": ["cuartel_general", "deposito", "molino_agua", "barracas", "maestranza", "hospital_campana", "hospital_sangre", "trinchera", "reducto", "barracon_instruccion", "caballeriza", "central_telegrafos", "parque_artilleria", "estado_mayor", "muelle"]
   },
 
   "chile": {

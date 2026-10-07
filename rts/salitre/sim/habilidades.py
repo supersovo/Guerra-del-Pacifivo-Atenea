@@ -11,6 +11,8 @@ VEL_GRANADA = vel(10)
 
 
 def error_lanzar(m, c, h):
+    if h.tipo == "desmontar" and c.es_edificio and c.desmontando:
+        return "Ya se están recogiendo las carpas"
     if h.energia and c.energia < h.energia:
         return "Energía insuficiente"
     if c.cd.get(h.id, 0) > m.tick:
@@ -114,6 +116,12 @@ def lanzar(m, c, h, x, y, obj):
             return False
         combate.danar(m, obj, h.danio, c.id, c.dueno)
         m.ev_pos(obj.x, obj.y, "golpe", c.id, obj.id)
+    elif k == "desmontar":
+        # el hospital de sangre recoge las carpas y vuelve a ser ambulancia (edificios.actualizar)
+        if not c.es_edificio or not c.tipo.desmonta_en or not c.construido or c.desmontando:
+            return False
+        c.desmontando = max(1, h.duracion)
+        m.ev_pos(c.x, c.y, "desmontando", c.id, c.desmontando)
     elif k == "emplazar":
         if c.es_unidad and c.tipo.emplazar and not c.emplazando:
             c.emplazando = veterania.tiempo_emplazar(m, c)

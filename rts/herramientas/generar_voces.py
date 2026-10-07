@@ -52,6 +52,7 @@ FRASES = {
     "lista_espia": [("El espía está listo. Nadie sabrá que estuve aquí.", SOLDADO)],
     "lista_transporte": [("Transporte a vapor, listo para zarpar.", SOLDADO)],
     "lista_canonera": [("¡Cañonera lista para zarpar!", SOLDADO)],
+    "lista_ambulancia": [("Ambulancia lista: camillas, vendas y cirujanos.", SOLDADO)],
     # héroes: sus palabras más conocidas o una presentación
     "lista_baquedano": [("General Baquedano en campaña. ¡Adelante, muchachos!", OFICIAL)],
     "lista_san_martin": [("San Martín, presente. ¡Cuarto de Línea, adelante!", OFICIAL)],
@@ -81,6 +82,7 @@ FRASES = {
     "seleccion_cantinera": [("¿Agua para la tropa?", MUJER), ("Aquí está la cantinera.", MUJER)],
     "seleccion_espia": [("Hable bajo, mi comandante.", SOLDADO), ("Nadie me verá.", SOLDADO)],
     "seleccion_heroina": [("¡A sus órdenes, mi comandante!", MUJER), ("¡Presente!", MUJER)],
+    "seleccion_ambulancia": [("Ambulancia, a la orden.", SOLDADO), ("¿Dónde montamos el hospital?", SOLDADO)],
     # --- órdenes de marcha
     "mover_trabajador": [("Voy enseguida.", SOLDADO), ("En camino.", SOLDADO)],
     "mover_infanteria": [("¡En marcha!", SOLDADO), ("¡Entendido!", SOLDADO), ("¡Avanzamos!", SOLDADO)],
@@ -90,6 +92,7 @@ FRASES = {
     "mover_cantinera": [("Voy con la tropa.", MUJER)],
     "mover_espia": [("Sin ser visto.", SOLDADO)],
     "mover_heroina": [("¡En marcha!", MUJER), ("¡Vamos!", MUJER)],
+    "mover_ambulancia": [("¡Arreen las mulas!", SOLDADO), ("Vamos tras la tropa.", SOLDADO)],
     # --- órdenes de ataque
     "atacar_infanteria": [("¡Calen bayoneta!", SOLDADO), ("¡Fuego a discreción!", SOLDADO), ("¡Al ataque!", SOLDADO)],
     "atacar_caballeria": [("¡A la carga!", SOLDADO), ("¡Sable en mano!", SOLDADO)],
@@ -97,8 +100,10 @@ FRASES = {
     "atacar_naval": [("¡Fuego de andanada!", SOLDADO), ("¡Al ataque!", SOLDADO)],
     "atacar_trabajador": [("¡A defenderse!", SOLDADO)],
     "atacar_heroina": [("¡Al ataque!", MUJER)],
-    # --- faenas: recolectar, construir, reparar
+    # --- faenas: recolectar, construir, reparar; la ambulancia monta y desmonta el hospital de sangre
     "trabajar": [("A la faena.", SOLDADO), ("Manos a la obra.", SOLDADO)],
+    "montar_ambulancia": [("¡Montamos el hospital aquí!", SOLDADO), ("¡Arriba las carpas!", SOLDADO)],
+    "desmontar_ambulancia": [("¡Carpas al carro, seguimos a la tropa!", SOLDADO)],
     # --- veteranía: ascensos, repliegue y veteranos heridos o caídos
     "ascenso_1": [("¡Ya estamos fogueados, mi comandante!", SOLDADO), ("¡Bautizo de fuego cumplido!", SOLDADO)],
     "ascenso_2": [("¡Ascendido a veterano, mi comandante!", SOLDADO), ("¡Somos veteranos de esta guerra!", SOLDADO)],
@@ -116,6 +121,7 @@ FRASES = {
     "falta_agua": [("Falta agua, mi comandante.", OFICIAL)],
     "llegada": [("¡Llegó el cuartel general!", OFICIAL)],
     "recuperado": [("Un soldado vuelve a filas.", OFICIAL)],
+    "hospital_montado": [("Hospital de sangre listo para recibir heridos.", OFICIAL)],
     "victoria": [("¡Victoria! ¡La jornada es nuestra!", OFICIAL)],
     "derrota": [("Hemos sido derrotados.", OFICIAL)],
 }

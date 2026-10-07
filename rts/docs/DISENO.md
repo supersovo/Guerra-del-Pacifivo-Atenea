@@ -49,7 +49,7 @@ decisiones.
 ## Progresión tecnológica
 
 ```
-Nivel 1  Cuartel General → Barracas (infantes) → Hospital (cantineras), Trinchera
+Nivel 1  Cuartel General → Barracas (infantes) → Hospital (cantineras, ambulancias), Trinchera
          Maestranza (mejoras), Depósito, Molino de agua
 Nivel 2  Barracón de Instrucción → ingenieros, unidades especiales, tácticas
          Caballeriza → caballería
@@ -98,14 +98,47 @@ rompen la obra y la guarnición cae con ella.
 
 ### Heridos y camilleros
 
-Con un **hospital de campaña**, el infante o el jinete que cae por fusil,
-metralla o sable queda herido 40 segundos en el suelo. El hospital manda solos **dos equipos de
-camilleros** (no combaten ni ocupan población) a buscar a los heridos dentro de
-30 casillas; en el hospital se curan en 20 segundos y vuelven a filas con la
-mitad de la vida. Quien cae por artillería, dinamita o minas muere en el acto (y
-el cuerpo se despedaza). Así el hospital deja de ser solo el requisito de la
-cantinera: recupera tropa después de cada choque, como las ambulancias de Tacna,
-Chorrillos y Miraflores.
+Con un **hospital de campaña** (o un hospital de sangre) en pie, el infante o el
+jinete que cae por fusil, metralla o sable queda herido 40 segundos en el suelo.
+Cada hospital de campaña mantiene **cuatro equipos de camilleros** (no combaten
+ni ocupan población) que salen solos a buscar a los heridos **por todo el campo**,
+sin límite de distancia:
+
+- cada herido es del **equipo libre más cercano** (así no corren todos tras el
+  mismo);
+- primero van por los que **alcanzan a salvar** antes de que se desangren, y
+  entre ellos por los veteranos de más grado; si no queda ninguno a tiempo, igual
+  van por el más cercano, y cada tanto cambian de rumbo si aparece uno que sí
+  pueden salvar;
+- llevan al herido al **hospital más cercano** (el de la retaguardia o el hospital
+  de sangre de una ambulancia), donde se cura en 20 segundos y vuelve a filas con
+  la mitad de la vida; sin heridos, esperan en fila frente a la puerta del suyo.
+
+Quien cae por artillería, dinamita o minas muere en el acto (y el cuerpo se
+despedaza). Así el hospital deja de ser solo el requisito de la cantinera:
+recupera tropa después de cada choque, como las ambulancias de Tacna, Chorrillos
+y Miraflores.
+
+### Ambulancia y hospital de sangre
+
+Un herido que cae a 60 casillas de la retaguardia se salva apenas; uno que cae
+más lejos se desangra mientras los camilleros van en camino. La **ambulancia**
+(carro sanitario formado en el hospital de campaña, 3 de población) resuelve ese
+problema como lo resolvieron los ejércitos de 1879: el hospital va con la tropa.
+
+- **Montar hospital** (B) se elige como una obra: el carro va al lugar y en 8
+  segundos levanta un **hospital de sangre** (2×2, 400 de vida, sin costo:
+  las carpas van en el carro) con dos equipos de camilleros, curación de la tropa
+  cercana y sus propios pacientes. El carro queda dentro: su vida pasa a las
+  carpas y su población queda reservada.
+- **Desmontar** (D) tarda 6 segundos: las carpas vuelven a ser el carro, con la
+  misma proporción de vida. Los camilleros suben al carro con el herido que
+  traían y los **convalecientes siguen curándose en el carro** hasta volver a
+  filas junto a él. Si cae el carro o el hospital de sangre, caen sus pacientes.
+- Los trabajadores no lo levantan ni siguen su obra: solo la ambulancia.
+- Es el contrapeso de la ofensiva: un ataque lejano sin ambulancia pierde a sus
+  heridos; con ella, los recupera en el frente, pero expone un blanco valioso
+  (los camilleros no son inmunes al fuego).
 
 ### La cantinera
 
@@ -158,11 +191,12 @@ en red pasa de una batalla a la siguiente.
   más rápido (encuadramiento), y un 25 % cerca de un héroe.
 - **Sanidad**: el herido conserva su hoja de servicio; los camilleros recogen
   primero a los de mayor grado; *Replegar heridos* (J) manda a los heridos al
-  hospital; *Ambulancias* y *Convalecencia* mejoran el servicio. Si cae el
-  hospital, caen sus pacientes.
+  hospital más cercano; *Servicio sanitario* (un equipo más de camilleros por
+  hospital) y *Convalecencia* mejoran el servicio, y la ambulancia lleva el
+  hospital al frente. Si cae el hospital (o el carro), caen sus pacientes.
 - **Retirada del vencido**: cuando un ejército pierde, sus unidades se retiran
   del campo en vez de morir; los veteranos que siguen vivos (y los heridos de
-  camilla y hospital) pasan a la batalla siguiente, como los ejércitos aliados
+  camilla, hospital y ambulancia) pasan a la batalla siguiente, como los ejércitos aliados
   que se replegaron de Dolores a Tarapacá y de Tarapacá a Arica. Los heridos
   abandonados en el campo se pierden.
 
@@ -257,7 +291,11 @@ servidor valida, sin ver a través de la niebla):
 La IA explora, se expande a nuevas calicheras, equilibra salitre y agua, forma un
 ejército mixto, defiende la base, ataca en oleadas crecientes y, en los mapas de
 islas, embarca a su ejército. Cuida a sus veteranos: los Veteranos y Aguerridos
-muy heridos se repliegan al hospital y no vuelven al frente hasta curarse.
+muy heridos se repliegan al hospital y no vuelven al frente hasta curarse. En
+Normal forma una ambulancia y en Difícil dos: siguen a la tropa que ataca, montan
+el hospital de sangre unas nueve casillas detrás del frente cuando la tropa se
+traba en combate, lo sostienen al menos 30 segundos y lo desmontan cuando el
+frente sigue de largo y ya no quedan heridos que atender.
 
 ## Equilibrio: cómo ajustarlo
 

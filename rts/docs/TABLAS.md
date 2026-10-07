@@ -24,6 +24,7 @@ Costos en dinero ($) / agua: el salitre se vende en el Cuartel General a 1 $ por
 | Infante de línea | Barracas | $ 50 | 1 | 15 | 45 | 0 | 6 (Fusil) | 5 | 1.0 | 1.6 | — |
 | Cantinera | Barracas | $ 50 / 25 | 1 | 18 | 40 | 0 | — | — | — | 1.6 | Hospital de campaña |
 | Camilleros | — | $ 0 | 0 | 30 | 60 | 0 | — | — | — | 2.0 | Hospital de campaña |
+| Ambulancia | Hospital de campaña | $ 150 / 50 | 3 | 30 | 250 | 1 | — | — | — | 1.6 | Hospital de campaña |
 | Ingeniero dinamitero | Barracas | $ 75 / 50 | 2 | 20 | 70 | 0 | 25 (Dinamita) | 4.5 | 2.2 | 1.5 | Barracón de Instrucción |
 | Granadero a caballo | Caballeriza | $ 150 / 75 | 5 | 30 | 250 | 1 | 26 (Arma blanca) | 0.35 | 1.1 | 2.8 | — |
 | Cazador a caballo | Caballeriza | $ 125 / 75 | 5 | 28 | 200 | 1 | 14 (Fusil) | 4 | 0.8 | 3.0 | — |
@@ -83,7 +84,8 @@ Cada héroe es único: si cae, puede volver a formarse en el Estado Mayor (o en 
 | Molino de agua | 3×3 | $ 75 | 30 | 500 | — | — | — |
 | Barracas | 3×3 | $ 150 | 50 | 1000 | — | Infante de línea, Cantinera, Ingeniero dinamitero, Zapador, Torpedista, Montonero, Colorado de Bolivia | Cuartel General |
 | Maestranza | 3×3 | $ 125 | 40 | 850 | — | — | Cuartel General |
-| Hospital de campaña | 3×2 | $ 100 / 25 | 40 | 600 | — | — | Barracas |
+| Hospital de campaña | 3×2 | $ 100 / 25 | 40 | 600 | — | Ambulancia | Barracas |
+| Hospital de sangre | 2×2 | $ 0 | 8 | 400 | — | — | — |
 | Trinchera | 3×2 | $ 100 | 25 | 400 | — | — | Barracas |
 | Reducto | 2×2 | $ 125 / 25 | 30 | 500 | — | — | Maestranza |
 | Barracón de Instrucción | 3×3 | $ 150 / 50 | 50 | 650 | — | — | Barracas |
@@ -99,7 +101,8 @@ Cada héroe es único: si cae, puede volver a formarse en el Estado Mayor (o en 
 - **Molino de agua**: Molino de viento con bomba sobre un pozo. Los trabajadores entran y salen cargados de agua.
 - **Barracas**: Cuartel de tropa: forma infantes, cantineras, ingenieros y la infantería especial de cada país. Hasta 6 de población de infantería pueden subir al techo y disparar desde arriba con +2 de alcance, como en una pequeña fortaleza.
 - **Maestranza**: Taller de armas y equipo: investiga las mejoras de ataque y armadura. Habilita el reducto y el muelle.
-- **Hospital de campaña**: La Ambulancia: habilita a las cantineras, cura lentamente a la tropa cercana y mantiene dos equipos de camilleros que recogen a los heridos del frente. Los heridos se recuperan en el hospital y vuelven a filas.
+- **Hospital de campaña**: Hospital de la retaguardia: habilita a las cantineras, forma las ambulancias, cura lentamente a la tropa cercana y mantiene cuatro equipos de camilleros que salen a buscar a los heridos a todo el campo de batalla. Los heridos se recuperan en el hospital y vuelven a filas.
+- **Hospital de sangre**: Las carpas que la ambulancia monta junto a la tropa: cura a los que están cerca, mantiene dos equipos de camilleros y recibe a los heridos del frente para devolverlos a filas sin el viaje a la retaguardia. Se desmonta para seguir el avance; los convalecientes viajan en el carro.
 - **Trinchera**: Obra de campaña con parapeto: hasta 4 de población de infantería disparan desde ella protegidos y con +1 de alcance.
 - **Reducto**: Fortificación con una pieza de artillería. Detecta unidades ocultas y minas cercanas.
 - **Barracón de Instrucción**: Escuela de tiro y de clases: habilita ingenieros, la infantería especial y la caballeriza, e investiga tácticas.
@@ -141,7 +144,7 @@ Cada héroe es único: si cae, puede volver a formarse en el Estado Mayor (o en 
 | Calderas de alta presión | Muelle | $ 100 / 100 | 60 | — | +20 % de velocidad a los buques. |
 | Blindaje de hierro | Muelle | $ 150 / 150 | 80 | — | +2 de armadura a los buques. |
 | Ejercicios de tiro | Barracón de Instrucción | $ 75 / 50 | 45 | — | Los reclutas que esperan junto al Barracón de Instrucción se fogean solos, hasta el primer grado: como la instrucción de los movilizados en Antofagasta antes del desembarco de Pisagua. Más arriba solo se llega combatiendo. |
-| Ambulancias | Hospital de campaña | $ 100 / 75 | 50 | — | Un tercer equipo de camilleros, y todos un 20 % más rápidos: el servicio de ambulancias que acompañó a los ejércitos en Tarapacá, Tacna y Lima. |
+| Servicio sanitario | Hospital de campaña | $ 100 / 75 | 50 | — | Un equipo más de camilleros en cada hospital, y todos un 20 % más rápidos: el servicio sanitario que acompañó a los ejércitos en Tarapacá, Tacna y Lima. |
 | Convalecencia | Hospital de campaña | $ 100 / 100 | 60 | — | Los heridos aguantan 60 segundos en el suelo en vez de 40 y vuelven a filas con el 75 % de la vida, con su grado intacto. |
 
 ## Habilidades
@@ -152,6 +155,8 @@ Cada héroe es único: si cae, puede volver a formarse en el Estado Mayor (o en 
 | Obras de campaña | B | — | — | Levanta trincheras y reductos al doble de velocidad. |
 | Emplazar / Enganchar | E | — | — | Emplaza la pieza para disparar o la engancha al armón para marchar. Se hace solo al recibir órdenes. |
 | Desembarcar | D | — | — | Desembarca a la tropa en la costa más cercana al punto elegido. |
+| Montar hospital | B | — | — | Elija el lugar, cerca de la tropa: la ambulancia va hasta allí, levanta las carpas de un hospital de sangre en 8 segundos y manda a sus camilleros a recoger a los heridos. |
+| Desmontar | D | — | — | Recoge las carpas en el carro en 6 segundos para seguir el avance. Los camilleros suben al carro y los convalecientes siguen curándose en él hasta volver a filas. |
 | Sabotaje | S | 75 | — | Paraliza un edificio enemigo durante 20 s: no produce ni investiga. |
 | Sembrar mina | M | 50 | — | Entierra una mina oculta que estalla al paso de tropas enemigas (125 de daño en área). |
 | Carga de demolición | D | — | 30 | Coloca una carga en un edificio enemigo que estalla a los 3 s con 220 de daño. |

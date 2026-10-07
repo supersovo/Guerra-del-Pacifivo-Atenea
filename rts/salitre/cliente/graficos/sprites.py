@@ -28,6 +28,7 @@ TAM = {
     "artilleria": (52, 38, 26, 34),
     "buque": (80, 44, 40, 22),
     "camilla": (50, 38, 25, 35),
+    "carro": (68, 46, 30, 41),
 }
 FORMA_TAM = {
     "trabajador": "pie", "infante": "pie", "cantinera": "pie", "ingeniero": "pie", "espia": "pie",
@@ -35,7 +36,7 @@ FORMA_TAM = {
     "heroina": "pie", "jinete_sable": "montado", "jinete_carabina": "montado", "baqueano": "montado",
     "heroe_montado": "montado", "canon_montana": "artilleria", "canon_campana": "artilleria",
     "gatling": "artilleria", "transporte": "buque", "canonera": "buque", "monitor": "buque", "corbeta": "buque",
-    "camilleros": "camilla",
+    "camilleros": "camilla", "ambulancia": "carro",
 }
 LONA_CAMILLA = (226, 220, 200)
 CRUZ_ROJA = (200, 30, 30)
@@ -570,6 +571,67 @@ def camilleros(ropa, frame, con_herido):
     return p.resultado()
 
 
+def _rueda_carro(p, x, y, r, giro, c=(76, 56, 38)):
+    """Rueda de carro con rayos; 'giro' (radianes) la hace rodar en la marcha."""
+    p.circ(x, y, r, c, borde=1.0)
+    for k in range(8):
+        a = giro + k * math.pi / 4
+        p.linea(x, y, x + math.cos(a) * r, y + math.sin(a) * r, c, 0.5)
+    p.circ(x, y, 1.1, oscuro(c))
+
+
+def ambulancia(ropa, frame, color_jugador):
+    """Carro de ambulancia de perfil, hacia la derecha: toldo blanco con la cruz roja, dos mulas,
+    el cochero y el banderín de la Cruz Roja. Cuadros 1-2: marcha (ruedas y patas)."""
+    w, h, fx, fy = TAM["carro"]
+    p = Pintor(w, h)
+    base = fy
+    giro = {1: 0.4, 2: 0.8}.get(frame, 0.0)
+    madera = (112, 80, 52)
+    lona = (238, 234, 222)
+    # mulas: la de atrás más oscura y un poco más arriba
+    for dx, db, c in ((3, -1.8, (92, 74, 58)), (-2, 0, (124, 98, 74))):
+        mx = 50 + dx
+        caballo(p, mx, base + db, frame, c)
+        cy = base + db - 9
+        # la oreja larga de la mula
+        p.poli([(mx + 10.4, cy - 9.2), (mx + 9.0, cy - 14.8), (mx + 11.8, cy - 9.6)], oscuro(c, 0.8))
+        p.linea(mx - 8, cy - 2.4, mx + 7, cy - 2.6, (70, 46, 30), 0.9)          # arreos
+    # varas del tiro
+    p.linea(34, base - 10.5, 52, base - 11.5, madera, 1.3)
+    # caja del carro y toldo arqueado con sus aros
+    p.rect(4, base - 15, 32, 7, madera, 1)
+    p.linea(4, base - 12, 36, base - 12, oscuro(madera, 0.8), 0.6)
+    p.elipse(4.5, base - 34, 31, 16, lona)
+    p.rect(4.5, base - 27, 31, 12.4, lona)
+    p.linea(4.5, base - 26.5, 4.5, base - 15, oscuro(lona, 0.8), 0.8)
+    for k in range(1, 4):
+        xx = 4.5 + k * 7.75
+        p.linea(xx, base - 33.2 + (abs(k - 2) * 1.2), xx, base - 15, oscuro(lona, 0.88), 0.6)
+    # la cruz roja en el toldo y una franja con el color del jugador
+    p.rect(17.6, base - 30, 4.6, 12.4, CRUZ_ROJA)
+    p.rect(13.7, base - 26.1, 12.4, 4.6, CRUZ_ROJA)
+    p.rect(4.5, base - 16.6, 31, 1.8, color_jugador)
+    # ruedas: la de atrás más grande
+    _rueda_carro(p, 10, base - 6.5, 6.5, giro)
+    _rueda_carro(p, 31, base - 5.5, 5.5, giro)
+    # banderín de la Cruz Roja en la trasera
+    p.linea(3, base - 15, 3, base - 39.5, (70, 54, 40), 0.9)
+    p.rect(3.4, base - 39.5, 9, 6.4, (250, 250, 248))
+    p.rect(7.1, base - 38.9, 1.8, 5.2, CRUZ_ROJA)
+    p.rect(5.4, base - 37.1, 5.2, 1.8, CRUZ_ROJA)
+    p.poli([(3.4, base - 32.6), (9.4, base - 31.4), (3.4, base - 30.2)], color_jugador)
+    # el cochero en el pescante, con las riendas
+    cx = 38.5
+    p.rect(cx - 2.6, base - 24.6, 5.2, 8.6, ropa["casaca"], 1)
+    p.rect(cx - 1.4, base - 17, 6, 2.4, ropa["pantalon"])
+    p.linea(cx + 2, base - 21, 52, base - 21.5, (60, 40, 26), 0.5)
+    r = dict(ropa)
+    r["cubre"] = True
+    _cabeza_lado(p, cx, base - 27.8, r, "kepi")
+    return p.resultado()
+
+
 def caballo(p, x, base, frame, color=(110, 72, 44), mirar=1):
     """Caballo de perfil con las patas según el cuadro."""
     m = mirar
@@ -805,6 +867,8 @@ class Sprites:
         if tipo.sprite.get("forma") == "camilleros":
             # en los camilleros, 'emplazada' indica que llevan a un herido en la camilla
             return camilleros(_ropa(faccion.uniforme, color_jugador), frame, emplazada)
+        if tipo.sprite.get("forma") == "ambulancia":
+            return ambulancia(_ropa(faccion.uniforme, color_jugador), frame, color_jugador)
         forma = tipo.sprite.get("forma", "infante")
         insignia = tipo.sprite.get("insignia")
         especial = forma if forma in ("colorado", "trabajador", "espia", "montonero", "baqueano") else None
@@ -822,12 +886,15 @@ class Sprites:
     def textura(self, tipo, faccion, color_jugador, vista, frame, emplazada=False):
         forma = tipo.sprite.get("forma", "infante")
         tam = FORMA_TAM.get(forma, "pie")
-        if tam in ("montado", "artilleria", "buque", "camilla"):
+        if tam in ("montado", "artilleria", "buque", "camilla", "carro"):
             vista = "lado"
         if tam == "buque":
             frame = 0
         if tam == "artilleria" and frame in (1, 2):
             frame = 0
+        if tam == "carro":
+            frame = frame if frame in (1, 2) else 0
+            emplazada = False
         clave = ("spr", tipo.id, faccion.id, color_jugador, vista, frame, emplazada)
         return self.lz.textura(clave, lambda: self.superficie(tipo, faccion, color_jugador, vista, frame, emplazada))
 
@@ -857,7 +924,7 @@ class Sprites:
                 s = figura("infante", _ropa(faccion.uniforme, color_jugador), "lado", 0)
             else:
                 s = self.superficie(tipo, faccion, color_jugador, "lado", 0)
-            if FORMA_TAM.get(forma, "pie") in ("artilleria", "buque"):
+            if FORMA_TAM.get(forma, "pie") in ("artilleria", "buque", "carro"):
                 r = s.copy()
                 r.fill((120, 110, 100, 255), special_flags=pygame.BLEND_RGBA_MULT)
                 return r
