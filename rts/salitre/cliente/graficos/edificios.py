@@ -3,6 +3,13 @@
 El lienzo de cada edificio cubre su huella (ancho x alto en casillas de 32 px)
 más un margen superior ALTO para la altura de los muros y techos. Si en
 recursos/graficos/edificios/ hay un PNG con el id del edificio, se usa ese.
+
+Las obras guarnecibles con tiradores (barracas y cuartel general) son casas
+fuertes de adobe con azotea: parapeto almenado al frente y atrás, y ventanas
+en la fachada. Se dibujan en dos capas: la obra entera y, aparte, su «frente»
+(el parapeto con sus merlones y la fachada con los vanos de las ventanas
+recortados), que la vista pinta encima de los tiradores para que asomen tras
+las almenas y dentro de las ventanas. geometria_fortaleza() da los puestos.
 """
 
 import math
@@ -13,7 +20,7 @@ from .banderas import superficie_bandera
 from .sprites import Pintor, claro, oscuro
 
 T = 32
-ALTO = 44
+ALTO = 62
 MARGEN = 4
 
 ADOBE = (206, 178, 140)
@@ -58,7 +65,197 @@ def bandera_en_mastil(p, x, y, alto, nacion, color_jugador):
     p.poli([(x, y - alto + 9), (x + 6, y - alto + 10.5), (x, y - alto + 12)], color_jugador)
 
 
-def dibujar_edificio(tipo, nacion, color_jugador):
+# ----------------------------------------------------------------------
+# Casas fuertes: azotea con parapeto almenado y ventanas para los tiradores
+FORTALEZAS = ("cuartel_general", "barracas")
+FACHADA = (204, 176, 136)
+FACHADA_SOMBRA = (172, 144, 108)
+AZOTEA = (166, 138, 100)
+PARAPETO = (214, 188, 150)
+TAPA = (232, 212, 178)
+VANO = (34, 25, 20)
+ZOCALO = (138, 124, 108)
+
+# medidas en píxeles de la huella (origen arriba a la izquierda). 'muro': x, ancho, y del pie de la
+# fachada, alto de la fachada, fondo de la azotea; parapeto y merlones como alto de cara y de tapa.
+GEOMETRIA = {
+    "cuartel_general": {
+        "muro": (6, 116, 90, 30, 72), "parapeto": 10, "merlon": 6, "n_merlones": 9,
+        "ventanas": [22, 44, 84, 106], "ventana": (10, 12, 3),
+        "torre": (50, 28, 18, 34, 30),      # x, ancho, fondo, alto sobre la azotea y retiro desde el frente
+        # puestos en el orden en que entran los soldados: almena (por su merlón), ventana o torre
+        "puestos": [("almena", 1), ("ventana", 0), ("almena", 7), ("ventana", 3), ("torre", 0),
+                    ("ventana", 1), ("almena", 4), ("ventana", 2)],
+    },
+    "barracas": {
+        "muro": (4, 88, 90, 24, 66), "parapeto": 10, "merlon": 6, "n_merlones": 7,
+        "ventanas": [14, 30, 66, 82], "ventana": (10, 12, 4),
+        "torre": None,
+        "puestos": [("almena", 1), ("ventana", 0), ("almena", 5), ("ventana", 3), ("almena", 3),
+                    ("ventana", 1)],
+    },
+}
+
+
+def geometria_fortaleza(forma):
+    """Puestos de tiro de una casa fuerte, en píxeles de la huella.
+
+    Devuelve {'puestos': [...], 'atras': y del parapeto del fondo}. Cada puesto es un
+    diccionario: 'tipo' ('almena', 'torre' o 'ventana'); en las almenas y la torre, 'x'
+    (detrás del merlón, a cubierto), 'troneras' (x de las troneras a cada lado), 'y' (los
+    pies, sobre la azotea), 'tronera' y 'merlon' (y de la tapa: lo que queda por debajo no se
+    ve); en las ventanas, 'rect' (el vano)."""
+    g = GEOMETRIA.get(forma)
+    if g is None:
+        return None
+    mx, mw, pie, alto, fondo = g["muro"]
+    frente = pie - alto                     # borde delantero de la azotea
+    cara, mer = g["parapeto"], g["merlon"]
+    n = g["n_merlones"]
+    ancho_m, hueco = 7, (mw - n * 7) / (n - 1)
+    centros = [mx + i * (ancho_m + hueco) + ancho_m / 2 for i in range(n)]
+    almenas = []
+    for i, c in enumerate(centros):
+        izq = (centros[i - 1] + c) / 2 if i > 0 else c - (ancho_m + hueco) / 2
+        der = (centros[i + 1] + c) / 2 if i < n - 1 else c + (ancho_m + hueco) / 2
+        almenas.append({"tipo": "almena", "x": c, "troneras": (izq, der), "y": frente - 2,
+                        "tronera": frente - cara - 2, "merlon": frente - cara - 2 - mer - 2})
+    vw, vh, vy = g["ventana"]
+    ventanas = [{"tipo": "ventana", "rect": (x - vw / 2, frente + vy, vw, vh)} for x in g["ventanas"]]
+    torre = []
+    if g["torre"]:
+        tx, tw, td, ta, retiro = g["torre"]
+        base = frente - retiro                  # pie de la cara delantera de la torre, sobre la azotea
+        cima = base - ta                         # borde delantero de su terraza
+        c = tx + tw / 2
+        torre.append({"tipo": "torre", "x": c, "troneras": (c - 6.5, c + 6.5), "y": cima - 2,
+                      "tronera": cima - 8 - 2, "merlon": cima - 8 - 2 - 6 - 2})
+    puestos = []
+    for clase, i in g["puestos"]:
+        fuente = {"almena": almenas, "ventana": ventanas, "torre": torre}[clase]
+        puestos.append(dict(fuente[i]))
+    return {"puestos": puestos, "atras": frente - fondo - cara}
+
+
+def _parapeto(p, x, y_pie, w, cara, merlon, n, tono=1.0):
+    """Parapeto visto de frente: cara de 'cara' px que sube desde y_pie, tapa clara y n merlones."""
+    p.rect(x, y_pie - cara, w, cara, oscuro(PARAPETO, tono))
+    p.rect(x, y_pie - cara - 2, w, 2, oscuro(TAPA, tono))
+    p.linea(x, y_pie - 0.4, x + w, y_pie - 0.4, oscuro(PARAPETO, 0.7 * tono), 0.6)
+    if n <= 0:
+        return
+    hueco = (w - n * 7) / (n - 1)
+    for i in range(n):
+        mx = x + i * (7 + hueco)
+        p.rect(mx, y_pie - cara - 2 - merlon, 7, merlon, oscuro(PARAPETO, tono))
+        p.rect(mx, y_pie - cara - 4 - merlon, 7, 2, oscuro(TAPA, tono))
+        p.rect(mx + 5.6, y_pie - cara - 2 - merlon, 1.4, merlon, oscuro(PARAPETO, 0.8 * tono))   # sombra
+
+
+def _fachada(p, x0, y0, forma, g, nacion, color_jugador):
+    """Muro delantero con sus ventanas (vanos oscuros), puerta, vigas y zócalo."""
+    mx, mw, pie, alto, _fondo = g["muro"]
+    frente = pie - alto
+    p.rect(x0 + mx, y0 + frente, mw, alto, FACHADA)
+    p.rect(x0 + mx, y0 + pie - 4, mw, 4, ZOCALO)
+    for xx in (mx, mx + mw - 4):                                  # contrafuertes en las esquinas
+        p.rect(x0 + xx, y0 + frente, 4, alto, FACHADA_SOMBRA)
+    for k in range(int(mw // 9)):                                 # cabezas de las vigas de la azotea
+        p.rect(x0 + mx + 5 + k * 9, y0 + frente + 1, 2, 2, (96, 70, 46))
+    vw, vh, vy = g["ventana"]
+    for vx in g["ventanas"]:
+        x, y = x0 + vx - vw / 2, y0 + frente + vy
+        p.rect(x, y, vw, vh, VANO)
+        p.rect(x + 1, y + 1, vw - 2, 3, (52, 40, 32))             # penumbra del interior
+    cx = x0 + mx + mw / 2
+    puerta_alto = 16 if forma == "cuartel_general" else 14
+    p.rect(cx - 7, y0 + pie - puerta_alto, 14, puerta_alto, (92, 64, 42))
+    p.circ(cx, y0 + pie - puerta_alto + 1, 7, (92, 64, 42))
+    for k in range(3):
+        p.linea(cx - 4 + k * 4, y0 + pie - puerta_alto + 1, cx - 4 + k * 4, y0 + pie - 1, (70, 48, 30), 0.6)
+    if forma == "cuartel_general":
+        # escudo con los colores del jugador sobre la puerta, y ventanas enrejadas abajo
+        p.rect(cx - 5, y0 + frente + 3, 10, 9, (240, 232, 214))
+        p.rect(cx - 4, y0 + frente + 4, 8, 7, color_jugador)
+        p.linea(cx, y0 + frente + 4, cx, y0 + frente + 11, (240, 232, 214), 0.6)
+        for vx in (x0 + mx + 22, x0 + mx + mw - 29):
+            p.rect(vx, y0 + pie - 13, 7, 7, VANO)
+            for b in range(3):
+                p.linea(vx + 1.5 + b * 2, y0 + pie - 13, vx + 1.5 + b * 2, y0 + pie - 6, (110, 100, 90), 0.5)
+
+
+def _marcos_ventanas(p, x0, y0, g):
+    """Dintel de madera y alféizar claro de cada ventana (por fuera del vano)."""
+    mx, mw, pie, alto, _fondo = g["muro"]
+    frente = pie - alto
+    vw, vh, vy = g["ventana"]
+    for vx in g["ventanas"]:
+        x, y = x0 + vx - vw / 2, y0 + frente + vy
+        p.rect(x - 1, y - 2, vw + 2, 2, (110, 78, 50))
+        p.rect(x - 1.5, y + vh, vw + 3, 2, (228, 210, 178))
+
+
+def _fortaleza(p, forma, x0, y0, nacion, color_jugador, capa="todo"):
+    """Casa fuerte con azotea almenada. capa='frente': solo lo que tapa a los tiradores."""
+    g = GEOMETRIA[forma]
+    mx, mw, pie, alto, fondo = g["muro"]
+    frente = pie - alto
+    cara, mer, n = g["parapeto"], g["merlon"], g["n_merlones"]
+    if capa == "todo":
+        # azotea de barro apisonado, parapeto del fondo y de los costados
+        p.rect(x0 + mx, y0 + frente - fondo, mw, fondo, AZOTEA)
+        for k in range(1, 6):
+            yy = y0 + frente - fondo + k * fondo / 6
+            p.linea(x0 + mx + 4, yy, x0 + mx + mw - 4, yy, oscuro(AZOTEA, 0.93), 0.5)
+        _parapeto(p, x0 + mx, y0 + frente - fondo, mw, cara, mer, n, 0.9)
+        for xx in (mx, mx + mw - 4):
+            p.rect(x0 + xx, y0 + frente - fondo - cara - 2, 4, fondo + 2, TAPA)
+            p.linea(x0 + xx + (4 if xx == mx else 0), y0 + frente - fondo, x0 + xx + (4 if xx == mx else 0),
+                    y0 + frente - cara, oscuro(PARAPETO, 0.7), 0.6)
+        # escotilla de la azotea y pertrechos (cajones de munición y sacos)
+        ex = x0 + mx + 12
+        ey = y0 + frente - fondo + 10
+        p.rect(ex, ey, 10, 7, (120, 92, 62))
+        p.rect(ex + 1, ey + 1, 8, 5, (70, 52, 36))
+        p.linea(ex + 1, ey + 3.5, ex + 9, ey + 3.5, (120, 92, 62), 0.5)
+        cx = x0 + mx + mw - 26
+        cy = y0 + frente - 22
+        for k in range(2):
+            p.rect(cx + k * 8, cy, 7, 5, (132, 98, 64))
+            p.linea(cx + k * 8, cy + 2.5, cx + k * 8 + 7, cy + 2.5, (96, 70, 46), 0.5)
+        p.elipse(cx + 1, cy - 4, 7, 4, (196, 176, 130))
+        p.elipse(cx + 7, cy - 4, 7, 4, (186, 166, 122))
+        if g["torre"]:
+            tx, tw, td, ta, retiro = g["torre"]
+            base = frente - retiro
+            cima = base - ta
+            p.rect(x0 + tx + 2, y0 + base - 2, tw, 3, oscuro(AZOTEA, 0.8))         # sombra al pie
+            p.rect(x0 + tx, y0 + cima, tw, ta, oscuro(FACHADA, 0.95))              # cara de la torre
+            p.rect(x0 + tx, y0 + cima, 3, ta, oscuro(FACHADA, 0.85))
+            p.rect(x0 + tx + tw - 3, y0 + cima, 3, ta, oscuro(FACHADA, 0.85))
+            p.rect(x0 + tx, y0 + cima - td, tw, td, AZOTEA)                        # su terraza
+            _parapeto(p, x0 + tx, y0 + cima - td, tw, 6, 5, 3, 0.9)
+            for k in range(2):                                                     # aspilleras
+                p.rect(x0 + tx + 8 + k * 10, y0 + cima + 8, 2, 9, VANO)
+                p.rect(x0 + tx + 8 + k * 10, y0 + cima + 20, 2, 9, VANO)
+            bandera_en_mastil(p, x0 + tx + tw / 2, y0 + cima - td - 8, 24, nacion, color_jugador)
+        else:
+            bandera_en_mastil(p, x0 + mx + mw - 7, y0 + frente - fondo - cara, 26, nacion, color_jugador)
+    # lo que va delante de los tiradores: el parapeto almenado del frente, la fachada y la torre
+    if g["torre"]:
+        tx, tw, td, ta, retiro = g["torre"]
+        cima = frente - retiro - ta
+        _parapeto(p, x0 + tx, y0 + cima, tw, 8, 6, 3)
+    _parapeto(p, x0 + mx, y0 + frente, mw, cara, mer, n)
+    _fachada(p, x0, y0, forma, g, nacion, color_jugador)
+    if capa == "frente":
+        vw, vh, vy = g["ventana"]
+        for vx in g["ventanas"]:
+            p.borrar(x0 + vx - vw / 2, y0 + frente + vy, vw, vh)
+    _marcos_ventanas(p, x0, y0, g)
+
+
+def dibujar_edificio(tipo, nacion, color_jugador, capa="todo"):
     w, h = tipo.ancho, tipo.alto
     W = w * T + 2 * MARGEN
     H = h * T + ALTO
@@ -66,19 +263,19 @@ def dibujar_edificio(tipo, nacion, color_jugador):
     x0, y0 = MARGEN, ALTO
     fw, fh = w * T, h * T
     forma = tipo.sprite.get("forma", tipo.id)
+    if forma in FORTALEZAS:
+        if capa == "todo":
+            p.elipse(x0 - 2, y0 + fh * 0.35, fw + 4, fh * 0.75, (40, 30, 20, 70))
+            p.rect(x0 + 1, y0 + 2, fw - 2, fh - 3, (170, 148, 112), 3)
+            if forma == "cuartel_general":
+                p.rect(x0 + 2, y0 + fh - 9, 6, 6, (90, 80, 70))
+                p.rect(x0 + fw - 8, y0 + fh - 9, 6, 6, (90, 80, 70))
+        _fortaleza(p, forma, x0, y0, nacion, color_jugador, capa)
+        return p.resultado()
     # sombra y suelo apisonado
     p.elipse(x0 - 2, y0 + fh * 0.35, fw + 4, fh * 0.75, (40, 30, 20, 70))
     p.rect(x0 + 1, y0 + 2, fw - 2, fh - 3, (170, 148, 112), 3)
-    if forma == "cuartel_general":
-        caja(p, x0 + 6, y0 + 10, fw - 12, fh - 22, 20, ADOBE, TEJA, "tejas")
-        ventanas(p, x0 + 6, y0 + fh - 28, fw - 12, 6, 6)
-        p.rect(x0 + fw / 2 - 5, y0 + fh - 22, 10, 10, MADERA_OSC)
-        caja(p, x0 + fw / 2 - 10, y0 + 4, 20, 18, 34, claro(ADOBE, 0.1), TEJA, "tejas")
-        ventanas(p, x0 + fw / 2 - 10, y0 - 2, 20, 2, 5)
-        bandera_en_mastil(p, x0 + fw / 2, y0 - 30, 22, nacion, color_jugador)
-        p.rect(x0 + 2, y0 + fh - 9, 6, 6, (90, 80, 70))
-        p.rect(x0 + fw - 8, y0 + fh - 9, 6, 6, (90, 80, 70))
-    elif forma == "deposito":
+    if forma == "deposito":
         p.poli([(x0 + 3, y0 + fh - 6), (x0 + fw / 2, y0 - 6), (x0 + fw - 3, y0 + fh - 6)], LONA)
         p.poli([(x0 + fw / 2, y0 - 6), (x0 + fw - 3, y0 + fh - 6), (x0 + fw / 2 + 4, y0 + fh - 6)], oscuro(LONA, 0.85))
         p.rect(x0 + fw / 2 - 4, y0 + fh - 18, 8, 12, (70, 56, 40))
@@ -99,13 +296,6 @@ def dibujar_edificio(tipo, nacion, color_jugador):
             p.linea(cx - 9 + k * 1.7, yy, cx + 9 - k * 1.7, yy, (90, 80, 70), 0.7)
         p.rect(cx - 3, y0 - 34, 6, 6, (110, 100, 90))
         p.poli([(cx + 3, y0 - 32), (cx + 14, y0 - 36), (cx + 14, y0 - 28)], (200, 60, 40))
-    elif forma == "barracas":
-        caja(p, x0 + 3, y0 + 12, fw - 6, fh - 20, 18, (190, 170, 140), CALAMINA, "calamina")
-        ventanas(p, x0 + 3, y0 + fh - 24, fw - 6, 5, 5)
-        p.rect(x0 + fw / 2 - 4, y0 + fh - 20, 8, 12, MADERA_OSC)
-        bandera_en_mastil(p, x0 + fw - 8, y0 + 4, 26, nacion, color_jugador)
-        for k in range(4):
-            p.linea(x0 + 6 + k * 3, y0 + fh - 6, x0 + 7 + k * 3, y0 + fh - 16, (60, 50, 40), 0.7)
     elif forma == "maestranza":
         caja(p, x0 + 4, y0 + 14, fw - 8, fh - 22, 18, (150, 120, 96), CALAMINA, "calamina")
         p.rect(x0 + 12, y0 + fh - 22, 22, 14, (40, 30, 24))
@@ -286,6 +476,14 @@ class Edificios:
         if tipo.id in self.propios:
             return self.lz.textura(clave, lambda: self.propios[tipo.id])
         return self.lz.textura(clave, lambda: dibujar_edificio(tipo, nacion, color_jugador))
+
+    def frente(self, tipo, nacion, color_jugador):
+        """Capa del frente de una casa fuerte (parapeto almenado y fachada con los vanos abiertos),
+        o None si el edificio no la tiene (o si su gráfico es un PNG propio)."""
+        if tipo.id in self.propios or tipo.sprite.get("forma", tipo.id) not in FORTALEZAS:
+            return None
+        clave = ("edif_frente", tipo.id, nacion, color_jugador)
+        return self.lz.textura(clave, lambda: dibujar_edificio(tipo, nacion, color_jugador, "frente"))
 
     def andamio(self, tipo):
         return self.lz.textura(("andamio", tipo.ancho, tipo.alto), lambda: andamio(tipo.ancho, tipo.alto))

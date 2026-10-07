@@ -200,7 +200,7 @@ def tarjeta(est, seleccion, submenu=None):
         if tipo.guarnicion_vista == "trinchera":
             texto, desc = "Salir de la trinchera", "La tropa sale de la trinchera."
         else:
-            texto, desc = "Bajar del techo", "Los tiradores del techo bajan y salen del edificio."
+            texto, desc = "Desalojar", "Los tiradores de la azotea y de las ventanas bajan y salen del edificio."
         _poner(slots, 8, Boton("vaciar", texto, "D", ("orden", "descargar"), "orden", {"c": "descargar"},
                                descripcion=desc + " Para guarnecer: seleccione infantería y haga clic derecho "
                                                   "sobre el edificio."))

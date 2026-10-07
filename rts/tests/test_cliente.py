@@ -24,6 +24,7 @@ from salitre.cliente.escenas.escaramuza import Escaramuza  # noqa: E402
 from salitre.cliente.escenas.opciones import Opciones  # noqa: E402
 from salitre.cliente.escenas.portada import Portada  # noqa: E402
 from salitre.cliente.escenas.repeticiones import Repeticiones  # noqa: E402
+from salitre.cliente.ui.controles_sonido import ControlesSonido  # noqa: E402
 from salitre.red.conexion import Conexion  # noqa: E402
 from salitre.servidor.servidor import ServidorEnHilo  # noqa: E402
 
@@ -116,11 +117,107 @@ def test_escaramuza_contra_la_ia(app):
     hasta(app, en_cola, 5)
     # los trabajadores iniciales salen solos a recolectar
     hasta(app, lambda: est.recursos[0] > 100, 20)
+    # en la batalla suena la música de campaña
+    assert app.sonido.pista == "campana"
+    # el cuartel general guarnecido: tiradores en la azotea, en la torre y en las ventanas
+    from salitre.cliente.juego import vista as V
+    from salitre.sim.constantes import TILE
+
+    def guarnecer(m):
+        b = m.ent[cg.id]
+        for k in range(8):
+            u = m.crear_unidad(b.dueno, "infante", b.x + (k - 4) * TILE // 2, b.y + 2 * TILE)
+            m.jugadores[b.dueno].pob_usada += 1
+            m.embarcar(b, u)
+    en_servidor(app, guarnecer)
+    hasta(app, lambda: len(est.ents[cg.id].ex.get("g", [])) == 8, 10)
+    geo = V.geometria(cg.tipo)
+    assert {p["tipo"] for p in geo["puestos"]} == {"almena", "torre", "ventana"}
+    x, y = juego.vista.disparo_en_puesto(cg, 0, cg.x + 600, cg.y + 900)     # blanco al sureste
+    p0 = geo["puestos"][0]
+    assert x == cg.x - cg.tipo.ancho * 16 + p0["troneras"][1]               # la tronera de la derecha
+    x, y = juego.vista.disparo_en_puesto(cg, 1, cg.x, cg.y + 900)          # ventana, blanco al frente
+    rx, ry, rw, rh = geo["puestos"][1]["rect"]
+    assert y == cg.y - cg.tipo.alto * 16 + ry + rh / 2 + 10
+    cuadros(app, 5)
+    # el menú de la batalla trae el volumen: la música se apaga al instante
     juego.abrir_menu()
     cuadros(app)
+    controles = next(w for w in juego.menu if isinstance(w, ControlesSonido))
+    musica = next(d for d in controles.deslizadores if d.clave == "volumen_musica")
+    juego.manejar(pygame.event.Event(pygame.MOUSEBUTTONDOWN, button=1, pos=(musica.rect.x, musica.rect.centery)))
+    juego.manejar(pygame.event.Event(pygame.MOUSEBUTTONUP, button=1, pos=(musica.rect.x, musica.rect.centery)))
+    assert app.sonido.niveles["volumen_musica"] == 0.0 and app.config["volumen_musica"] == 0.0
+    assert pygame.mixer.music.get_volume() == 0.0
     juego.abandonar()
     cuadros(app)
     assert escena(app) == "Portada"
+
+
+def en_servidor(app, f):
+    """Ejecuta f(mundo) en el hilo del servidor local, entre dos ticks."""
+    import threading
+    hecho = threading.Event()
+    srv = app.servidor_local
+
+    def g():
+        try:
+            f(next(iter(srv.servidor.partidas.values())).mundo)
+        finally:
+            hecho.set()
+    srv.loop.call_soon_threadsafe(g)
+    assert hecho.wait(5)
+
+
+def test_volumen_de_musica_efectos_y_voces(app):
+    snd = app.sonido
+    # el mezclador a 44,1 kHz: los efectos (hechos a 22 050 Hz) duran lo que deben
+    assert pygame.mixer.get_init()[0] == 44100
+    assert abs(snd.efectos["canon"].get_length() - 1.6) < 0.05
+    # en la portada suena la marcha, que entra con un fundido hasta el volumen de la música
+    hasta(app, lambda: snd.pista_sonando == "marcha" and snd._fundido >= 1.0, 6)
+    assert abs(pygame.mixer.music.get_volume() - snd.vol_musica) < 0.02
+    op = Opciones(app)
+    app.cambiar(op)
+    cuadros(app)
+    assert snd.pista == "marcha"
+    for d in op.sonido.deslizadores:
+        y = d.rect.centery
+        op.manejar(pygame.event.Event(pygame.MOUSEBUTTONDOWN, button=1, pos=(d.rect.x + d.rect.w // 4, y)))
+        op.manejar(pygame.event.Event(pygame.MOUSEBUTTONUP, button=1, pos=(d.rect.x + d.rect.w // 4, y)))
+        assert abs(snd.niveles[d.clave] - 0.25) < 0.01 and app.config[d.clave] == 0.25
+    cuadros(app)
+    assert abs(snd.vol - 0.0625) < 0.01 and abs(snd.vol_voces - 0.0625) < 0.01
+    assert abs(pygame.mixer.music.get_volume() - 0.0625) < 0.01
+    op.restablecer()
+    assert snd.niveles == {"volumen_general": 1.0, "volumen_musica": 0.6, "volumen_efectos": 0.7,
+                           "volumen_voces": 0.9}
+    op.volver()
+    cuadros(app)
+    assert escena(app) == "Portada"
+
+
+def test_casas_fuertes_azotea_y_ventanas(app):
+    """Barracas y cuartel general: azotea almenada y fachada con ventanas; la capa del frente
+    deja los vanos abiertos para que se vea a los tiradores adentro."""
+    from salitre.cliente.graficos import edificios as G
+    for tid in ("cuartel_general", "barracas"):
+        tipo = app.cat.edificios[tid]
+        geo = G.geometria_fortaleza(tid)
+        assert len(geo["puestos"]) == tipo.guarnicion
+        assert {p["tipo"] for p in geo["puestos"]} >= {"almena", "ventana"}
+        todo = G.dibujar_edificio(tipo, "chile", (200, 40, 40))
+        frente = G.dibujar_edificio(tipo, "chile", (200, 40, 40), "frente")
+        assert todo.get_size() == frente.get_size()
+        for p in geo["puestos"]:
+            if p["tipo"] == "ventana":
+                rx, ry, rw, rh = p["rect"]
+                cx, cy = int(G.MARGEN + rx + rw / 2), int(G.ALTO + ry + rh / 2)
+                assert todo.get_at((cx, cy)).a > 240 and frente.get_at((cx, cy)).a < 15
+            else:
+                # el merlón tapa al tirador: la capa del frente es opaca sobre su tapa
+                cx, cy = int(G.MARGEN + p["x"]), int(G.ALTO + p["merlon"] + 3)
+                assert frente.get_at((cx, cy)).a > 240
 
 
 def test_campana_del_salitre(app):

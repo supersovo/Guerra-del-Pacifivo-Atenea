@@ -11,6 +11,8 @@ from ..graficos import paleta as P
 
 
 class Escena:
+    musica = "marcha"           # pista que suena en esta escena (None: silencio)
+
     def __init__(self, app):
         self.app = app
         self.lz = app.lz

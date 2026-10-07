@@ -1,26 +1,41 @@
 """Sonido sintetizado: fusilería, cañones, ametralladora, explosiones, corneta;
-y las voces de la tropa.
+las voces de la tropa y la música de banda.
 
 Los efectos no son grabaciones: cada uno se genera al iniciar a partir de ruido
-y osciladores (como en el FPS del proyecto). Si en recursos/sonidos/ hay un .wav
-o .ogg con el mismo nombre que un efecto, se usa ese archivo en su lugar.
+y osciladores (como en el FPS del proyecto), a FREC muestras por segundo, y se
+remuestrea a la frecuencia del mezclador (FREC_MEZCLA, fijada antes de iniciar
+pygame). Si en recursos/sonidos/ hay un .wav o .ogg con el mismo nombre que un
+efecto, se usa ese archivo en su lugar.
 
 Las voces (recursos/sonidos/voces/<clave>_<n>.ogg, hechas con
 herramientas/generar_voces.py) se cargan la primera vez que se dicen y suenan
 por un canal propio, de a una: la tropa no se pisa al hablar. Con las voces
 desactivadas en las opciones vuelven los toques de corneta.
+
+La música (recursos/sonidos/musica/<pista>.ogg, compuesta por
+herramientas/generar_musica.py) suena en bucle con pygame.mixer.music y pasa de
+una pista a otra con un fundido. Cada escena elige su pista (Escena.musica).
+
+Volúmenes (de 0 a 1, en la configuración): general, música, efectos y voces;
+el de cada sonido es el general por el de su clase y se aplican al instante.
 Si el equipo no tiene audio, todo queda en silencio sin errores.
 """
 
 import array
 import math
 import random
+import time
 
 import pygame
 
 from .. import rutas
 
-FREC = 22050
+FREC = 22050          # frecuencia a la que se sintetizan los efectos
+FREC_MEZCLA = 44100   # frecuencia del mezclador (Lienzo la fija antes de pygame.init)
+FUNDIDO_SALIDA = 0.8  # segundos para apagar la pista que termina
+FUNDIDO_ENTRADA = 1.6
+# cuánto suena cada pista respecto del volumen de la música (en la batalla, por debajo del fuego)
+NIVEL_PISTA = {"marcha": 1.0, "campana": 0.7}
 _instancia = None
 
 
@@ -42,14 +57,36 @@ def _env(n, ataque, caida):
     return out
 
 
+def remuestrear(muestras, origen, destino):
+    """Interpolación lineal de 'origen' a 'destino' muestras por segundo."""
+    if origen == destino or not muestras:
+        return muestras
+    n = max(1, int(len(muestras) * destino / origen))
+    paso = origen / destino
+    ultimo = len(muestras) - 1
+    out = [0.0] * n
+    for i in range(n):
+        p = i * paso
+        k = int(p)
+        if k >= ultimo:
+            out[i] = muestras[ultimo]
+        else:
+            a = muestras[k]
+            out[i] = a + (muestras[k + 1] - a) * (p - k)
+    return out
+
+
 def _a_sonido(muestras, volumen=1.0):
+    frec, _tam, canales = pygame.mixer.get_init() or (FREC, -16, 2)
+    muestras = remuestrear(muestras, FREC, frec)
     pico = max(1e-6, max(abs(m) for m in muestras))
     esc = 30000 * volumen / pico
     datos = array.array("h", (int(max(-32767, min(32767, m * esc))) for m in muestras))
-    estereo = array.array("h")
-    for v in datos:
-        estereo.append(v)
-        estereo.append(v)
+    if canales == 1:
+        return pygame.mixer.Sound(buffer=datos.tobytes())
+    estereo = array.array("h", bytes(2 * canales * len(datos)))
+    for c in range(canales):
+        estereo[c::canales] = datos
     return pygame.mixer.Sound(buffer=estereo.tobytes())
 
 
@@ -160,11 +197,15 @@ TOQUES = {
 }
 
 
+VOLUMENES = ("volumen_general", "volumen_musica", "volumen_efectos", "volumen_voces")
+
+
 class Sonido:
     def __init__(self, config):
         self.ok = False
-        self.vol = 0.7
         self.config = config
+        self.niveles = {"volumen_general": 1.0, "volumen_musica": 0.6, "volumen_efectos": 0.7,
+                        "volumen_voces": 0.9}
         self.efectos = {}
         self.ultimo = {}
         self.voces = {}             # clave -> rutas de sus variantes
@@ -173,11 +214,20 @@ class Sonido:
         self.canal_voz = None
         self._prioridad_voz = 0
         self._pendiente = None      # aviso que espera turno: (ruta, prioridad, vence en ms)
+        # música: la pista pedida, la que suena y el fundido entre ambas (0 = muda, 1 = plena)
+        self.pista = None
+        self.pista_sonando = None
+        self._fundido = 0.0
+        self._t_musica = time.monotonic()
         if config is not None:
-            self.vol = float(config["volumen_efectos"])
+            for clave in VOLUMENES:
+                try:
+                    self.niveles[clave] = max(0.0, min(1.0, float(config[clave])))
+                except (KeyError, TypeError, ValueError):
+                    pass
         try:
             if not pygame.mixer.get_init():
-                pygame.mixer.init(FREC, -16, 2, 512)
+                pygame.mixer.init(FREC_MEZCLA, -16, 2, 512)
             pygame.mixer.set_num_channels(32)
             pygame.mixer.set_reserved(1)
             # el canal 0 queda para las voces y los efectos usan los demás (find_channel()
@@ -201,6 +251,85 @@ class Sonido:
         global _instancia
         _instancia = self
 
+    # -- volúmenes ---------------------------------------------------------
+    @property
+    def vol(self):
+        """Volumen efectivo de los efectos (general por efectos)."""
+        return self.niveles["volumen_general"] * self.niveles["volumen_efectos"]
+
+    @property
+    def vol_voces(self):
+        return self.niveles["volumen_general"] * self.niveles["volumen_voces"]
+
+    @property
+    def vol_musica(self):
+        return self.niveles["volumen_general"] * self.niveles["volumen_musica"]
+
+    def fijar_volumen(self, clave, valor):
+        """Cambia un volumen (de 0 a 1) y lo aplica al instante, también a lo que ya suena."""
+        if clave not in self.niveles:
+            raise KeyError(clave)
+        valor = max(0.0, min(1.0, float(valor)))
+        self.niveles[clave] = valor
+        if self.config is not None:
+            self.config[clave] = round(valor, 2)
+        if not self.ok:
+            return
+        # los efectos que ya suenan son breves: los siguientes salen con el volumen nuevo
+        if self.canal_voz is not None and self.canal_voz.get_busy():
+            self.canal_voz.set_volume(min(1.0, self.vol_voces))
+        self._aplicar_musica()
+
+    # -- música -------------------------------------------------------------
+    def ruta_pista(self, pista):
+        for ext in (".ogg", ".wav"):
+            ruta = rutas.dir_recursos() / "sonidos" / "musica" / (pista + ext)
+            if ruta.exists():
+                return ruta
+        return None
+
+    def musica(self, pista):
+        """Pide una pista (None: silencio); la que suena se apaga con un fundido y entra la nueva."""
+        self.pista = pista
+
+    def _aplicar_musica(self):
+        if self.ok and self.pista_sonando is not None:
+            v = self.vol_musica * NIVEL_PISTA.get(self.pista_sonando, 1.0) * self._fundido
+            pygame.mixer.music.set_volume(max(0.0, min(1.0, v)))
+
+    def _actualizar_musica(self):
+        ahora = time.monotonic()
+        dt = min(0.25, max(0.0, ahora - self._t_musica))
+        self._t_musica = ahora
+        if not self.ok:
+            return
+        if self.pista_sonando != self.pista:
+            if self.pista_sonando is not None and self._fundido > 0:
+                self._fundido = max(0.0, self._fundido - dt / FUNDIDO_SALIDA)
+                self._aplicar_musica()
+                return
+            # la anterior ya se apagó: entra la pedida (si existe su archivo)
+            pygame.mixer.music.stop()
+            self.pista_sonando = None
+            ruta = self.ruta_pista(self.pista) if self.pista else None
+            if ruta is not None:
+                try:
+                    pygame.mixer.music.load(str(ruta))
+                    self._fundido = 0.0
+                    self.pista_sonando = self.pista
+                    self._aplicar_musica()
+                    pygame.mixer.music.play(-1)
+                except pygame.error:
+                    self.pista_sonando = None
+            if self.pista_sonando is None:
+                # sin archivo no hay nada que fundir: se da por atendida la pista pedida
+                self.pista = None
+            return
+        if self.pista_sonando is not None and self._fundido < 1.0:
+            self._fundido = min(1.0, self._fundido + dt / FUNDIDO_ENTRADA)
+            self._aplicar_musica()
+
+    # -- voces --------------------------------------------------------------
     def _indexar_voces(self):
         carpeta = rutas.dir_recursos() / "sonidos" / "voces"
         if not carpeta.is_dir():
@@ -226,7 +355,7 @@ class Sonido:
         importante corta a la que suena; una de igual o menor importancia se descarta,
         salvo los avisos, que esperan su turno unos segundos. Devuelve False si no hay voz
         (desactivadas o sin archivos), para que suene el toque de corneta en su lugar."""
-        if not self.ok or self.vol <= 0 or not self.voces_activas:
+        if not self.ok or self.vol_voces <= 0 or not self.voces_activas:
             return False
         if isinstance(claves, str):
             claves = (claves,)
@@ -251,12 +380,13 @@ class Sonido:
             except pygame.error:
                 return
             self._voz_cargada[ruta] = s
-        self.canal_voz.set_volume(min(1.0, self.vol * 1.15))
+        self.canal_voz.set_volume(min(1.0, self.vol_voces))
         self.canal_voz.play(s)
         self._prioridad_voz = prioridad
 
     def actualizar(self):
-        """Da la palabra al aviso que esperaba turno (una vez por cuadro)."""
+        """Una vez por cuadro: fundidos de la música y el aviso que esperaba turno para hablar."""
+        self._actualizar_musica()
         if self._pendiente is None or self.canal_voz is None or self.canal_voz.get_busy():
             return
         ruta, prioridad, vence = self._pendiente

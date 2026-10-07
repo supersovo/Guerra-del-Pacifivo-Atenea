@@ -53,6 +53,8 @@ class App:
         if self.escena is not None:
             self.escena.salir()
         self.escena = escena
+        # cada escena elige su música (la marcha en los menús, la de campaña en la batalla)
+        self.sonido.musica(getattr(escena, "musica", None))
         escena.entrar()
 
     def salir(self):
@@ -118,6 +120,7 @@ class App:
             e = Evento(ev, lz)
             self.escena.manejar(e)
         self.escena.actualizar(dt)
+        self.sonido.actualizar()
         lz.limpiar((0, 0, 0))
         ui.comenzar()
         self.escena.dibujar()

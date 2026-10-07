@@ -23,19 +23,44 @@ TABLA_NIEBLA = bytes([255, 150, 0, 0] + [0] * 252)
 
 # Puestos de la guarnición: dónde quedan los pies de cada soldado, en píxeles desde la
 # esquina superior izquierda de la huella del edificio. En la trinchera solo asoman
-# por encima del parapeto (CORTE_TRINCHERA); en los techos se los ve de cuerpo entero.
+# por encima del parapeto (CORTE_TRINCHERA). Las casas fuertes (barracas y cuartel
+# general) tienen sus puestos en graficos/edificios.geometria_fortaleza: almenas de
+# la azotea, la torre y las ventanas de la fachada.
 PUESTOS = {
     "trinchera": [(18, 58), (38, 58), (58, 58), (78, 58)],
-    "barracas": [(22, 22), (48, 22), (74, 22), (22, 50), (48, 50), (74, 50)],
-    "cuartel_general": [(18, 14), (38, 14), (92, 14), (112, 14), (22, 44), (46, 44), (82, 44), (106, 44)],
 }
 CORTE_TRINCHERA = 47
+# el tirador de la azotea: en la tronera mientras dispara, vuelve tras el merlón y
+# recarga, y si sigue en combate se asoma de nuevo a apuntar (segundos desde el disparo)
+EN_TRONERA = 0.45
+A_CUBIERTO = 0.75
+VUELVE_A_APUNTAR = 1.15
+EN_COMBATE = 3.0
+FUSIL = (58, 54, 50)
+
+
+def geometria(tipo):
+    """Geometría de la casa fuerte (None si el edificio no lo es)."""
+    forma = tipo.sprite.get("forma", tipo.id)
+    if forma not in G_E.FORTALEZAS:
+        return None
+    g = _GEOMETRIAS.get(forma)
+    if g is None:
+        g = _GEOMETRIAS[forma] = G_E.geometria_fortaleza(forma)
+    return g
+
+
+_GEOMETRIAS = {}
 
 
 def puestos(tipo):
     forma = tipo.sprite.get("forma", tipo.id)
     if forma in PUESTOS:
         return PUESTOS[forma]
+    geo = geometria(tipo)
+    if geo is not None:
+        return [((p["rect"][0] + p["rect"][2] / 2, p["rect"][1] + p["rect"][3]) if p["tipo"] == "ventana"
+                 else (p["x"], p["y"])) for p in geo["puestos"]]
     # cualquier otro edificio con guarnición: dos filas sobre la huella
     w, h = tipo.ancho * 32, tipo.alto * 32
     n = max(1, tipo.guarnicion)
@@ -77,7 +102,7 @@ class Vista:
         self._niebla_ver = -1
         self.t = 0.0
         self.mostrar_barras = False
-        # (edificio, puesto) -> (momento, dx, dy) del último disparo de ese soldado guarnecido
+        # (edificio, puesto) -> (momento, dx, dy, x de la tronera) del último disparo de ese soldado guarnecido
         self.fuego_puesto = {}
 
     # ------------------------------------------------------------------
@@ -347,7 +372,16 @@ class Vista:
             ang = (self.t * 90) % 360
             lz.dibujar(self.t_aspas, ax - 15 * z, ay - 15 * z, 30 * z, 30 * z, angulo=ang)
         if not e.fantasma and isinstance(e.ex, dict) and e.ex.get("g"):
-            self._guarnicion(cam, e, ahora)
+            geo = geometria(tipo)
+            frente = self.edificios.frente(tipo, fac.id if fac else "chile", col) if geo is not None else None
+            if frente is not None:
+                # los tiradores van entre la obra y su frente: asoman tras las almenas y en las ventanas
+                despues = self._guarnicion_fortaleza(cam, e, ahora, geo)
+                lz.dibujar(frente, sx, sy, W * z, H * z, alpha=alpha, color=tinte)
+                for f in despues:
+                    f()
+            else:
+                self._guarnicion(cam, e, ahora)
         if not e.fantasma:
             st = est.stats_de(tipo)
             vmax = st.vida if e.dueno == est.yo else tipo.vida
@@ -358,10 +392,106 @@ class Vista:
                 self.efx.humo_chimenea(x0 + G_E.MARGEN + tipo.ancho * 32 - 16, y0 + G_E.ALTO - 22)
 
     def disparo_en_puesto(self, b, k, tx, ty):
-        """Recuerda hacia dónde disparó el soldado del puesto k (para girarlo y animarlo)."""
-        x, y = pos_puesto(b, k)
-        self.fuego_puesto[(b.id, k)] = (time.monotonic(), tx - x, ty - y)
+        """Recuerda hacia dónde disparó el soldado del puesto k (para girarlo y animarlo) y
+        devuelve de dónde sale el fogonazo: su tronera, su ventana o, si el blanco está detrás
+        de la obra, una aspillera del fondo."""
+        geo = geometria(b.tipo)
+        if geo is None:
+            x, y = pos_puesto(b, k)
+            self.fuego_puesto[(b.id, k)] = (time.monotonic(), tx - x, ty - y, None)
+            return x, y
+        ox, oy = b.x - b.tipo.ancho * 16, b.y - b.tipo.alto * 16
+        p = geo["puestos"][k % len(geo["puestos"])]
+        tronera = None
+        if p["tipo"] == "ventana":
+            rx, ry, rw, rh = p["rect"]
+            x = ox + rx + rw / 2
+            if ty < b.y - b.tipo.alto * 8:
+                y = oy + geo["atras"] + 10          # el blanco está detrás: dispara por el fondo
+            else:
+                y = oy + ry + rh / 2 + 10           # (el fogonazo se dibuja 10 px más arriba)
+        else:
+            izq, der = p["troneras"]
+            tronera = der if tx >= ox + p["x"] else izq
+            x, y = ox + tronera, oy + p["y"] - 6
+        self.fuego_puesto[(b.id, k)] = (time.monotonic(), tx - x, ty - y, tronera)
         return x, y
+
+    def _guarnicion_fortaleza(self, cam, e, ahora, geo):
+        """Tiradores de una casa fuerte, antes de pintar su frente: en la azotea salen a la tronera
+        del lado del enemigo, disparan, vuelven a cubrirse tras el merlón y recargan; en las
+        ventanas se asoman al disparar y se retiran a la penumbra. Devuelve lo que se pinta
+        después del frente (el cañón del fusil que asoma por la ventana)."""
+        lz = self.lz
+        est = self.est
+        z = cam.zoom
+        tipo = e.tipo
+        fac = est.faccion(e.dueno)
+        col = color_jugador(est.jugadores[e.dueno]["color"])
+        ox, oy = e.x - tipo.ancho * 16, e.y - tipo.alto * 16
+        lista = geo["puestos"]
+        despues = []
+        for k, idx in enumerate(e.ex["g"]):
+            ut = est.tipo_por_idx(idx)
+            if ut is None:
+                continue
+            p = lista[k % len(lista)]
+            ultimo = self.fuego_puesto.get((e.id, k))
+            dt = ahora - ultimo[0] if ultimo is not None else 1e9
+            en_combate = dt < EN_COMBATE
+            vista, espejo, frame = "frente", False, 0
+            if en_combate:
+                d = math.degrees(math.atan2(ultimo[2], ultimo[1])) % 360
+                vista, espejo = VISTA_DIR.get(int((d + 22.5) // 45) % 8, ("lado", False))
+            w, h, fx, fy = tam_sprite(ut)
+            if p["tipo"] in ("almena", "torre"):
+                cubierto = p["x"] + 1.2 * math.sin(ahora * 0.5 + (e.id + k) * 1.7)
+                tronera = ultimo[3] if ultimo is not None and ultimo[3] is not None else p["troneras"][1]
+                if dt < EN_TRONERA:
+                    x, frame = tronera, 3
+                elif dt < A_CUBIERTO:                     # vuelve tras el merlón
+                    f = (dt - EN_TRONERA) / (A_CUBIERTO - EN_TRONERA)
+                    x, frame = tronera + (cubierto - tronera) * f, 1 + int(dt * 8) % 2
+                elif en_combate and dt >= VUELVE_A_APUNTAR:
+                    x, frame = tronera, 3                 # ya recargó: se asoma a apuntar
+                else:
+                    x = cubierto
+                    if not en_combate:                   # de guardia: mira a uno y otro lado
+                        fase = (ahora * 0.13 + ((e.id * 7 + k * 13) % 10) / 10) % 1
+                        if fase < 0.12:
+                            vista, espejo = "lado", True
+                        elif 0.5 < fase < 0.62:
+                            vista, espejo = "lado", False
+                tex = self.sprites.textura(ut, fac, col, vista, frame)
+                sx, sy = cam.a_pantalla(ox + x, oy + p["y"])
+                lz.dibujar(tex, sx - ((w - fx) if espejo else fx) * z, sy - fy * z, w * z, h * z, espejo=espejo)
+                continue
+            # ventana: el soldado se ve de la cintura para arriba dentro del vano
+            rx, ry, rw, rh = p["rect"]
+            asomado = en_combate and (dt < 0.6 or dt >= VUELVE_A_APUNTAR)
+            if asomado:
+                frame = 3
+                tinte = None
+            else:
+                vista, espejo = ("frente", False) if not en_combate else (vista, espejo)
+                tinte = (78, 70, 62) if en_combate else (52, 46, 40)
+            tex = self.sprites.textura(ut, fac, col, vista, frame)
+            arriba = oy + ry - 6 + (0 if asomado else 2)      # el quepí queda en lo alto del vano
+            alto_src = max(1, int(oy + ry + rh - arriba))
+            sx, sy = cam.a_pantalla(ox + rx + rw / 2, arriba)
+            lz.dibujar(tex, sx - ((w - fx) if espejo else fx) * z, sy, w * z, alto_src * z, espejo=espejo,
+                       src=(0, 0, tex.width, alto_src), color=tinte)
+            if asomado and ultimo is not None and ultimo[2] > -abs(ultimo[1]):
+                # el cañón del fusil asoma por la ventana hacia el blanco
+                d = math.hypot(ultimo[1], ultimo[2]) or 1.0
+                bx, by = cam.a_pantalla(ox + rx + rw / 2, oy + ry + rh * 0.62)
+                ux, uy = ultimo[1] / d, ultimo[2] / d * 0.5
+
+                def canon_fusil(bx=bx, by=by, ux=ux, uy=uy):
+                    lz.linea((bx, by), (bx + ux * 9 * z, by + uy * 9 * z), FUSIL)
+                    lz.linea((bx, by + 1), (bx + ux * 9 * z, by + 1 + uy * 9 * z), FUSIL)
+                despues.append(canon_fusil)
+        return despues
 
     def _guarnicion(self, cam, e, ahora):
         """Soldados guarnecidos: asomados tras el parapeto de la trinchera o de pie en el techo."""

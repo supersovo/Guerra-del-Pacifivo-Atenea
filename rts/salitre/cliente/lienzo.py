@@ -29,6 +29,9 @@ class Lienzo:
     def __init__(self, ventana=(1280, 720), logico=(1280, 720), pantalla_completa=False, vsync=True):
         # filtrado lineal al escalar texturas: niebla de guerra suave, acercamiento sin dientes
         os.environ.setdefault("SDL_RENDER_SCALE_QUALITY", "1")
+        # el mezclador a 44,1 kHz en todos los sistemas (los efectos se remuestrean a esa frecuencia)
+        from .sonido import FREC_MEZCLA
+        pygame.mixer.pre_init(FREC_MEZCLA, -16, 2, 512)
         pygame.init()
         self.window = Window(NOMBRE_JUEGO, size=tuple(ventana), resizable=True)
         if pantalla_completa:

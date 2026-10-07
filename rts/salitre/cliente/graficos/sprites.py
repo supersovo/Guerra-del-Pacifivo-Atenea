@@ -94,6 +94,11 @@ class Pintor:
         k = self.k
         pygame.draw.line(self.s, c, (x0 * k, y0 * k), (x1 * k, y1 * k), max(1, round(ancho * k)))
 
+    def borrar(self, x, y, w, h):
+        """Deja transparente un rectángulo (los vanos de las ventanas en la capa del frente)."""
+        k = self.k
+        self.s.fill((0, 0, 0, 0), (round(x * k), round(y * k), max(1, round(w * k)), max(1, round(h * k))))
+
     def resultado(self):
         return pygame.transform.smoothscale(self.s, (self.w, self.h))
 

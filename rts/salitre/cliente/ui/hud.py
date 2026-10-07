@@ -344,7 +344,7 @@ class HUD:
         idxs = ex.get("g", [])
         usado = sum(cat.tipos[i].espacio for i in idxs)
         x0, y0 = r.x + 430, r.y + 54
-        donde = "en la trinchera" if tipo.guarnicion_vista == "trinchera" else "en el techo"
+        donde = "en la trinchera" if tipo.guarnicion_vista == "trinchera" else "en la azotea y las ventanas"
         lz.texto(f"Guarnición {donde}: {usado}/{tipo.guarnicion}", x0, y0, fuentes.negrita(16), P.TINTA)
         alc = tipo.guarnicion_alcance / 512
         lz.texto(f"+{alc:g} de alcance", r.right - 10, y0 + 2, fuentes.cursiva(14), P.TINTA_SUAVE, "der")

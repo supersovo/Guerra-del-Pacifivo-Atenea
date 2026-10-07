@@ -24,6 +24,7 @@ from ..juego.estado import EstadoJuego
 from ..juego.tarjeta import tarjeta
 from ..juego.vista import Vista, tam_sprite
 from ..sonido import sonido
+from ..ui.controles_sonido import ControlesSonido
 from ..ui.hud import ALTO_INF, ALTO_SUP, HUD
 from ..ui.widgets import MOD_CTRL, Boton
 from .base import Escena
@@ -55,6 +56,8 @@ class _Origen:
 
 
 class Juego(Escena):
+    musica = "campana"          # tambores y bronces de campaña, por debajo del fuego
+
     def __init__(self, app, inicio, origen="multijugador", info=None):
         super().__init__(app)
         self.origen = origen
@@ -136,7 +139,6 @@ class Juego(Escena):
         for ev in est.tomar_eventos():
             self._evento(ev)
         self.vista.efx.actualizar(dt)
-        sonido().actualizar()
         self.seleccion = [i for i in self.seleccion if i in est.ents and not est.ents[i].fantasma]
         self.botones = tarjeta(est, self.seleccion, self.submenu) if not est.espectador else []
         if self.submenu and not any(b for b in self.botones):
@@ -1097,12 +1099,18 @@ class Juego(Escena):
         return x - self.cam.vista.x, y - self.cam.vista.y
 
     # ------------------------------------------------------------------
-    def abrir_menu(self):
+    def _rect_menu(self):
         lz = self.lz
-        x = lz.W // 2 - 140
-        y = lz.H // 2 - 130
+        return pygame.Rect(lz.W // 2 - 340, lz.H // 2 - 200, 680, 410)
+
+    def abrir_menu(self):
+        r = self._rect_menu()
+        x = r.x + 30
+        y = r.y + 76
         self.menu = [
             Boton((x, y, 280, 42), "Continuar", self.cerrar_menu, "principal"),
+            # el volumen se ajusta sin salir de la batalla
+            ControlesSonido(self.app, r.x + 360, r.y + 108, 290),
         ]
         if not self.est.espectador:
             self.menu.append(Boton((x, y + 52, 280, 42), "Rendirse", self.rendirse))
@@ -1157,13 +1165,16 @@ class Juego(Escena):
             lz.texto("PAUSA", lz.W // 2, lz.H // 2 - 120, fuentes.titulo(48), P.CREMA, "centro", sombra=(0, 0, 0))
         if self.menu is not None:
             lz.rect((0, 0, lz.W, lz.H), (0, 0, 0), 130)
-            r = pygame.Rect(lz.W // 2 - 170, lz.H // 2 - 190, 340, 400)
+            r = self._rect_menu()
             self.ui.estilo.panel(r)
             lz.texto("Cuartel de campaña", r.centerx, r.y + 16, fuentes.titulo(26), P.TINTA, "centro")
+            lz.texto("Sonido", r.x + 360, r.y + 70, fuentes.titulo(22), P.TINTA)
+            lz.linea((r.x + 334, r.y + 72), (r.x + 334, r.bottom - 70), (150, 120, 84))
             for w in self.menu:
                 w.dibujar(self.ui)
-            lz.parrafo("F12: captura · Alt+Enter: pantalla completa · Alt+G: señal en el mapa",
-                       r.x + 20, r.bottom - 54, r.w - 40, fuentes.cuerpo(14), P.TINTA_SUAVE)
+            lz.parrafo("F12: captura · Alt+Enter: pantalla completa · Alt+G: señal en el mapa · "
+                       "Opciones del menú principal: pantalla, cámara y combate",
+                       r.x + 30, r.bottom - 54, r.w - 60, fuentes.cuerpo(14), P.TINTA_SUAVE)
         if self.fin is not None:
             lz.rect((0, 0, lz.W, lz.H), (0, 0, 0), 120)
             r = pygame.Rect(lz.W // 2 - 260, lz.H // 2 - 110, 520, 230)
