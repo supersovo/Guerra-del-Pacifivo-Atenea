@@ -32,6 +32,16 @@ def costo(c):
     return f"$ {s}" + (f" / {a}" if a else "")
 
 
+def decimal(v):
+    """Número con coma decimal, como se escribe en español."""
+    return f"{v:g}".replace(".", ",")
+
+
+def y_lista(cosas):
+    cosas = list(cosas)
+    return ", ".join(cosas[:-1]) + " y " + cosas[-1] if len(cosas) > 1 else "".join(cosas)
+
+
 def tabla(encabezados, filas):
     out = ["| " + " | ".join(encabezados) + " |", "|" + "|".join("---" for _ in encabezados) + "|"]
     for f in filas:
@@ -145,6 +155,62 @@ def main():
              for k, v in t["multiplicadores"].items()]
     partes += ["## Daño según el tipo de ataque y de blanco", "",
                tabla(["Ataque"] + [cat.nombres_armadura.get(c, c) for c in clases], filas), ""]
+
+    vet = cat.veterania
+    x_regen = t["veterania"]["experiencia"].get("regeneracion_tras", 10)
+    filas = []
+    for g in vet.grados:
+        extra = []
+        if g.fallo_altura_pct < 100:
+            extra.append(f"conserva el {g.fallo_altura_pct} % de la falla cuesta arriba")
+        if g.emplazar_pct:
+            extra.append(f"la artillería se emplaza un {g.emplazar_pct} % más rápido")
+        if g.regeneracion:
+            extra.append(f"recupera {decimal(g.regeneracion)} de vida por segundo tras {x_regen} s sin "
+                         "recibir fuego")
+        bonos = "; ".join([describir_efecto(e) for e in g.efectos] + extra) or "—"
+        filas.append((g.nombre, f"{g.umbral / 100:g} ×" if g.umbral else "—", g.rango, g.nivel or "—", bonos))
+    x = t["veterania"]["experiencia"]
+    partes += ["## Veteranía", "",
+               "Experiencia necesaria en veces el costo de la unidad (dinero + agua): abatir a un enemigo da tanta "
+               "experiencia como lo que costó, y herirlo, la parte proporcional. Los bonos de cada grado ya incluyen "
+               "los del anterior (no se suman). Los héroes, los trabajadores y los camilleros no tienen grados.", "",
+               tabla(["Grado", "Experiencia", "Rango", "Galones", "Bonos sobre el recluta"], filas), "",
+               tabla(["Fuente de experiencia", "Cuánto"], [
+                   ("Herir o abatir enemigos", "el valor de la vida quitada (abatir: el costo completo)"),
+                   ("Dañar obras", f"{x['edificios_pct']} % del valor del daño"),
+                   ("Aguantar el fuego y seguir en pie", f"{x['fogueo_pct']} % del valor de la vida perdida"),
+                   ("Curar (cantinera)", f"{decimal(x['curacion_por_vida'])} por punto de vida curado"),
+                   ("Encuadramiento (recluta junto a un Aguerrido de su arma)",
+                    f"+{x['encuadramiento']['pct']} % (radio {x['encuadramiento']['radio']})"),
+                   ("Cerca de un héroe", f"+{x['heroe_pct']} %"),
+                   ("Ejercicios de tiro (Barracón de Instrucción)",
+                    f"{decimal(x['instruccion']['por_segundo'])} por segundo a los reclutas ociosos en un radio de "
+                    f"{x['instruccion']['radio']}, hasta Fogueado"),
+               ]), ""]
+
+    from salitre.contenido import campanas as mod_campanas
+    from salitre.ia.ia import DIFICULTADES
+    for camp in mod_campanas.cargar().values():
+        filas = []
+        for e in camp.etapas:
+            rivales = ", ".join(f"{cat.facciones[n].nombre} → {cat.facciones[e.rival(n)].nombre}"
+                                for n in camp.naciones)
+            nucleo = ", ".join(f"{n.get('cantidad', 1)} × {cat.unidades[n['tipo']].nombre} "
+                               f"({vet.grados[int(n.get('grado', 1))].nombre})"
+                               for n in e.nucleo_rival) or "—"
+            dif = DIFICULTADES.get(e.dificultad, {}).get("nombre", e.dificultad)
+            filas.append((f"{e.indice + 1}. {e.nombre}", e.fecha, mod_mapas.cargar(mod_mapas.listar()[e.mapa]).nombre,
+                          dif, rivales, nucleo))
+        medallas = "; ".join(f"{m['nombre']}: {m.get('minimo', 0)}" for m in camp.medallas)
+        partes += [f"## {camp.nombre}", "", camp.descripcion, "",
+                   tabla(["Batalla", "Fecha", "Mapa", "IA", "Rival según la nación propia",
+                          "Veteranos con que empieza la IA"], filas), "",
+                   f"Honores: {camp.honor_victoria} por victoria y "
+                   f"{y_lista(str(h) for h in camp.honor_grado[1:])} por cada "
+                   f"{y_lista(g.nombre for g in vet.grados[1:])} preservado. Medallas (honores mínimos): {medallas}. "
+                   "En la serie de campaña en red los honores se cuentan igual, en cada batalla y para los dos "
+                   "bandos.", ""]
 
     filas = []
     for ident, ruta in mod_mapas.listar().items():

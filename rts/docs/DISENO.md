@@ -94,8 +94,8 @@ con ella.
 
 ### Heridos y camilleros
 
-Con un **hospital de campaña**, el infante que cae por fusil, metralla o sable
-queda herido 40 segundos en el suelo. El hospital manda solos **dos equipos de
+Con un **hospital de campaña**, el infante o el jinete que cae por fusil,
+metralla o sable queda herido 40 segundos en el suelo. El hospital manda solos **dos equipos de
 camilleros** (no combaten ni ocupan población) a buscar a los heridos dentro de
 30 casillas; en el hospital se curan en 20 segundos y vuelven a filas con la
 mitad de la vida. Quien cae por artillería, dinamita o minas muere en el acto (y
@@ -115,6 +115,62 @@ Cada unidad se presenta con su voz al formarse, responde al ser seleccionada y
 al recibir una orden, y un ayudante da los avisos (obra terminada, falta de
 dinero o agua, ataques, victoria). Las voces no se pisan: una alarma corta a una
 respuesta y los avisos esperan su turno. Sin voces vuelven los toques de corneta.
+
+## Veteranía
+
+La tropa **aprende combatiendo**, y el jugador tiene motivos para cuidarla: un
+veterano vale más que un recluta recién formado, y en la campaña y en las series
+en red pasa de una batalla a la siguiente.
+
+- **Experiencia relativa al valor**: abatir a un enemigo da tanta experiencia
+  como lo que costó (dinero + agua); herirlo, la parte proporcional. Así un
+  infante que derriba a un granadero aprende más que si derriba a otro infante,
+  y la artillería, cara, necesita más bajas para ascender. También enseña dañar
+  obras (la mitad de su valor), aguantar el fuego y seguir en pie (un cuarto del
+  valor de la vida perdida) y, a la cantinera, curar.
+- **Cuatro grados** (*Recluta*, *Fogueado*, *Veterano*, *Aguerrido*) a 1, 3 y 6
+  veces el valor de la unidad. Los bonos son **moderados** (de +10 % a +30 % de
+  vida y daño, armadura, visión y alcance en los grados altos) para que un
+  veterano sea valioso sin decidir solo una batalla; no se acumulan entre grados.
+  Los grados altos corrigen dos debilidades de la época: disparar cuesta arriba
+  (el Aguerrido falla la mitad que el recluta) y emplazar la artillería.
+- **Galones a la vista de todos**: el enemigo sabe a quién tiene enfrente y puede
+  concentrar el fuego en los veteranos; eso hace valiosa la protección.
+- **Escalafón con nombre**: al primer ascenso el soldado recibe nombre y cuerpo
+  (de los regimientos históricos de cada nación); la tarjeta muestra su hoja de
+  servicio. El nombre se deriva de una semilla, de modo que la misma ficha
+  produce el mismo nombre en el servidor y en el cliente.
+- **Formación**: *Ejercicios de tiro* lleva a los reclutas ociosos junto al
+  Barracón de Instrucción hasta Fogueado, nunca más arriba (más allá solo se
+  llega combatiendo); el recluta cerca de un Aguerrido de su arma aprende un 50 %
+  más rápido (encuadramiento), y un 25 % cerca de un héroe.
+- **Sanidad**: el herido conserva su hoja de servicio; los camilleros recogen
+  primero a los de mayor grado; *Replegar heridos* (J) manda a los heridos al
+  hospital; *Ambulancias* y *Convalecencia* mejoran el servicio. Si cae el
+  hospital, caen sus pacientes.
+- **Retirada del vencido**: cuando un ejército pierde, sus unidades se retiran
+  del campo en vez de morir; los veteranos que siguen vivos (y los heridos de
+  camilla y hospital) pasan a la batalla siguiente, como los ejércitos aliados
+  que se replegaron de Dolores a Tarapacá y de Tarapacá a Arica. Los heridos
+  abandonados en el campo se pierden.
+
+## Campaña y serie en red
+
+- **Campaña del Salitre** (contra la IA): San Francisco (Dolores), Tarapacá,
+  Alto de la Alianza y el Morro de Arica. Los veteranos sobrevivientes llegan con
+  el Cuartel General a la batalla siguiente; con una derrota la batalla se
+  repite con el escalafón anterior. La IA también conserva a sus veteranos y
+  recibe un núcleo fogueado en las últimas batallas. Honores: 10 por victoria y
+  1, 3 o 6 por cada Fogueado, Veterano o Aguerrido preservado; medallas de oro
+  (100), plata (55) y bronce. Las etapas, rivales y honores están en
+  `datos/campanas.json`.
+- **Serie de campaña en red** (2 a 4 batallas en la misma sala): cada batalla
+  cuenta, también para el que pierde (sus veteranos en retirada siguen). Gana el
+  equipo con más batallas ganadas; si empatan, el de más honores. La nación y el
+  equipo quedan fijos, y el mapa avanza por el itinerario de la campaña.
+- **Todos los sobrevivientes pasan**, sin tope: el límite natural es la
+  población (los veteranos que llegan ocupan población aunque superen el
+  máximo, y hay que levantar depósitos para seguir formando tropa).
 
 ## Terreno y visión
 
@@ -188,7 +244,8 @@ servidor valida, sin ver a través de la niebla):
 
 La IA explora, se expande a nuevas calicheras, equilibra salitre y agua, forma un
 ejército mixto, defiende la base, ataca en oleadas crecientes y, en los mapas de
-islas, embarca a su ejército.
+islas, embarca a su ejército. Cuida a sus veteranos: los Veteranos y Aguerridos
+muy heridos se repliegan al hospital y no vuelven al frente hasta curarse.
 
 ## Equilibrio: cómo ajustarlo
 

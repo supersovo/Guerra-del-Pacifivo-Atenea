@@ -14,7 +14,7 @@ evitarlo, descárguelo con PowerShell (tecla Windows → escriba *PowerShell* �
 Intro) y pegue:
 
 ```powershell
-curl.exe -L -o "$env:USERPROFILE\Downloads\GuerraDelPacifico-0.10.0-Instalador.exe" https://raw.githubusercontent.com/supersovo/Guerra-del-Pacifivo-Atenea/refs/heads/claude/friendly-keller-8ieqfo/rts/descargas/GuerraDelPacifico-0.10.0-Instalador.exe
+curl.exe -L -o "$env:USERPROFILE\Downloads\GuerraDelPacifico-0.11.0-Instalador.exe" https://raw.githubusercontent.com/supersovo/Guerra-del-Pacifivo-Atenea/refs/heads/claude/friendly-keller-8ieqfo/rts/descargas/GuerraDelPacifico-0.11.0-Instalador.exe
 ```
 
 El instalador queda en la carpeta *Descargas*. Si la rama ya se fusionó, cambie
@@ -34,8 +34,8 @@ Sirve para Mac con procesador Intel o Apple Silicon (M1 en adelante), con macOS
 ⌘ + espacio y escriba *Terminal*) y pegue:
 
 ```sh
-curl -L -o ~/Downloads/GuerraDelPacifico-0.10.0-macOS.dmg https://raw.githubusercontent.com/supersovo/Guerra-del-Pacifivo-Atenea/refs/heads/claude/friendly-keller-8ieqfo/rts/descargas/GuerraDelPacifico-0.10.0-macOS.dmg
-open ~/Downloads/GuerraDelPacifico-0.10.0-macOS.dmg
+curl -L -o ~/Downloads/GuerraDelPacifico-0.11.0-macOS.dmg https://raw.githubusercontent.com/supersovo/Guerra-del-Pacifivo-Atenea/refs/heads/claude/friendly-keller-8ieqfo/rts/descargas/GuerraDelPacifico-0.11.0-macOS.dmg
+open ~/Downloads/GuerraDelPacifico-0.11.0-macOS.dmg
 ```
 
 Se abre la imagen de disco: arrastre *Guerra del Pacífico* sobre *Aplicaciones*
@@ -62,6 +62,31 @@ encuentra las partidas de los compañeros y ellos pueden entrar a la suya.
 En Mac, ⌘ (Cmd) sirve igual que Ctrl. El servidor dedicado viene dentro de la
 aplicación y se usa desde la Terminal:
 `"/Applications/Guerra del Pacífico.app/Contents/MacOS/ServidorSalitre" --help`.
+
+## Novedades de la 0.11.0
+
+- **Veteranía**: la tropa gana experiencia combatiendo y asciende a
+  **Fogueado**, **Veterano** y **Aguerrido**, con más vida, daño, cadencia,
+  armadura, visión y alcance. Los galones se ven sobre cada unidad (los dos
+  bandos los ven) y cada veterano recibe nombre y cuerpo, con su hoja de
+  servicio en la tarjeta.
+- **Sanidad que resguarda a los veteranos**: el herido conserva su grado si los
+  camilleros lo llevan al hospital (recogen primero a los de más grado);
+  *Replegar heridos* (J) los manda a curarse; nuevas investigaciones
+  *Ambulancias* y *Convalecencia*; *Ejercicios de tiro* en el Barracón de
+  Instrucción fogea a los reclutas.
+- **Campaña del Salitre** contra la IA: Dolores, Tarapacá, Alto de la Alianza y
+  el Morro de Arica. Los veteranos que sobreviven llegan con el Cuartel General a
+  la batalla siguiente; escalafón, libro de los caídos, honores y medallas.
+- **Serie de campaña en red**: 2 a 4 batallas seguidas en la misma sala; el
+  servidor guarda el escalafón de cada ejército entre batallas y gana el equipo
+  con más victorias (o, si empatan, con más honores). Quien pierde la conexión
+  entre batallas conserva su lugar y sus veteranos.
+- **El vencido se retira**: al perder, el ejército deja el campo y sus veteranos
+  siguen en filas para la batalla siguiente.
+- Nuevas voces: los ascensos, el veterano herido o caído y el repliegue de los
+  heridos al hospital.
+- La 0.11.0 no juega en red con la 0.10.0: todos deben actualizar.
 
 ## Novedades de la 0.10.0
 

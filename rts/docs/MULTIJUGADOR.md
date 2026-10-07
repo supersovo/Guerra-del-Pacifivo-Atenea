@@ -135,6 +135,35 @@ repeticiones quedan en el volumen `salitre-datos`; para respaldarlos, copie
   resultado, la nación y el cambio de ELO de cada batalla.
 - Las partidas de menos de 30 segundos no se registran.
 
+## Serie de campaña
+
+Una **serie** son 2, 3 o 4 batallas seguidas en la misma sala, en las que cada
+ejército **conserva a sus veteranos**:
+
+1. En la sala de espera, el anfitrión elige *Modo → Serie de N batallas* y da la
+   orden de iniciar como siempre.
+2. Al terminar cada batalla, todos vuelven a la sala. El servidor guarda el
+   **escalafón** de cada ejército en su base de datos: los veteranos que siguen
+   vivos (también los heridos en manos de la sanidad y los del bando vencido que
+   se retiraron del campo) llegarán con el Cuartel General a la batalla
+   siguiente; los caídos van al libro de los caídos. *Mi escalafón* muestra los
+   veteranos propios con su grado, nombre, bajas y batallas.
+3. La sala pasa sola al mapa siguiente del itinerario de la campaña (Pampa del
+   Tamarugal → Quebrada de Tarapacá → Alto de la Alianza → Morro de Arica, o los
+   mapas de cuatro jugadores); el anfitrión puede elegir otro con lugar para
+   todos.
+4. **Gana el equipo con más batallas ganadas**; si empatan, el de más
+   **honores**: 10 por cada victoria y 1, 3 o 6 por cada Fogueado, Veterano o
+   Aguerrido que sobrevive a cada batalla.
+
+Durante la serie la nación y el equipo de cada ejército no cambian y no entran
+ejércitos nuevos. Si alguien se va o pierde la conexión **entre batallas**, su
+lugar lo espera: vuelve a la sala al ingresar de nuevo con el mismo nombre (y su
+clave) o con *Unirse* desde el salón. El anfitrión puede pulsar **A la IA** para
+entregar ese ejército, con sus veteranos, a la computadora hasta el final de la
+serie. Cada batalla de la serie cuenta para el escalafón ELO como una partida
+normal.
+
 ## Durante la partida
 
 - **El servidor manda**: cada cliente envía órdenes y recibe 8 instantáneas por

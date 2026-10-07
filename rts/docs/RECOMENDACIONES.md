@@ -41,6 +41,10 @@ material de estudio de ciencias militares y seguir desarrollándolo.
 - **Partidas 2 contra 2** en *Cuatro naciones* o *Islas de Chincha* para ejercitar
   la coordinación entre aliados (visión compartida, chat de equipo y señales con
   Alt + G).
+- **Series de campaña** de tres o cuatro batallas (modo de la sala): obligan a
+  pensar más allá de la batalla del día, porque cada veterano perdido falta en la
+  siguiente. Sirven para cerrar una unidad de estudio con una «campaña» por
+  equipos.
 - **Reglas de la casa** que conviene acordar: sin pausas en partidas
   clasificatorias, rendirse con «gg» al perder la base, y guardar las
   repeticiones de las finales.
@@ -76,6 +80,7 @@ agua) da los datos para comparar.
 | **Sorpresa** | Montoneros ocultos, la emboscada de Cáceres, minas del torpedista, desembarcos. |
 | **Unidad de mando** | Los héroes solo mejoran a la tropa que está cerca: el mando se ejerce en el lugar. |
 | **Logística** | Agua y salitre limitan qué se puede formar; los depósitos de intendencia limitan cuánto se puede mantener. |
+| **Conservación de la fuerza** | La tropa aprende combatiendo: un veterano vale más que un recluta, y en la campaña y las series pasa a la batalla siguiente. Hospital, camilleros, *Replegar heridos* y una retirada a tiempo preservan el poder de combate. |
 
 ### Análisis del terreno
 
@@ -102,6 +107,15 @@ un 30 % de sus tiros.
    espías y baqueanos; comparar el resultado.
 6. **Armas combinadas.** Ejército de un solo tipo contra ejército mixto de igual
    costo.
+7. **Servicio de sanidad.** Dos jugadores libran la *Campaña del Salitre*: uno con
+   hospital, *Ambulancias* y *Convalecencia* desde el comienzo, el otro sin
+   sanidad. Comparar el escalafón y el libro de los caídos al llegar al Morro de
+   Arica, y relacionarlo con el servicio de ambulancias de la guerra.
+8. **Victoria a cualquier costo o victoria con la fuerza intacta.** En una serie
+   de tres batallas, un equipo busca ganar cada batalla con ataques masivos y el
+   otro preserva a sus veteranos y elige cuándo combatir. ¿Quién llega mejor a la
+   tercera? ¿Cuándo conviene retirarse para conservar a los veteranos, como los
+   aliados después de Tarapacá?
 
 ## 4. Mejoras de diseño a considerar
 
@@ -110,9 +124,12 @@ un 30 % de sus tiros.
   en el escalafón antes de decidir.
 - **Partidas históricas**: una opción de sala que deje solo a Chile, el Perú y
   Bolivia, para quienes prefieran excluir la facción hipotética argentina.
-- **Escenarios con guion** sobre las batallas reales (Pisagua, Dolores,
-  Tarapacá, Tacna, Arica, Chorrillos, Miraflores, Huamachuco), con objetivos por
-  fases, aprovechando la investigación del juego de acción del repositorio.
+- **Escenarios con guion** sobre las batallas reales, con objetivos por fases.
+  La *Campaña del Salitre* ya encadena Dolores, Tarapacá, Tacna y Arica con el
+  escalafón de veteranos; faltan Pisagua y la campaña de Lima (Chorrillos,
+  Miraflores) y de la Breña (Huamachuco), aprovechando la investigación del
+  juego de acción del repositorio. Las etapas se agregan en
+  `datos/campanas.json`.
 - **Más mapas** de la sierra para la campaña de la Breña (La Concepción,
   Huamachuco) y de la costa (Pacocha, Pisco). Los mapas son JSON de texto y el
   generador está en `herramientas/generar_mapas.py`.

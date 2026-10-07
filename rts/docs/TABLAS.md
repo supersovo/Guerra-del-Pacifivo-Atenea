@@ -140,6 +140,9 @@ Cada héroe es único: si cae, puede volver a formarse en el Estado Mayor (o en 
 | Red de informantes | Estado Mayor | $ 100 / 150 | 60 | — | +3 de visión a los espías y +20 % de velocidad. |
 | Calderas de alta presión | Muelle | $ 100 / 100 | 60 | — | +20 % de velocidad a los buques. |
 | Blindaje de hierro | Muelle | $ 150 / 150 | 80 | — | +2 de armadura a los buques. |
+| Ejercicios de tiro | Barracón de Instrucción | $ 75 / 50 | 45 | — | Los reclutas que esperan junto al Barracón de Instrucción se fogean solos, hasta el primer grado: como la instrucción de los movilizados en Antofagasta antes del desembarco de Pisagua. Más arriba solo se llega combatiendo. |
+| Ambulancias | Hospital de campaña | $ 100 / 75 | 50 | — | Un tercer equipo de camilleros, y todos un 20 % más rápidos: el servicio de ambulancias que acompañó a los ejércitos en Tarapacá, Tacna y Lima. |
+| Convalecencia | Hospital de campaña | $ 100 / 100 | 60 | — | Los heridos aguantan 60 segundos en el suelo en vez de 40 y vuelven a filas con el 75 % de la vida, con su grado intacto. |
 
 ## Habilidades
 
@@ -190,6 +193,40 @@ Cada héroe es único: si cae, puede volver a formarse en el Estado Mayor (o en 
 | Granada explosiva | 75 % | 100 % | 100 % | 150 % | 100 % |
 | Dinamita | 75 % | 75 % | 125 % | 200 % | 100 % |
 | Cañón naval | 75 % | 100 % | 100 % | 150 % | 125 % |
+
+## Veteranía
+
+Experiencia necesaria en veces el costo de la unidad (dinero + agua): abatir a un enemigo da tanta experiencia como lo que costó, y herirlo, la parte proporcional. Los bonos de cada grado ya incluyen los del anterior (no se suman). Los héroes, los trabajadores y los camilleros no tienen grados.
+
+| Grado | Experiencia | Rango | Galones | Bonos sobre el recluta |
+|---|---|---|---|---|
+| Recluta | — | Soldado | — | — |
+| Fogueado | 1 × | Soldado | 1 | +10% de vida; +10% de daño; +5% de cadencia de fuego; +5% de velocidad (caballería); +25% de daño de la carga (caballería, con arma blanca); +20% de curación |
+| Veterano | 3 × | Cabo | 2 | +20% de vida; +15% de daño; +10% de cadencia de fuego; +1 de armadura; +1 de visión; +1 de alcance (con fusil, metralla, dinamita, granada, cañón naval); +10% de velocidad (caballería); +50% de daño de la carga (caballería, con arma blanca); +40% de curación; conserva el 67 % de la falla cuesta arriba; la artillería se emplaza un 25 % más rápido |
+| Aguerrido | 6 × | Sargento | 3 | +30% de vida; +25% de daño; +15% de cadencia de fuego; +1 de armadura; +2 de visión; +1 de alcance (con fusil, metralla, dinamita, cañón naval); +2 de alcance (con granada); +15% de velocidad (caballería); +75% de daño de la carga (caballería, con arma blanca); +60% de curación; conserva el 50 % de la falla cuesta arriba; la artillería se emplaza un 50 % más rápido; recupera 0,5 de vida por segundo tras 10 s sin recibir fuego |
+
+| Fuente de experiencia | Cuánto |
+|---|---|
+| Herir o abatir enemigos | el valor de la vida quitada (abatir: el costo completo) |
+| Dañar obras | 50 % del valor del daño |
+| Aguantar el fuego y seguir en pie | 25 % del valor de la vida perdida |
+| Curar (cantinera) | 0,5 por punto de vida curado |
+| Encuadramiento (recluta junto a un Aguerrido de su arma) | +50 % (radio 4) |
+| Cerca de un héroe | +25 % |
+| Ejercicios de tiro (Barracón de Instrucción) | 1 por segundo a los reclutas ociosos en un radio de 6, hasta Fogueado |
+
+## Campaña del Salitre (1879-1880)
+
+De la pampa de Tarapacá al Morro de Arica: cuatro batallas en las que cada veterano cuenta. Los sobrevivientes llegan a la siguiente batalla en el tren o la carreta del cuartel general; los caídos no vuelven. Cuide a su tropa con hospitales, camilleros y cantineras.
+
+| Batalla | Fecha | Mapa | IA | Rival según la nación propia | Veteranos con que empieza la IA |
+|---|---|---|---|---|---|
+| 1. San Francisco (Dolores) | 19 de noviembre de 1879 | Pampa del Tamarugal | Recluta | Chile → Perú, Perú → Chile, Bolivia → Chile | — |
+| 2. Tarapacá | 27 de noviembre de 1879 | Quebrada de Tarapacá | Soldado de línea | Chile → Perú, Perú → Chile, Bolivia → Chile | 4 × Infante de línea (Fogueado) |
+| 3. Alto de la Alianza (Tacna) | 26 de mayo de 1880 | Alto de la Alianza (Tacna) | Soldado de línea | Chile → Bolivia, Perú → Chile, Bolivia → Chile | 4 × Infante de línea (Fogueado), 3 × Infante de línea (Veterano), 1 × Granadero a caballo (Veterano) |
+| 4. Asalto y toma del Morro de Arica | 7 de junio de 1880 | Morro de Arica | Veterano de la campaña | Chile → Perú, Perú → Chile, Bolivia → Chile | 4 × Infante de línea (Veterano), 2 × Infante de línea (Aguerrido), 1 × Cañón de campaña (Veterano) |
+
+Honores: 10 por victoria y 1, 3 y 6 por cada Fogueado, Veterano y Aguerrido preservado. Medallas (honores mínimos): Medalla de oro de la campaña: 100; Medalla de plata de la campaña: 55; Medalla de bronce de la campaña: 0. En la serie de campaña en red los honores se cuentan igual, en cada batalla y para los dos bandos.
 
 ## Campos de batalla
 

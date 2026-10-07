@@ -162,14 +162,75 @@ uno para que baje) y el botón «Salir de la trinchera» o «Bajar del techo».
 
 ### Heridos, camilleros y sangre
 
-- Con un **hospital de campaña**, el infante que cae por fusil, metralla o sable
-  queda **herido** en el suelo 40 segundos. El hospital manda **dos equipos de
+- Con un **hospital de campaña**, el infante o el jinete que cae por fusil,
+  metralla o sable queda **herido** en el suelo 40 segundos. El hospital manda **dos equipos de
   camilleros** al frente: lo recogen, lo curan en 20 segundos y vuelve a filas
   con media vida (sobre el hospital se ve la cruz verde). Si nadie lo recoge,
   muere. Los equipos caídos se reponen a los 30 segundos.
 - Las bajas dejan **sangre** en el terreno; las causadas por **artillería,
   dinamita o minas despedazan** el cuerpo. Se puede desactivar en Opciones
   («Sangre en las bajas»).
+
+### Veteranía: la tropa aprende combatiendo
+
+Cada soldado gana **experiencia** al herir y abatir enemigos (más cuanto más
+valga el enemigo), al dañar obras, al aguantar fuego y seguir en pie y, la
+cantinera, al curar. Con ella sube de **grado** (los héroes, los trabajadores y
+los camilleros no tienen grados):
+
+| Grado | Experiencia (abatir enemigos de su mismo valor) | Rango del escalafón | Galones | Mejoras sobre el recluta |
+|-------|------------------------------------------------|---------------------|---------|--------------------------|
+| Recluta | — | Soldado | — | — |
+| **Fogueado** | 1 | Soldado | 1 | +10 % vida y daño, +5 % cadencia; caballería +5 % velocidad y +25 % carga; cantinera +20 % curación |
+| **Veterano** | 3 | Cabo | 2 | +20 % vida, +15 % daño, +10 % cadencia, +1 armadura, +1 visión y **+1 alcance** de fusil, metralla y dinamita; falla un tercio menos cuesta arriba; la artillería se emplaza un 25 % más rápido |
+| **Aguerrido** | 6 | Sargento | 3 | +30 % vida, +25 % daño, +15 % cadencia, +1 armadura, +2 visión, +1 alcance (+2 la artillería); falla la mitad cuesta arriba; **se cura solo** fuera de combate |
+
+- Los **galones** sobre la unidad los ven los dos bandos: conviene saber a quién
+  se enfrenta.
+- Al ascender, el soldado recibe **nombre y cuerpo** («Sargento Toribio
+  Sepúlveda, Buin 1.º de Línea»), que se ven en su tarjeta con su hoja de
+  servicio (bajas y batallas), y lo anuncia la voz de la tropa.
+- El **Barracón de Instrucción** investiga *Ejercicios de tiro*: los reclutas
+  que esperan a su lado llegan solos a Fogueado (más arriba solo se llega
+  combatiendo). El recluta que pelea cerca de un Aguerrido de su arma aprende un
+  50 % más rápido, y un 25 % cerca de un héroe.
+
+### Sanidad: resguardar a los veteranos
+
+Un veterano que cae **herido** conserva su grado si los camilleros lo llevan al
+hospital: vuelve a filas con su nombre, sus galones y su hoja de servicio. Los
+camilleros recogen primero a los de mayor grado.
+
+- **Replegar heridos** (tecla **J** en la tarjeta): las unidades seleccionadas
+  que están heridas van al hospital de campaña a curarse.
+- En el hospital se investigan **Ambulancias** (un tercer equipo de camilleros,
+  todos un 20 % más rápidos) y **Convalecencia** (los heridos aguantan 60
+  segundos en el suelo y vuelven con el 75 % de la vida).
+- Si el enemigo destruye el hospital, los veteranos que se curaban en él caen;
+  los heridos que nadie recoge, también. Al terminar la batalla, el parte de
+  guerra cuenta los veteranos en filas por grado, los ascensos y los caídos.
+- **El vencido se retira**: cuando un ejército pierde, sus unidades dejan el
+  campo (no mueren) y sus veteranos, con los heridos que llevan los camilleros
+  y los que se curan en el hospital, siguen en filas para la batalla siguiente.
+
+### Campaña del Salitre (contra la IA)
+
+*Portada → Campaña del Salitre*: cuatro batallas encadenadas, de **San Francisco
+(Dolores)** y **Tarapacá** al **Alto de la Alianza** y el **asalto del Morro de
+Arica**, con Chile, el Perú o Bolivia (el rival cambia según la nación elegida).
+
+- **Los veteranos que sobreviven pasan a la batalla siguiente**: bajan del tren o
+  de la carreta junto con el Cuartel General. Los caídos van al **libro de los
+  caídos** y no vuelven.
+- La pantalla de la campaña muestra el relato histórico de cada batalla, el
+  **escalafón** (grado, nombre, unidad, bajas y batallas de cada veterano) y el
+  libro de los caídos.
+- Cada victoria da **honores** (10, y 1, 3 o 6 por cada Fogueado, Veterano o
+  Aguerrido preservado); al final se gana la medalla de oro, plata o bronce de la
+  campaña. Con una derrota la batalla se repite con el escalafón de antes.
+- La IA también conserva a sus veteranos, y en las últimas batallas trae un
+  núcleo de tropa fogueada.
+- La campaña se guarda sola en el perfil del equipo y se retoma donde quedó.
 
 ### Voces de la tropa
 
@@ -227,6 +288,16 @@ escaramuza contra la IA, F3 pausa.
   sin clave se entra como invitado.
 - Si alguien pierde la conexión, a los 20 segundos la IA toma el mando de su
   ejército hasta que vuelva a conectarse con el mismo nombre.
+- **Serie de campaña**: en la sala, el anfitrión elige *Modo → Serie de 2, 3 o 4
+  batallas*. Entre batalla y batalla el servidor guarda el **escalafón de
+  veteranos** de cada ejército, y los veteranos llegan con el Cuartel General a
+  la siguiente; la sala pasa sola al mapa siguiente del itinerario (el anfitrión
+  puede elegir otro). Durante la serie la nación y el equipo no cambian, y quien
+  se va o pierde la conexión entre batallas conserva su lugar y sus veteranos
+  (vuelve al ingresar con su nombre; el anfitrión puede entregar ese ejército a
+  la IA). **Gana el equipo con más batallas ganadas**; si empatan, el de más
+  **honores**, que se suman con cada victoria y con cada veterano que sobrevive:
+  el objetivo es llegar a la última batalla con la mayor cantidad de veteranos.
 
 La guía completa, con la solución de problemas, está en
 [docs/MULTIJUGADOR.md](docs/MULTIJUGADOR.md).
@@ -240,9 +311,10 @@ rts/
 │   ├── sim/              simulación determinista (la usa el servidor)
 │   ├── ia/               adversario de la computadora
 │   ├── red/              protocolo e instantáneas
-│   ├── servidor/         backend: cuentas, salas, partidas, base de datos, repeticiones
-│   └── cliente/          frontend: menús, salón, sala de espera y campo de batalla
-├── datos/                unidades, edificios, mejoras, habilidades, naciones y tablas (JSON)
+│   ├── servidor/         backend: cuentas, salas, partidas, series de campaña, base de datos, repeticiones
+│   └── cliente/          frontend: menús, campaña, salón, sala de espera y campo de batalla
+├── datos/                unidades, edificios, mejoras, habilidades, naciones, tablas (con la veteranía),
+│                         campañas y nombres del escalafón (JSON)
 ├── mapas/                los seis campos de batalla (JSON)
 ├── recursos/             tipografías e ícono (y aquí pueden ir gráficos o sonidos propios)
 ├── herramientas/         generadores de mapas, tablas e ícono
@@ -254,7 +326,8 @@ rts/
 ```
 
 Los datos son **JSON en español** y se pueden modificar sin programar: los
-números de cada unidad, los requisitos, las auras de los héroes, las naciones…
+números de cada unidad, los requisitos, las auras de los héroes, las naciones,
+los grados de veteranía, las batallas de la campaña…
 El servidor y los jugadores deben tener los mismos datos: el juego lo comprueba
 al conectarse.
 
@@ -274,6 +347,10 @@ python herramientas/generar_tablas.py     # actualiza docs/TABLAS.md
 python herramientas/generar_icono.py      # vuelve a dibujar el ícono
 pyinstaller --noconfirm instalador/salitre.spec   # ejecutables en dist/
 ```
+
+Las voces de `recursos/sonidos/voces/` se generan sin conexión con
+`herramientas/generar_voces.py` (modelo Kokoro-82M; las instrucciones están al
+comienzo del archivo).
 
 En Windows, `instalador\construir_windows.ps1` construye los ejecutables, los
 prueba y genera el instalador con Inno Setup. En un Mac, `sh

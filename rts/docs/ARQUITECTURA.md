@@ -43,8 +43,25 @@ red; el servidor dedicado es el mismo código sin la parte gráfica.
   proyectiles y minas → auras (cada 8 ticks), bajas, visión (cada 4) y victoria
   (cada 16).
 - **Repeticiones**: como todo es determinista, una repetición guarda solo el mapa,
-  la semilla, los jugadores y la lista de comandos con su tick (`.rep`, JSON
-  comprimido con gzip). Al reproducirla se vuelve a simular la partida.
+  la semilla, los jugadores (con los veteranos que trae cada uno) y la lista de
+  comandos con su tick (`.rep`, JSON comprimido con gzip). Al reproducirla se
+  vuelve a simular la partida.
+
+### Veteranía
+
+`sim/veterania.py` lleva la experiencia de cada unidad en valor de combate (un
+punto = 1 $ del costo de la unidad abatida, guardado en 1/16), los grados y los
+ascensos. Los bonos de cada grado usan el mismo mecanismo de efectos que las
+investigaciones: `Jugador.stats_de(tipo, grado)` calcula y guarda en caché las
+estadísticas de cada combinación, y una unidad que asciende cambia de tabla (la
+vida máxima sube y la vida actual con ella). La **hoja de servicio** de cada
+soldado — `(experiencia, grado, nombre, ficha, batallas, bajas)` — viaja con él
+cuando cae herido, en la camilla y en el hospital, y vuelve a filas intacta. Al
+terminar, `Mundo.veteranos_de(jugador)` y `Mundo.caidos_de(jugador)` dan las
+fichas para el parte de guerra, la campaña y la serie; los veteranos de la
+configuración de cada jugador bajan con el Cuartel General
+(`Mundo._desplegar_cuartel`). Cuando un jugador pierde, `Mundo._retirada` retira
+sus unidades del campo y guarda las fichas de sus veteranos.
 
 ### Movimiento y caminos
 
@@ -91,7 +108,9 @@ montoneros quietos, minas) solo se ven con un **detector** cerca.
   carreta) que trae el Cuartel General al comenzar, con su recorrido en `extra`
   para dibujar la locomotora y los vagones sobre la vía. En `extra` también
   viajan las guarniciones (`g`: tipos de los soldados guarecidos; `gf`: los que
-  acaban de disparar desde su puesto).
+  acaban de disparar desde su puesto) y, para todos los bandos, los galones de
+  los veteranos (`v`: grado, `vm`: vida máxima, `n`: semilla del nombre); solo
+  el dueño recibe además el avance hacia el grado siguiente (`x`, en %).
 - **Cliente**: el socket es no bloqueante y la conexión inicial va en un hilo, así
   la pantalla nunca se congela; las posiciones se **interpolan** entre
   instantáneas para que el movimiento se vea suave a cualquier cantidad de cuadros
@@ -106,9 +125,9 @@ montoneros quietos, minas) solo se ven con un **detector** cerca.
 |-------------|--------------|
 | `hola` (nombre, clave, registrar, huella) | `bienvenida` (mapas, dificultades, datos de la cuenta) |
 | `salas`, `escalafon`, `historial` | `lobby` (salas, conectados, partidas en curso), `escalafon`, `historial` |
-| `crear_sala`, `unirse`, `salir_sala`, `ajustar`, `listo`, `agregar_ia`, `quitar`, `mapa`, `iniciar` | `sala` (ranuras, anfitrión), `expulsado` |
-| `partida_rapida` (escaramuza contra la IA) | `inicio` (mapa, semilla, jugadores) |
-| `cmd` (orden de juego), `rendirse`, `abandonar`, `pausa` | `inst` (instantánea), `fin` (resultados, ELO, repetición), `pausa` |
+| `crear_sala`, `unirse`, `salir_sala`, `ajustar`, `listo`, `agregar_ia`, `quitar`, `mapa`, `serie` (batalla única o serie de 2 a 4), `iniciar` | `sala` (ranuras, anfitrión, modo, marcador de la serie y, solo para su dueño, el escalafón y el libro de los caídos), `expulsado` |
+| `partida_rapida` (escaramuza o batalla de la campaña, con los veteranos propios y los de la IA) | `inicio` (mapa, semilla, jugadores) |
+| `cmd` (orden de juego), `rendirse`, `abandonar`, `pausa` | `inst` (instantánea), `fin` (resultados con veteranos y caídos de cada jugador, ELO, repetición y, en una serie, su marcador), `pausa` |
 | `chat` | `chat`, `aviso`, `error` |
 | `observar`, `ver_repeticion`, `velocidad_rep`, `pedir_repeticion` | `repeticion` (copia de la repetición) |
 
@@ -120,6 +139,16 @@ montoneros quietos, minas) solo se ven con un **detector** cerca.
 - **Desconexiones**: a los 20 s la IA toma el mando del ejército; al reconectarse
   con el mismo nombre el jugador recupera su lugar. A los 3 minutos se le da por
   rendido; si no queda nadie, la partida se cierra al minuto.
+- **Series de campaña** (`servidor/serie.py`): la sala guarda una `Serie` con el
+  escalafón de cada ejército (por ranura). Al iniciar cada batalla los veteranos
+  de cada uno van en su configuración; al terminar, `Servidor.serie_tras_batalla`
+  aplica el parte de guerra (los vivos siguen, los caídos van al libro, los que
+  no llegaron a desplegarse quedan de reserva), suma victorias y honores, guarda
+  la serie en la base de datos y pasa la sala al mapa siguiente del itinerario.
+  Durante la serie la nación y el equipo no cambian y no entran ejércitos nuevos;
+  quien se va o pierde la conexión entre batallas queda *ausente* y recupera su
+  lugar al volver (al ingresar con su nombre o al unirse a la sala), y el
+  anfitrión puede entregar ese ejército a la IA.
 - **Base de datos SQLite** (`servidor.db`, modo WAL):
 
 | Tabla | Contenido |
@@ -128,6 +157,8 @@ montoneros quietos, minas) solo se ven con un **detector** cerca.
 | `partidas` | mapa, inicio, fin, ticks, semilla, versión, equipo ganador, si fue clasificatoria, repetición |
 | `partida_jugadores` | por jugador: nación, equipo, resultado, estadísticas y ELO antes y después |
 | `configuracion` | parámetros del servidor |
+| `series` | serie de campaña: sala, batallas jugadas y totales, si terminó o se abandonó, equipo ganador y el estado completo (JSON) |
+| `serie_jugadores` | por ranura: cuenta, nación, equipo, victorias, honores, veteranos, caídos y el escalafón (JSON) |
 
 - **ELO** con K = 32 entre los equipos; solo cuentan las partidas con al menos dos
   bandos de jugadores registrados y un vencedor.
@@ -170,11 +201,17 @@ montoneros quietos, minas) solo se ven con un **detector** cerca.
   (selección < orden < aviso < alarma): una más importante corta a la que suena y
   los avisos esperan su turno. Si faltan los archivos o están desactivadas,
   suenan los toques de corneta.
-- **Escenas**: portada, escaramuza, multijugador (conexión, cuartel general, sala
-  de espera), carga, batalla, parte de guerra, repeticiones, archivo histórico y
-  opciones.
-- **Perfil local** (`perfil.db`, SQLite): servidores recientes e historial de
-  escaramuzas en el equipo; configuración en `config.json`.
+- **Escenas**: portada, campaña, escaramuza, multijugador (conexión, cuartel
+  general, sala de espera), carga, batalla, parte de guerra, repeticiones,
+  archivo histórico y opciones. Al cambiar de escena a mitad de un lote de
+  mensajes, los que faltan se devuelven a la conexión (`Escena.devolver_red`)
+  para que la escena siguiente los atienda.
+- **Perfil local** (`perfil.db`, SQLite): servidores recientes, historial de
+  escaramuzas y el estado de cada **campaña** contra la IA (escalafón, libro de
+  los caídos, honores, veteranos de la IA); configuración en `config.json`.
+- **Nombres del escalafón** (`contenido/nombres.py` y `datos/nombres.json`): el
+  nombre y el cuerpo de cada veterano se derivan de su semilla, la nación, el
+  tipo de unidad y el grado, igual en el servidor y en el cliente.
 
 ## Rendimiento medido
 
@@ -192,12 +229,17 @@ ficticio de SDL):
 - **contenido**: validación del catálogo y de los mapas;
 - **simulación**: recolección de salitre y agua, obras y población, requisitos,
   combate, curación, auras, habilidades y minas, artillería emplazada, ventaja de
-  la altura, transporte naval, trincheras, determinismo y repeticiones;
+  la altura, transporte naval, trincheras, experiencia y grados, heridos que
+  conservan el grado, instrucción y encuadramiento, veteranos que llegan con el
+  cuartel, retirada del vencido, determinismo y repeticiones;
+- **contenido**: además, la campaña del Salitre y su escalafón;
 - **red**: protocolo, huella, cuentas, partida de dos jugadores por TCP con ELO,
-  escaramuza y reconexión;
-- **cliente**: todas las pantallas, una escaramuza y una partida multijugador
-  completa (salón, sala de espera con un segundo jugador, batalla, parte de
-  guerra y regreso a la sala).
+  escaramuza y reconexión, veteranos de la campaña y una **serie de campaña**
+  completa con reconexión entre batallas;
+- **cliente**: todas las pantallas, una escaramuza, la campaña y una partida
+  multijugador completa en modo serie (salón, sala de espera con un segundo
+  jugador, batalla, parte de guerra, regreso a la sala, salida y regreso a la
+  serie desde el salón).
 
 La integración continua (`.github/workflows/rts.yml`) corre las pruebas en Linux,
 Windows y macOS, construye el instalador de Windows con una prueba de humo del
