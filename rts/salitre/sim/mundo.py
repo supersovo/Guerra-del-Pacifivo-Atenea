@@ -689,10 +689,14 @@ class Mundo:
                 # con su grado (la hoja de servicio va con él)
                 espera = self.cat.ticks_herido + ticks(j.sanidad["segundos_herido"])
                 h = self.crear_herido(e.tipo, e.dueno, e.x, e.y, self.tick + espera, e.dir, hoja_de(e))
-                self.ev_pos(e.x, e.y, "herido", e.id, h.id, e.tipo.idx, e.dueno, e.x >> 4, e.y >> 4)
+                self.ev_pos(e.x, e.y, "herido", e.id, h.id, e.tipo.idx, e.dueno, e.x >> 4, e.y >> 4,
+                            e.grado, e.nombre)
                 return
             if e.es_unidad:
                 self.anotar_caido(e.dueno, e.tipo, hoja_de(e))
+                self.ev_pos(e.x, e.y, "mue", e.id, e.tipo.idx, e.dueno, e.x >> 4, e.y >> 4, 1 if explosion else 0,
+                            e.grado, e.nombre)
+                return
             self.ev_pos(e.x, e.y, "mue", e.id, e.tipo.idx, e.dueno, e.x >> 4, e.y >> 4, 1 if explosion else 0)
 
     def puede_herirse(self, u):
@@ -755,7 +759,7 @@ class Mundo:
         if explosion:
             self.anotar_caido(camilla.dueno, tipo, hoja)
             self.ev_pos(camilla.x, camilla.y, "mue", camilla.id, tipo.idx, camilla.dueno,
-                        camilla.x >> 4, camilla.y >> 4, 1)
+                        camilla.x >> 4, camilla.y >> 4, 1, hoja[1] if hoja else 0, hoja[2] if hoja else 0)
             return
         h = self.crear_herido(tipo, camilla.dueno, camilla.x + TILE // 4, camilla.y,
                               self.tick + self.cat.ticks_herido // 2, hoja=hoja)
@@ -769,7 +773,8 @@ class Mundo:
                 h.vivo = False
                 self.muertos.append(h)
                 self.anotar_caido(h.dueno, h.tipo, h.hoja)
-                self.ev_pos(h.x, h.y, "mue", h.id, h.tipo.idx, h.dueno, h.x >> 4, h.y >> 4, 0)
+                self.ev_pos(h.x, h.y, "mue", h.id, h.tipo.idx, h.dueno, h.x >> 4, h.y >> 4, 0,
+                            h.hoja[1] if h.hoja else 0, h.hoja[2] if h.hoja else 0)
 
     def agotar(self, r):
         if r.rtipo == "salitre" and r.vivo:

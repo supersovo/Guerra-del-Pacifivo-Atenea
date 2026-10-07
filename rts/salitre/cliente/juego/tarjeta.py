@@ -110,6 +110,12 @@ def tarjeta(est, seleccion, submenu=None):
                              descripcion="Edificios básicos: cuartel, depósito, molino, barracas, maestranza...")
             slots[9] = Boton("menu_avanzado", "Construcción avanzada", "V", ("orden", "avanzado"), "menu",
                              "avanzado", descripcion="Barracón, caballeriza, telégrafos, parque, Estado Mayor, muelle.")
+        if not trabajadores and any(t.biologica and t.capa == 0 for t in tipos.values()):
+            hospital = bool(terminados.get("hospital_campana"))
+            slots[7] = Boton("replegar", "Replegar heridos", "J", ("orden", "replegar"), "orden", {"c": "replegar"},
+                             hospital, descripcion="Los que tengan menos de la mitad de la vida vuelven a curarse "
+                             "junto al hospital de campaña: un veterano salvado conserva su grado.",
+                             falta="" if hospital else cat.nombre(fac.id, "hospital_campana"))
         # habilidades del primer tipo (o comunes)
         hab_vistas = []
         for e in unidades:

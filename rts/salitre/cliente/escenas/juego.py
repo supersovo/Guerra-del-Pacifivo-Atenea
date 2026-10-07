@@ -14,6 +14,7 @@ import time
 
 import pygame
 
+from ...contenido import nombres
 from ...red import instantanea as I
 from .. import fuentes
 from ..graficos import paleta as P
@@ -21,7 +22,7 @@ from ..graficos.paleta import color_jugador
 from ..juego.camara import Camara
 from ..juego.estado import EstadoJuego
 from ..juego.tarjeta import tarjeta
-from ..juego.vista import Vista
+from ..juego.vista import Vista, tam_sprite
 from ..sonido import sonido
 from ..ui.hud import ALTO_INF, ALTO_SUP, HUD
 from ..ui.widgets import MOD_CTRL, Boton
@@ -232,6 +233,12 @@ class Juego(Escena):
                 f = est.faccion(dueno)
                 if f is None:
                     return
+                grado = ev[8] if len(ev) > 8 else 0
+                if grado and dueno == est.yo:
+                    # cayó un veterano propio: su experiencia se pierde
+                    quien = nombres.nombre(est.cat, f.id, tipo, grado, ev[9]) or self._nombre(dueno, idx)
+                    self.hud.mensaje(f"Cayó {quien} ({est.cat.veterania.grados[grado].nombre}).", (230, 120, 90), 6)
+                    snd.voz("veterano_caido", 2)
                 if tipo.biologica and explosion and efx.sangre:
                     # artillería, dinamita o mina: el cuerpo vuela en pedazos
                     efx.despedazar(x, y - 6, [f.uniforme.get("casaca", (90, 90, 90)),
@@ -247,6 +254,30 @@ class Juego(Escena):
             x, y = ev[6], ev[7]
             efx.herida(x, y - 8)
             efx.charco(x, y + 2, 0.9, 40.0)
+            grado = ev[8] if len(ev) > 8 else 0
+            tipo = est.tipo_por_idx(ev[4])
+            if grado and ev[5] == est.yo and tipo is not None:
+                f = est.faccion(ev[5])
+                quien = nombres.nombre(est.cat, f.id, tipo, grado, ev[9]) if f else ""
+                self.hud.mensaje(f"¡Herido {quien or self._nombre(ev[5], ev[4])}! Los camilleros van primero por "
+                                 "los veteranos.", (240, 160, 90), 6)
+                snd.voz("herido_veterano", 2)
+        elif k == "ascenso":
+            # un veterano sube de grado: galones dorados sobre él y, si es propio, su voz
+            o = est.ents.get(ev[2])
+            grado, idx, dueno = ev[3], ev[4], ev[5]
+            if o is not None and o.tipo is not None:
+                efx.ascenso(o.x, o.y - tam_sprite(o.tipo)[3] + 4, grado)
+            if dueno == est.yo:
+                tipo = est.tipo_por_idx(idx)
+                f = est.faccion(dueno)
+                quien = ""
+                if o is not None and tipo is not None and f is not None:
+                    quien = nombres.nombre(est.cat, f.id, tipo, grado, (o.ex or {}).get("n", 0))
+                g = est.cat.veterania.grados[grado].nombre
+                self.hud.mensaje(f"¡Ascenso! {self._nombre(dueno, idx)}: {g}" + (f" — {quien}" if quien else ""),
+                                 (240, 206, 90), 5)
+                snd.voz([f"ascenso_{grado}"], 2)
         elif k == "recogido":
             o = est.ents.get(ev[3])
             if o is not None:
@@ -446,6 +477,8 @@ class Juego(Escena):
         elif a == "orden":
             cmd = dict(b.dato)
             cmd["u"] = unidades + (edificios if cmd["c"] in ("habilidad", "descargar") else [])
+            if cmd["c"] == "replegar" and unidades:
+                sonido().voz("replegar", 1)
             cmd["e"] = edificios
             if cmd["c"] == "cancelar" and edificios:
                 cmd["e"] = edificios[:1]

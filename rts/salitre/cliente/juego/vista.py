@@ -116,6 +116,7 @@ class Vista:
             self._dibujar_niebla(cam)
             self._dibujar_agua_pozos(cam, seleccion)
             self._dibujar_barras(cam, seleccion)
+            self._dibujar_galones(cam)
         finally:
             cam.vista = guardada
             lz.recortar(None)
@@ -290,6 +291,8 @@ class Vista:
             if viene or int(ahora * 2) % 2 == 0:
                 lz.dibujar(self.efx.t_cruz, sx - 5 * z, sy - 24 * z, 10 * z, 10 * z,
                            color=(220, 40, 40) if viene else (240, 70, 60), alpha=230)
+            if ex.get("v"):
+                self._galon(sx + 9 * z, sy - 22 * z, ex["v"], z)
 
     def _recurso(self, cam, e, sel):
         lz = self.lz
@@ -468,6 +471,33 @@ class Vista:
                 lz.texto(f"{e.vida}" if e.vida > 0 else "seco", bx, by + 9 * z + 3, fuentes.negrita(13),
                          (236, 240, 250), "centro", sombra=(10, 20, 40))
 
+    def _galon(self, sx, sy, grado, z):
+        """Galones dorados del grado (centrados en sx, con la base en sy)."""
+        t = self.efx.t_galones[max(1, min(3, grado)) - 1]
+        ancho = 8 * z
+        alto = ancho * t.height / t.width
+        self.lz.dibujar(t, sx - ancho / 2, sy - alto, ancho, alto, color=(250, 206, 72))
+
+    def _dibujar_galones(self, cam):
+        """Los veteranos llevan sus galones a la vista de los dos bandos, sobre la barra de vida."""
+        est = self.est
+        z = cam.zoom
+        rm = cam.rect_mapa().inflate(64, 64)
+        for e in est.ents.values():
+            if e.tipo is None or e.fantasma or not e.es_unidad or not rm.collidepoint(e.x, e.y):
+                continue
+            ex = e.ex if isinstance(e.ex, dict) else None
+            if not ex or not ex.get("v"):
+                continue
+            if not est.aliado(e.dueno) and not est.visible_px(e.x, e.y):
+                continue
+            w, h, fx, fy = tam_sprite(e.tipo)
+            if e.tipo.capa == 1:
+                sx, sy = cam.a_pantalla(e.x, e.y - h / 2 - 6)
+            else:
+                sx, sy = cam.a_pantalla(e.x, e.y - (fy - 2) - 6)
+            self._galon(sx, sy, ex["v"], z)
+
     def _dibujar_barras(self, cam, seleccion):
         lz = self.lz
         est = self.est
@@ -478,7 +508,10 @@ class Vista:
             if e.tipo is None or e.fantasma or not rm.collidepoint(e.x, e.y):
                 continue
             sel = e.id in seleccion
-            if e.dueno == est.yo:
+            ex = e.ex if isinstance(e.ex, dict) else {}
+            if "vm" in ex:
+                vmax = ex["vm"]                 # veterano: su vida máxima viaja con él
+            elif e.dueno == est.yo:
                 vmax = est.stats_de(e.tipo).vida
             else:
                 vmax = e.tipo.vida

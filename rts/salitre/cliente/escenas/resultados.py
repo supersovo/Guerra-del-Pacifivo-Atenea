@@ -75,6 +75,19 @@ class Resultados(Escena):
                 elif t == "error":
                     self.app.avisar(m.get("msg", "Error"))
 
+    def _linea_veteranos(self, res):
+        """Veteranos que siguen en filas (por grado), ascensos y veteranos caídos en la batalla."""
+        vet = self.est.cat.veterania
+        cuenta = [0] * (vet.maximo + 1)
+        for v in res.get("veteranos", []):
+            cuenta[max(0, min(vet.maximo, v.get("grado", 0)))] += 1
+        partes = [f"{cuenta[g]} {vet.grados[g].nombre.lower()}{'s' if cuenta[g] != 1 else ''}"
+                  for g in range(vet.maximo, 0, -1) if cuenta[g]]
+        est = res.get("est", {})
+        txt = "Veteranos en filas: " + (", ".join(partes) if partes else "ninguno")
+        txt += f"  ·  ascensos: {est.get('ascensos', 0)}  ·  veteranos caídos: {est.get('veteranos_caidos', 0)}"
+        return txt
+
     def manejar(self, ev):
         if ev.type == pygame.KEYDOWN and ev.key in (pygame.K_ESCAPE, pygame.K_RETURN):
             self.volver()
@@ -131,6 +144,7 @@ class Resultados(Escena):
             for k, (_t, campo) in enumerate(COLUMNAS):
                 v = res.get("est", {}).get(campo, 0)
                 lz.texto(str(v), x0 + 300 + k * anchos + anchos // 2, y + 8, fuentes.cuerpo(17), P.TINTA, "centro")
+            lz.texto(self._linea_veteranos(res), x0 + 300, y + 29, fuentes.cursiva(14), (126, 86, 18))
             y += 48
         if self.fin.get("repeticion"):
             if self.origen == "multijugador" and self.app.servidor_local is None:

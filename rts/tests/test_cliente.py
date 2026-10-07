@@ -357,7 +357,8 @@ def test_voces_de_la_tropa(app, monkeypatch):
             g = grupo_voz(t)
             assert "seleccion_" + g in snd.voces and "mover_" + g in snd.voces, t.id
     for clave in ("obra", "investigado", "ataque_tropas", "ataque_trabajadores", "pob", "falta_dinero",
-                  "falta_agua", "llegada", "victoria", "derrota", "trabajar", "lista"):
+                  "falta_agua", "llegada", "victoria", "derrota", "trabajar", "lista", "ascenso_1", "ascenso_2",
+                  "ascenso_3", "replegar", "herido_veterano", "veterano_caido"):
         assert clave in snd.voces, clave
     # los efectos (la fusilería de una batalla) nunca ocupan el canal de las voces
     for _ in range(12):
@@ -410,6 +411,17 @@ def test_voces_de_la_tropa(app, monkeypatch):
     juego.modo = ("orden", "atacar", "atacar")
     juego._orden_objetivo(330.0, 330.0, None, False)
     assert dichas[-1] == (["atacar_infanteria"], 1)
+    # un veterano: su ficha muestra grado, nombre y experiencia; al ascender lo dice con su voz
+    from salitre.contenido import nombres
+    est.ents[90004] = Ent([90004, infante.idx, est.yo, 300, 300, 50, 0, 0,
+                           {"v": 2, "vm": 54, "n": 4242, "x": 30, "k": 5}], infante, 0.0)
+    juego.seleccionar([90004])
+    cuadros(app)
+    assert nombres.nombre(app.cat, est.facciones[est.yo].id, infante, 2, 4242).startswith("Cabo ")
+    juego._evento([0, "ascenso", 90004, 3, infante.idx, est.yo])
+    assert dichas[-1] == (["ascenso_3"], 2)
+    juego._evento([0, "mue", 90004, infante.idx, est.yo, 300, 300, 0, 3, 4242])
+    assert dichas[-1] == ("veterano_caido", 2) or dichas[-1] == (["veterano_caido"], 2)
     juego.abrir_menu()
     cuadros(app)
     juego.abandonar()

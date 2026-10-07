@@ -21,6 +21,7 @@ TIPO_CHISPA = 5
 TIPO_DINERO = 6
 TIPO_GOTA = 7
 TIPO_TROZO = 8
+TIPO_GALON = 9
 DORADO = (255, 206, 64)
 SANGRE = (120, 10, 12)
 SANGRE_VIVA = (176, 18, 20)
@@ -170,8 +171,9 @@ class Efectos:
         self.t_bocanada = lz.textura(("efx", "bocanada"), _bocanada)
         self.t_chispa = lz.textura(("efx", "chispa"), _chispa)
         self.t_cruz = lz.textura(("efx", "cruz"), _cruz)
-        from .iconos import signo_peso
+        from .iconos import galones, signo_peso
         self.t_peso = lz.textura(("efx", "peso"), signo_peso)
+        self.t_galones = [lz.textura(("efx", "galones", n), lambda n=n: galones(n, n >= 3)) for n in range(1, 4)]
         self.t_crater = lz.textura(("efx", "crater"), _crater)
         self.viento = (6.0, -2.0)
 
@@ -250,6 +252,16 @@ class Efectos:
         r = self.rnd
         self._agregar(Particula(TIPO_DINERO, x + r.uniform(-14, 14), y - r.uniform(0, 8), 1.3, 18, DORADO,
                                 vy=-22))
+
+    def ascenso(self, x, y, grado):
+        """Ascenso: los galones dorados del nuevo grado suben sobre la unidad, entre chispas."""
+        r = self.rnd
+        p = Particula(TIPO_GALON, x, y - 4, 1.8, 14, DORADO, vy=-16)
+        p.tex = self.t_galones[max(1, min(3, grado)) - 1]
+        self._agregar(p)
+        for _ in range(10):
+            self._agregar(Particula(TIPO_CHISPA, x + r.uniform(-8, 8), y - r.uniform(0, 14), r.uniform(0.5, 1.0),
+                                    2, (255, 226, 120), vx=r.uniform(-14, 14), vy=r.uniform(-30, -10)))
 
     def polvo_obra(self, x, y):
         r = self.rnd
@@ -412,6 +424,12 @@ class Efectos:
                 lz.dibujar(t, sx - ancho / 2, sy - alto / 2, ancho, alto, alpha=a, color=p.color)
             elif p.tipo == TIPO_CHISPA:
                 lz.rect((sx, sy, max(1, int(2 * z)), max(1, int(2 * z))), p.color, int(255 * (1 - f)))
+            elif p.tipo == TIPO_GALON:
+                t = p.tex
+                alto = tam * 1.2
+                ancho = alto * t.width / t.height
+                lz.dibujar(t, sx - ancho / 2, sy - alto / 2, ancho, alto, alpha=int(255 * min(1.0, (1 - f) * 2.5)),
+                           color=p.color)
             elif p.tipo == TIPO_GOTA:
                 lado = max(1.0, p.tam * z)
                 lz.rect((sx, sy, lado, lado), p.color, 230)

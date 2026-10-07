@@ -5,6 +5,7 @@ import time
 
 import pygame
 
+from ...contenido import nombres
 from ...red import instantanea as I
 from .. import fuentes
 from ..graficos import iconos
@@ -202,8 +203,12 @@ class HUD:
             encima = caja.collidepoint(esc.ui.raton)
             lz.rect(caja, (226, 210, 176) if encima else (240, 230, 206))
             self._retrato(e, x + 2, y + 2, tam - 4)
-            vmax = est.stats_de(e.tipo).vida if e.dueno == est.yo else e.tipo.vida
+            ex = e.ex if isinstance(e.ex, dict) else {}
+            vmax = ex.get("vm") or (est.stats_de(e.tipo).vida if e.dueno == est.yo else e.tipo.vida)
             frac = max(0.0, min(1.0, e.vida / max(1, vmax)))
+            if ex.get("v"):
+                t = esc.vista.efx.t_galones[max(1, min(3, ex["v"])) - 1]
+                lz.dibujar(t, x + tam - 12, y + 2, 10, 10 * t.height / t.width, color=(214, 160, 40))
             lz.rect((x + 2, y + tam - 5, (tam - 4) * frac, 3),
                     (70, 200, 60) if frac > 0.6 else ((230, 200, 40) if frac > 0.3 else (220, 50, 40)))
             lz.marco(caja, (120, 90, 60), 1)
@@ -230,14 +235,23 @@ class HUD:
             return
         tipo = e.tipo
         fac = est.faccion(e.dueno)
+        ex = e.ex if isinstance(e.ex, dict) else {}
+        grado = ex.get("v", 0) if not tipo.es_edificio else 0
         self._retrato(e, r.x + 8, r.y + 8, 92)
         x = r.x + 110
         nombre = cat.nombre(fac.id, tipo.id)
         lz.texto(nombre, x, r.y + 4, fuentes.titulo(20), P.TINTA)
+        if grado:
+            # galones del veterano junto al nombre de la unidad
+            t = self.esc.vista.efx.t_galones[max(1, min(3, grado)) - 1]
+            ancho = 14
+            alto = ancho * t.height / t.width
+            lz.dibujar(t, x + lz.medir(nombre, fuentes.titulo(20))[0] + 8, r.y + 8, ancho, alto,
+                       color=(214, 160, 40))
         dueno = est.jugadores[e.dueno]["nombre"] if e.dueno >= 0 else ""
         lz.texto(dueno, r.right - 10, r.y + 8, fuentes.cursiva(15), color_jugador(est.jugadores[e.dueno]["color"]), "der")
-        st = est.stats_de(tipo) if e.dueno == est.yo else None
-        vmax = st.vida if st else tipo.vida
+        st = est.stats_de(tipo, grado) if e.dueno == est.yo else None
+        vmax = ex.get("vm") or (st.vida if st else tipo.vida)
         y = r.y + 34
         frac = max(0.0, min(1.0, e.vida / max(1, vmax)))
         lz.rect((x, y, 200, 12), (60, 40, 26))
@@ -245,8 +259,11 @@ class HUD:
                 (70, 170, 60) if frac > 0.6 else ((210, 180, 40) if frac > 0.3 else (200, 50, 40)))
         lz.texto(f"{max(0, e.vida)} / {vmax}", x + 208, y - 3, fuentes.negrita(15), P.TINTA)
         y += 20
-        ex = e.ex if isinstance(e.ex, dict) else {}
         self.cajas_guarnicion = []
+        max_lineas = 5
+        if not tipo.es_edificio and (grado or "x" in ex):
+            y = self._hoja_de_servicio(e, ex, grado, fac, x, y)
+            max_lineas = 3
         if tipo.es_edificio and tipo.guarnicion and not e.fl & I.F_OBRA:
             self._guarnicion(e, ex, r)
         if e.es_edificio and e.fl & I.F_OBRA:
@@ -288,11 +305,32 @@ class HUD:
             if pozo is not None:
                 lineas.append(f"Agua en el pozo: {pozo.vida} de {est.inicial.get(pozo.id, pozo.vida)}")
         f = fuentes.cuerpo(16)
-        for i, ln in enumerate(lineas[:5]):
+        for i, ln in enumerate(lineas[:max_lineas]):
             lz.texto(ln, x, y + i * 19, f, P.TINTA)
         if getattr(tipo, "heroe", False) and tipo.aura_efectos:
             lz.parrafo(tipo.descripcion, r.x + 8, r.bottom - 38, r.w - 16, fuentes.cursiva(14), P.TINTA_SUAVE,
                        max_lineas=2)
+
+    def _hoja_de_servicio(self, e, ex, grado, fac, x, y):
+        """Grado, nombre y cuerpo del veterano; para los propios, la experiencia hacia el próximo grado."""
+        lz = self.lz
+        cat = self.esc.est.cat
+        vet = cat.veterania
+        g = vet.grados[max(0, min(grado, vet.maximo))]
+        if grado:
+            quien = nombres.nombre(cat, fac.id, e.tipo, grado, ex.get("n", 0))
+            lz.texto(f"{g.nombre} · {quien}" if quien else g.nombre, x, y, fuentes.negrita(15), (126, 86, 18))
+        else:
+            lz.texto("Recluta", x, y, fuentes.negrita(15), P.TINTA_SUAVE)
+        y += 19
+        if "x" in ex and grado < vet.maximo:
+            frac = max(0.0, min(1.0, ex["x"] / 100))
+            lz.rect((x, y + 3, 150, 7), (60, 40, 26))
+            lz.rect((x + 1, y + 4, 148 * frac, 5), (214, 166, 48))
+            lz.texto(f"{ex['x']} % hacia {vet.grados[grado + 1].nombre}", x + 158, y - 2, fuentes.cuerpo(14),
+                     P.TINTA_SUAVE)
+            y += 18
+        return y
 
     def _guarnicion(self, e, ex, r):
         """Soldados guarnecidos: retrato, vida y (si son propios) clic para bajarlos."""

@@ -99,6 +99,13 @@ FRASES = {
     "atacar_heroina": [("¡Al ataque!", MUJER)],
     # --- faenas: recolectar, construir, reparar
     "trabajar": [("A la faena.", SOLDADO), ("Manos a la obra.", SOLDADO)],
+    # --- veteranía: ascensos, repliegue y veteranos heridos o caídos
+    "ascenso_1": [("¡Ya estamos fogueados, mi comandante!", SOLDADO), ("¡Bautizo de fuego cumplido!", SOLDADO)],
+    "ascenso_2": [("¡Ascendido a veterano, mi comandante!", SOLDADO), ("¡Somos veteranos de esta guerra!", SOLDADO)],
+    "ascenso_3": [("¡Aguerridos, mi comandante! ¡Nada nos detiene!", SOLDADO)],
+    "replegar": [("¡Repliegue al hospital!", SOLDADO), ("¡Heridos, a retaguardia!", SOLDADO)],
+    "herido_veterano": [("¡Camilleros! ¡Cayó herido un veterano!", OFICIAL)],
+    "veterano_caido": [("Perdimos a un veterano, mi comandante.", OFICIAL)],
     # --- avisos del cuartel general
     "obra": [("Obra terminada, mi comandante.", OFICIAL)],
     "investigado": [("Investigación completada.", OFICIAL)],

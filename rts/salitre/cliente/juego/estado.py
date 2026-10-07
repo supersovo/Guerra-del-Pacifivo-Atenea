@@ -80,6 +80,8 @@ class EstadoJuego:
         self.cambio_vision = True
         self._t_vision = 0.0
         self.stats = {}
+        self._stats_grado = {}
+        self._efectos = []
         self._recalcular_stats()
         # yacimientos conocidos desde el comienzo (los ids son los primeros, en el orden del mapa)
         ahora = time.monotonic()
@@ -116,7 +118,9 @@ class EstadoJuego:
         return self.cat.tipos[idx]
 
     def _recalcular_stats(self):
+        self._stats_grado = {}
         if self.espectador:
+            self._efectos = []
             return
         f = self.facciones[self.yo]
         efectos = list(f.efectos_iniciales())
@@ -124,9 +128,19 @@ class EstadoJuego:
             m = self.cat.mejoras.get(mid)
             if m:
                 efectos.extend(m.efectos)
+        self._efectos = efectos
         self.stats = mod_stats.tabla(self.cat, f, efectos)
 
-    def stats_de(self, tipo):
+    def stats_de(self, tipo, grado=0):
+        """Stats propios de un tipo; con grado, los de un veterano de ese grado (como en el servidor)."""
+        if grado and not tipo.es_edificio:
+            clave = (tipo.id, grado)
+            st = self._stats_grado.get(clave)
+            if st is None:
+                g = self.cat.veterania.grados[max(0, min(grado, self.cat.veterania.maximo))]
+                st = mod_stats.calcular(tipo, list(self._efectos) + list(g.efectos))
+                self._stats_grado[clave] = st
+            return st
         st = self.stats.get(tipo.id)
         if st is None:
             st = mod_stats.calcular(tipo, [])

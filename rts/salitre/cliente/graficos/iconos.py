@@ -74,6 +74,13 @@ def icono_orden(nombre):
     elif nombre == "emplazar":
         p.circ(16, 26, 7, MADERA, borde=2)
         p.linea(14, 22, 34, 12, (60, 64, 70), 4)
+    elif nombre == "replegar":
+        # cruz roja de la sanidad y una flecha de vuelta a retaguardia
+        p.rect(19, 6, 16, 16, (244, 242, 236), 2)
+        p.rect(25, 8, 4, 12, ROJO)
+        p.rect(21, 12, 12, 4, ROJO)
+        _flecha(p, 30, 32, 8, 32, TINTA, 2.6)
+        p.linea(8, 32, 8, 22, TINTA, 2.6)
     else:
         p.circ(20, 20, 10, TINTA, borde=2)
     return p.resultado()
@@ -159,6 +166,31 @@ def signo_peso(tam=22, color=(255, 255, 255), borde=(40, 26, 10)):
     for dx, dy in ((0, 1), (2, 1), (1, 0), (1, 2)):
         s.blit(fondo, (dx, dy))
     s.blit(letra, (1, 1))
+    return s
+
+
+def galones(n, estrella=False, escala=4):
+    """Galones de grado (n chevrones en V) en blanco con contorno oscuro, para teñir de dorado;
+    con estrella, el laurel del Aguerrido. Se dibujan a 'escala' y la GPU los reduce."""
+    k = escala
+    ancho = 11 * k
+    alto = (4 + 3 * n + (5 if estrella else 0)) * k
+    s = pygame.Surface((ancho, alto), pygame.SRCALPHA)
+    y = (5 if estrella else 0) * k
+    if estrella:
+        cx, cy, r = ancho / 2, 2.4 * k, 2.3 * k
+        puntas = []
+        for i in range(10):
+            a = -math.pi / 2 + i * math.pi / 5
+            rr = r if i % 2 == 0 else r * 0.45
+            puntas.append((cx + math.cos(a) * rr, cy + math.sin(a) * rr))
+        pygame.draw.polygon(s, (40, 26, 10), [(px, py + k * 0.5) for px, py in puntas])
+        pygame.draw.polygon(s, (255, 255, 255), puntas)
+    for i in range(n):
+        y0 = y + i * 3 * k + 1 * k
+        pts = [(1 * k, y0), (5.5 * k, y0 + 3 * k), (10 * k, y0)]
+        pygame.draw.lines(s, (40, 26, 10), False, pts, int(2.6 * k))
+        pygame.draw.lines(s, (255, 255, 255), False, pts, int(1.6 * k))
     return s
 
 

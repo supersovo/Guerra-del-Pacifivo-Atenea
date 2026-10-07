@@ -1,5 +1,25 @@
 {
  "_modelo": "Kokoro-82M v1.0 (Apache 2.0), voces em_alex, em_santa y ef_dora",
+ "ascenso_1_1.ogg": {
+  "texto": "¡Ya estamos fogueados, mi comandante!",
+  "voz": "em_alex"
+ },
+ "ascenso_1_2.ogg": {
+  "texto": "¡Bautizo de fuego cumplido!",
+  "voz": "em_alex"
+ },
+ "ascenso_2_1.ogg": {
+  "texto": "¡Ascendido a veterano, mi comandante!",
+  "voz": "em_alex"
+ },
+ "ascenso_2_2.ogg": {
+  "texto": "¡Somos veteranos de esta guerra!",
+  "voz": "em_alex"
+ },
+ "ascenso_3_1.ogg": {
+  "texto": "¡Aguerridos, mi comandante! ¡Nada nos detiene!",
+  "voz": "em_alex"
+ },
  "atacar_artilleria_1.ogg": {
   "texto": "¡Fuego!",
   "voz": "em_alex"
@@ -62,6 +82,10 @@
  },
  "falta_dinero_1.ogg": {
   "texto": "Falta dinero, mi comandante.",
+  "voz": "em_santa"
+ },
+ "herido_veterano_1.ogg": {
+  "texto": "¡Camilleros! ¡Cayó herido un veterano!",
   "voz": "em_santa"
  },
  "investigado_1.ogg": {
@@ -288,6 +312,14 @@
   "texto": "Un soldado vuelve a filas.",
   "voz": "em_santa"
  },
+ "replegar_1.ogg": {
+  "texto": "¡Repliegue al hospital!",
+  "voz": "em_alex"
+ },
+ "replegar_2.ogg": {
+  "texto": "¡Heridos, a retaguardia!",
+  "voz": "em_alex"
+ },
  "seleccion_artilleria_1.ogg": {
   "texto": "¡Artillería lista!",
   "voz": "em_alex"
@@ -363,6 +395,10 @@
  "trabajar_2.ogg": {
   "texto": "Manos a la obra.",
   "voz": "em_alex"
+ },
+ "veterano_caido_1.ogg": {
+  "texto": "Perdimos a un veterano, mi comandante.",
+  "voz": "em_santa"
  },
  "victoria_1.ogg": {
   "texto": "¡Victoria! ¡La jornada es nuestra!",

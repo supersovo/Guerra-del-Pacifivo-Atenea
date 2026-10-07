@@ -831,7 +831,13 @@ class Sprites:
         clave = ("herido", tipo.id, faccion.id, color_jugador, frame)
 
         def gen():
-            s = self.superficie(tipo, faccion, color_jugador, "lado", 4 if frame else 0)
+            forma = tipo.sprite.get("forma", "infante")
+            if FORMA_TAM.get(forma, "pie") == "montado":
+                # el jinete herido cae del caballo: queda a pie, con su uniforme
+                ropa = _uniforme_de_arma(_ropa(faccion.uniforme, color_jugador), forma, faccion.uniformes.get(forma))
+                s = figura("infante", ropa, "lado", 4 if frame else 0)
+            else:
+                s = self.superficie(tipo, faccion, color_jugador, "lado", 4 if frame else 0)
             return pygame.transform.rotate(s, 90)
         return self.lz.textura(clave, gen)
 
