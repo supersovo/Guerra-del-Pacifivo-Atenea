@@ -300,8 +300,10 @@ class HUD:
         if tipo.es_edificio and tipo.poblacion:
             lineas.append(f"Aloja {tipo.poblacion} de población")
         if tipo.es_edificio and tipo.camilleros:
-            lineas.append(f"Camilleros: {ex.get('cm', 0)} de {ex.get('ce', tipo.camilleros)}  ·  "
-                          f"pacientes: {len(ex.get('pc', []))}")
+            fuera = ex.get("cmc", 0)
+            lineas.append(f"Camilleros: {ex.get('cm', 0)} de {ex.get('ce', tipo.camilleros)}"
+                          + (f" ({fuera} en el campo)" if fuera else "")
+                          + f"  ·  pacientes: {len(ex.get('pc', []))}")
         if not tipo.es_edificio and getattr(tipo, "monta", None):
             pc = ex.get("pc", [])
             lineas.append(f"Convalecientes en el carro: {len(pc)}" if pc else

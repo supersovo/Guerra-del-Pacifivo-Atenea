@@ -14,7 +14,7 @@ evitarlo, descárguelo con PowerShell (tecla Windows → escriba *PowerShell* �
 Intro) y pegue:
 
 ```powershell
-curl.exe -L -o "$env:USERPROFILE\Downloads\GuerraDelPacifico-0.12.0-Instalador.exe" https://raw.githubusercontent.com/supersovo/Guerra-del-Pacifivo-Atenea/refs/heads/claude/friendly-keller-8ieqfo/rts/descargas/GuerraDelPacifico-0.12.0-Instalador.exe
+curl.exe -L -o "$env:USERPROFILE\Downloads\GuerraDelPacifico-0.12.1-Instalador.exe" https://raw.githubusercontent.com/supersovo/Guerra-del-Pacifivo-Atenea/refs/heads/claude/friendly-keller-8ieqfo/rts/descargas/GuerraDelPacifico-0.12.1-Instalador.exe
 ```
 
 El instalador queda en la carpeta *Descargas*. Si la rama ya se fusionó, cambie
@@ -34,8 +34,8 @@ Sirve para Mac con procesador Intel o Apple Silicon (M1 en adelante), con macOS
 ⌘ + espacio y escriba *Terminal*) y pegue:
 
 ```sh
-curl -L -o ~/Downloads/GuerraDelPacifico-0.12.0-macOS.dmg https://raw.githubusercontent.com/supersovo/Guerra-del-Pacifivo-Atenea/refs/heads/claude/friendly-keller-8ieqfo/rts/descargas/GuerraDelPacifico-0.12.0-macOS.dmg
-open ~/Downloads/GuerraDelPacifico-0.12.0-macOS.dmg
+curl -L -o ~/Downloads/GuerraDelPacifico-0.12.1-macOS.dmg https://raw.githubusercontent.com/supersovo/Guerra-del-Pacifivo-Atenea/refs/heads/claude/friendly-keller-8ieqfo/rts/descargas/GuerraDelPacifico-0.12.1-macOS.dmg
+open ~/Downloads/GuerraDelPacifico-0.12.1-macOS.dmg
 ```
 
 Se abre la imagen de disco: arrastre *Guerra del Pacífico* sobre *Aplicaciones*
@@ -62,6 +62,21 @@ encuentra las partidas de los compañeros y ellos pueden entrar a la suya.
 En Mac, ⌘ (Cmd) sirve igual que Ctrl. El servidor dedicado viene dentro de la
 aplicación y se usa desde la Terminal:
 `"/Applications/Guerra del Pacífico.app/Contents/MacOS/ServidorSalitre" --help`.
+
+## Novedades de la 0.12.1
+
+- **Los camilleros ya no se quedan quietos en el hospital**: no abandonan a
+  ningún herido. Recorren los caminos largos por tramos y rodean quebradas,
+  cerros y obras; si un paso queda cerrado, vuelven a intentarlo. Solo no van
+  por los heridos que cayeron en otra isla.
+- Un equipo solo cede un herido a otro equipo que pueda llegar a él (antes podía
+  cedérselo a uno del otro lado de un estrecho, y nadie iba).
+- Los equipos que esperan frente a una puerta tapada por otra obra se quedan lo
+  más cerca posible, sin buscar camino una y otra vez.
+- Todas las unidades se benefician: una orden de marcha muy larga ya no se
+  detiene a mitad de camino cuando la búsqueda se queda sin presupuesto.
+- La ficha del hospital muestra cuántos equipos andan **en el campo**.
+- Juega en red con la 0.12.0 (mismos datos y protocolo).
 
 ## Novedades de la 0.12.0
 

@@ -112,7 +112,12 @@ sin límite de distancia:
   pueden salvar;
 - llevan al herido al **hospital más cercano** (el de la retaguardia o el hospital
   de sangre de una ambulancia), donde se cura en 20 segundos y vuelve a filas con
-  la mitad de la vida; sin heridos, esperan en fila frente a la puerta del suyo.
+  la mitad de la vida; sin heridos, esperan en fila frente a la puerta del suyo;
+- nunca dan a un herido por perdido: si el camino es largo lo recorren por tramos
+  (y rodean quebradas y cerros), si un paso está cerrado lo sueltan y vuelven a
+  intentarlo, y solo no van por los heridos de otra isla (un equipo cede el herido
+  al equipo libre más cercano, pero solo a uno que pueda llegar a él). La ficha
+  del hospital cuenta los equipos que andan en el campo.
 
 Quien cae por artillería, dinamita o minas muere en el acto (y el cuerpo se
 despedaza). Así el hospital deja de ser solo el requisito de la cantinera:

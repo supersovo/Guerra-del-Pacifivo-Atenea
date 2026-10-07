@@ -112,6 +112,7 @@ def ir_a(m, u, x, y, cerca=0):
         u.ruta = []
         return 1
     if u.ruta_meta != (x, y):
+        u.tramo = None
         m.pedir_ruta(u, x, y)
         return 0
     if u.ruta_pend is not None:
@@ -120,7 +121,7 @@ def ir_a(m, u, x, y, cerca=0):
         lim = max(cerca, TILE // 2)
         if dx * dx + dy * dy <= lim * lim:
             return 1
-        return -1
+        return _tramo_siguiente(m, u, x, y)
     ruta = u.ruta
     if len(ruta) > 1:
         # Los puntos intermedios no hace falta pisarlos: si el siguiente ya se ve en
@@ -162,7 +163,7 @@ def ir_a(m, u, x, y, cerca=0):
                 lim = max(cerca, TILE // 2)
                 ex = x - u.x
                 ey = y - u.y
-                return 1 if ex * ex + ey * ey <= lim * lim else -1
+                return 1 if ex * ex + ey * ey <= lim * lim else _tramo_siguiente(m, u, x, y)
     else:
         u.atasco += 1
         if u.atasco % 12 == 0:
@@ -171,6 +172,34 @@ def ir_a(m, u, x, y, cerca=0):
             u.atasco = 0
             return -1
     return 0
+
+
+def _tramo_siguiente(m, u, x, y):
+    """El camino se acabó antes de la meta. Si la búsqueda agotó su presupuesto, el camino era
+    solo un tramo (hasta la casilla más cercana a la meta que alcanzó a ver): si la meta está en
+    la misma región se pide el tramo siguiente (el que sigue a uno que no acercó se busca con un
+    presupuesto amplio, una sola vez). Se desiste si no se puede llegar (otra isla, una meseta sin
+    rampa, una casilla ocupada) o si tras dos tramos más ya no se acerca."""
+    mapa = m.mapa
+    reg = mapa.region[u.capa]
+    i = mapa.idx_de(x, y)
+    j = mapa.idx_de(u.x, u.y)
+    if mapa.pasable[u.capa][i] and mapa.pasable[u.capa][j] and reg[i] == reg[j]:
+        d = isqrt((x - u.x) ** 2 + (y - u.y) ** 2)
+        mejor, sin_avance = u.tramo if u.tramo is not None else (d + TILE + 1, 0)
+        # avanzar es quedar al menos una casilla más cerca que en el mejor tramo anterior
+        sin_avance = 0 if d < mejor - TILE else sin_avance + 1
+        if sin_avance <= 2:
+            u.tramo = (min(d, mejor), sin_avance)
+            m.pedir_ruta(u, x, y)
+            return 0
+    u.tramo = None
+    return -1
+
+
+def region_de(m, capa, x, y):
+    """Región del terreno fijo en el punto (0 en roca, agua o cualquier casilla no pisable)."""
+    return m.mapa.region[capa][m.mapa.idx_de(x, y)]
 
 
 def punto_acceso(m, u, tx, ty, w, h):
@@ -1020,7 +1049,8 @@ def _herido_libre(m, h, u):
 
 
 def _equipos_libres(m, u):
-    """Los demás equipos de camilleros del bando que no llevan ni van a buscar a nadie."""
+    """Los demás equipos de camilleros del bando que no llevan ni van a buscar a nadie, con la
+    región del mapa en que están (solo pueden ir por los heridos de su región)."""
     out = []
     for c in m.unidades.values():
         if c is u or not c.vivo or c.dueno != u.dueno or not c.tipo.autonomo or c.paciente:
@@ -1029,9 +1059,9 @@ def _equipos_libres(m, u):
         if h is not None and h.vivo and h.es_herido:
             continue
         b = m.ent.get(c.base_id) if c.base_id else None
-        if b is not None and b.es_edificio and b.desmontando:
-            continue        # vuelven a subir al carro de la ambulancia
-        out.append(c)
+        if b is None or not b.vivo or not b.es_edificio or b.desmontando:
+            continue        # sin hospital no salen; si se desmonta, vuelven a subir al carro
+        out.append((c, region_de(m, c.capa, c.x, c.y)))
     return out
 
 
@@ -1044,17 +1074,25 @@ def _a_tiempo(m, u, h):
 def _buscar_caido(m, u):
     """El herido propio que conviene ir a buscar, esté donde esté: primero los que se alcanza a
     salvar antes de que mueran (y entre ellos los veteranos de más grado); si no queda ninguno a
-    tiempo, igual se va por el más cercano. Cada herido es del equipo libre que tiene más cerca."""
+    tiempo, igual se va por el más cercano. Cada herido es del equipo libre que tiene más cerca
+    entre los que pueden llegar a él (los de su misma región del mapa)."""
     libres = None
     mejor = None
     mejor_k = None
+    region = region_de(m, u.capa, u.x, u.y)
+    descarte = u.descarte[0] if u.descarte is not None and u.descarte[1] > m.tick else 0
     for h in m.heridos.values():
-        if not h.vivo or h.dueno != u.dueno or h.camillero < 0 or not _herido_libre(m, h, u):
+        if not h.vivo or h.dueno != u.dueno or h.camillero < 0 or h.id == descarte \
+                or not _herido_libre(m, h, u):
             continue
+        rh = region_de(m, u.capa, h.x, h.y)
+        if rh and region and rh != region:
+            continue        # en otra isla o detrás de una quebrada sin paso: no se llega
         d2 = (h.x - u.x) ** 2 + (h.y - u.y) ** 2
         if libres is None:
             libres = _equipos_libres(m, u)
-        if any(((h.x - c.x) ** 2 + (h.y - c.y) ** 2, c.id) < (d2, u.id) for c in libres):
+        if any(((h.x - c.x) ** 2 + (h.y - c.y) ** 2, c.id) < (d2, u.id)
+               for c, rc in libres if not rh or not rc or rc == rh):
             continue
         grado = h.hoja[1] if h.hoja else 0
         k = (0 if _a_tiempo(m, u, h) else 1, -grado, d2, h.id)
@@ -1064,19 +1102,21 @@ def _buscar_caido(m, u):
 
 
 def _esperar_en_puerta(m, u, hosp):
-    """Sin heridos que recoger, los equipos esperan en fila frente a la puerta, cada uno en su lugar."""
+    """Sin heridos que recoger, los equipos esperan en fila frente a la puerta, cada uno en su
+    lugar; si ese lugar no se puede pisar, se quedan lo más cerca posible sin volver a buscar camino."""
     n = max(2, len(hosp.camilleros))
     k = hosp.camilleros.index(u.id) if u.id in hosp.camilleros else u.id % n
     paso = min(TILE, hosp.w * TILE // n)
     ex = hosp.x - (n - 1) * paso // 2 + k * paso
     ey = hosp.y + hosp.h * TILE // 2 + TILE
-    if (u.x - ex) ** 2 + (u.y - ey) ** 2 > (TILE // 6) ** 2:
-        if ir_a(m, u, ex, ey, cerca=TILE // 8) == -1:
-            u.ruta = []
-            u.ruta_meta = None
-    else:
+    if u.puesto == (ex, ey):
+        u.ruta = []
+        return
+    if (u.x - ex) ** 2 + (u.y - ey) ** 2 <= (TILE // 6) ** 2 or ir_a(m, u, ex, ey, cerca=TILE // 8) != 0:
+        u.puesto = (ex, ey)         # llegó (o es lo más cerca que se puede llegar)
         u.ruta = []
         u.ruta_meta = None
+        u.tramo = None
 
 
 def camilleros(m, u):
@@ -1090,6 +1130,7 @@ def camilleros(m, u):
         u.ruta_meta = None
         return
     if u.paciente:
+        u.puesto = None
         dest = hospital_cercano(m, u.dueno, u.x, u.y) or hosp
         r = acercarse_rect(m, u, dest)
         if r == 1:
@@ -1123,7 +1164,8 @@ def camilleros(m, u):
             _esperar_en_puerta(m, u, hosp)
             return
         h.camillero = u.id
-    r = ir_a(m, u, h.x, h.y, cerca=TILE // 2)
+        u.puesto = None
+    r = ir_a(m, u, h.x, h.y, cerca=TILE * 3 // 4)
     if r == 1:
         u.paciente = h.tipo.id
         u.paciente_hoja = h.hoja
@@ -1134,8 +1176,14 @@ def camilleros(m, u):
         u.ruta = []
         u.ruta_meta = None
     elif r == -1:
-        h.camillero = -1        # no se llega hasta él (otra isla, quebrada): nadie más lo intenta
+        # no llegaron (un atasco o un paso cerrado por obras): lo sueltan para que otro equipo, o
+        # ellos mismos más tarde, vuelvan a intentarlo; nunca se lo da por perdido
+        if h.camillero == u.id:
+            h.camillero = 0
+        u.descarte = (h.id, m.tick + 6 * TICKS)
         u.objetivo = 0
+        u.ruta = []
+        u.ruta_meta = None
 
 
 def _curar_en_marcha(m, u):

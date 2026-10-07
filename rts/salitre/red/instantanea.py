@@ -125,6 +125,9 @@ def registro(m, e, propio, t, detectado=False):
             if e.tipo.camilleros:
                 ex["cm"] = len(e.camilleros)
                 ex["ce"] = e.tipo.camilleros + m.jugadores[e.dueno].sanidad["equipos"]
+                # equipos que andan en el campo: van por un herido o lo traen en la camilla
+                ex["cmc"] = sum(1 for i in e.camilleros
+                                if (c := m.ent.get(i)) is not None and (c.paciente or c.objetivo))
                 if e.pacientes:
                     ex["pc"] = _pacientes(m, e.pacientes, e.tipo.recuperacion)
             if e.cd:

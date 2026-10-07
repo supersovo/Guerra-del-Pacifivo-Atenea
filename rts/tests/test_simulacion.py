@@ -286,6 +286,8 @@ def test_heridos_camilleros_y_hospital():
     h = next(iter(m.heridos.values()))
     van = [c for c in cam if c.objetivo == h.id]
     assert len(van) == 1 and h.camillero == van[0].id
+    from salitre.red import instantanea as I
+    assert I.registro(m, hosp, True, m.tick)[8]["cmc"] == 1          # la ficha: «1 en el campo»
     for _ in range(90 * S):         # unos 30 s de ida, 30 de vuelta y 20 de cura
         m.paso()
         if j.est["heridos_recuperados"] == 2:
@@ -417,6 +419,100 @@ def test_veterano_herido_conserva_el_grado():
     U.avanzar(m, 65 * S)
     assert j.est["veteranos_caidos"] == 1
     assert [c["tipo"] for c in m.caidos_de(0)] == ["granadero"]
+
+
+def _muro(d, x=32, hasta=56):
+    """Un muro de roca de norte a sur, con paso solo al fondo del mapa."""
+    filas = [list(f) for f in d["terreno"]]
+    for y in range(hasta):
+        filas[y][x] = "#"
+    d["terreno"] = ["".join(f) for f in filas]
+
+
+def test_camino_por_tramos_rodea_un_muro(monkeypatch):
+    """Si la búsqueda agota su presupuesto (hay mucho tráfico o el rodeo es largo), el camino es
+    solo un tramo: al terminarlo la unidad pide el siguiente y sigue hasta la meta."""
+    from salitre.sim import mundo as mod_mundo
+    monkeypatch.setattr(mod_mundo, "PRESUPUESTO_RUTAS", 300)       # cada búsqueda llega a 500 nodos
+    m = U.mundo(mapa=U.mapa_llano(64, 64, extra=_muro))
+    u = _unidad(m, 0, "infante", 20, 10)
+    m.comando(0, {"c": "mover", "u": [u.id], "x": U.px(44 * TILE + TILE // 2), "y": U.px(10 * TILE + TILE // 2)})
+    for _ in range(150 * S):
+        m.paso()
+        if (u.x // TILE, u.y // TILE) == (44, 10):
+            break
+    assert (u.x // TILE, u.y // TILE) == (44, 10)
+
+
+def test_camilleros_rodean_el_muro_y_no_abandonan_al_herido(monkeypatch):
+    from salitre.sim import mundo as mod_mundo
+    monkeypatch.setattr(mod_mundo, "PRESUPUESTO_RUTAS", 300)
+    m = U.mundo(mapa=U.mapa_llano(64, 64, extra=_muro))
+    j = m.jugadores[0]
+    m.crear_edificio(0, "hospital_campana", 14, 20, construido=True)
+    U.avanzar(m, 14 * S)
+    caido = _unidad(m, 0, "infante", 44, 12)
+    m.matar(caido, 0, 1)
+    h = next(iter(m.heridos.values()))
+    h.hasta = m.tick + 200 * S              # que aguante el rodeo: aquí importa que no lo abandonen
+    recogido = False
+    for _ in range(190 * S):
+        m.paso()
+        assert h.camillero >= 0             # nunca se lo da por perdido
+        if any(ev[0] == "recogido" and ev[1] == h.id for _d, ev in m.eventos):
+            recogido = True
+            break
+    assert recogido
+    for _ in range(150 * S):
+        m.paso()
+        if j.est["heridos_recuperados"]:
+            break
+    assert j.est["heridos_recuperados"] == 1
+
+
+def test_camilleros_de_otra_isla_no_le_quitan_el_herido_a_los_que_pueden_llegar():
+    def estrecho(d):
+        filas = [list(f) for f in d["terreno"]]
+        for f in filas:
+            for x in range(30, 34):
+                f[x] = "~"
+        d["terreno"] = ["".join(f) for f in filas]
+    m = U.mundo(mapa=U.mapa_llano(64, 64, extra=estrecho))
+    izq = m.crear_edificio(0, "hospital_campana", 10, 20, construido=True)
+    der = m.crear_edificio(0, "hospital_campana", 40, 20, construido=True)
+    U.avanzar(m, 14 * S)
+    caido = _unidad(m, 0, "infante", 28, 24)       # en la isla de la izquierda, junto al estrecho
+    m.matar(caido, 0, 1)
+    h = next(iter(m.heridos.values()))
+    cerca = min((c for c in U.de(m, 0, "camilleros")), key=lambda c: (c.x - h.x) ** 2 + (c.y - h.y) ** 2)
+    assert cerca.base_id == der.id                 # en línea recta, el más cercano es de la otra isla
+    U.avanzar(m, 8)
+    assert m.ent[h.camillero].base_id == izq.id
+    assert not any(c.objetivo == h.id for c in U.de(m, 0, "camilleros") if c.base_id == der.id)
+    for _ in range(40 * S):
+        m.paso()
+        if any(ev[0] == "recogido" and ev[1] == h.id for _d, ev in m.eventos):
+            break
+    assert not h.vivo and h.id not in m.heridos
+
+
+def test_camilleros_esperan_sin_buscar_camino_si_su_lugar_esta_ocupado():
+    m = U.mundo()
+    hosp = m.crear_edificio(0, "hospital_campana", 14, 20, construido=True)
+    m.crear_edificio(0, "deposito", 13, 23, construido=True)     # tapa la fila de la puerta
+    pedidos = []
+    original = m.pedir_ruta
+
+    def contar(u, x, y):
+        if u.tipo.autonomo:
+            pedidos.append(m.tick)
+        return original(u, x, y)
+    m.pedir_ruta = contar
+    U.avanzar(m, 20 * S)
+    assert len(hosp.camilleros) == 4
+    antes = len(pedidos)
+    U.avanzar(m, 10 * S)
+    assert len(pedidos) - antes <= 2          # ya están en su lugar (o lo más cerca que se puede)
 
 
 def test_ambulancia_monta_y_desmonta_el_hospital_de_sangre():

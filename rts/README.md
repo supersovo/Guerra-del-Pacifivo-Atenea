@@ -181,6 +181,10 @@ uno para que baje) y el botón «Salir de la trinchera» o «Desalojar».
   el hospital se ve la cruz verde). Al que está demasiado lejos igual lo van a
   buscar, pero puede desangrarse antes de que lleguen: para eso está la
   ambulancia. Los equipos caídos se reponen a los 30 segundos.
+- Los camilleros **no abandonan a ningún herido**: rodean quebradas, cerros y
+  obras por largo que sea el camino, y si un paso queda cerrado vuelven a
+  intentarlo. Solo no van por los que cayeron en otra isla. La ficha del
+  hospital muestra cuántos equipos andan **en el campo**.
 - Las bajas dejan **sangre** en el terreno; las causadas por **artillería,
   dinamita o minas despedazan** el cuerpo. Se puede desactivar en Opciones
   («Sangre en las bajas»).

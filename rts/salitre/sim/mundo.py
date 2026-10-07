@@ -32,6 +32,7 @@ from .ruta import calcular as calcular_ruta
 from ..contenido.mapas import TAM_RECURSO
 
 PRESUPUESTO_RUTAS = 12000
+PRESUPUESTO_RODEO = 16000        # una vez por destino, tras un tramo que no avanzó (rodear un obstáculo)
 DEST_TODOS = -1
 DEST_POS = 1000
 LLEGADA = TICKS * 10          # todos los cuarteles generales llegan a la vez, a los 10 s
@@ -987,8 +988,13 @@ class Mundo:
                 continue
             x, y = u.ruta_pend
             antes = self.buscador.expandidos
-            u.ruta = calcular_ruta(self.mapa, self.buscador, u.capa, u.x, u.y, x, y,
-                                   min(4000, max(500, presupuesto)))
+            if u.tramo is not None and u.tramo[1] == 1:
+                # el tramo anterior no acercó a la unidad (un obstáculo cóncavo atrapó la búsqueda):
+                # esta vez se busca con un presupuesto que alcanza para rodear cualquier obstáculo
+                limite = PRESUPUESTO_RODEO
+            else:
+                limite = min(4000, max(500, presupuesto))
+            u.ruta = calcular_ruta(self.mapa, self.buscador, u.capa, u.x, u.y, x, y, limite)
             u.ruta_pend = None
             presupuesto -= (self.buscador.expandidos - antes) + 25
         self.cola_rutas = cola[i:]

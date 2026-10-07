@@ -63,7 +63,7 @@ class Unidad(Entidad):
         "casa_x", "casa_y", "cd", "regen", "acum", "oculta", "ataco_t", "golpeado_por",
         "golpeado_t", "fantasma", "recurso_id", "moviendo", "disparo_t", "espera", "creada_t",
         "buscar_t", "ultimo_x", "ultimo_y", "base_id", "paciente", "paciente_hoja", "pacientes",
-        "xp", "grado", "nombre", "ficha", "batallas",
+        "xp", "grado", "nombre", "ficha", "batallas", "tramo", "puesto", "descarte",
     )
     es_unidad = True
 
@@ -124,6 +124,9 @@ class Unidad(Entidad):
         self.paciente = None     # camilleros: tipo del herido que llevan en la camilla
         self.paciente_hoja = None
         self.pacientes = []      # ambulancia: convalecientes que viajan en el carro (como en el hospital)
+        self.tramo = None        # camino por tramos: (menor distancia a la meta², tramos sin avanzar)
+        self.puesto = None       # camilleros: el lugar frente a la puerta donde ya esperan
+        self.descarte = None     # camilleros: (herido al que no pudieron llegar, hasta qué tick no reintentar)
         # veteranía: experiencia (en 1/XPF), grado, nombre (semilla, 0 = sin nombre todavía),
         # ficha del escalafón de la campaña y batallas en que estuvo
         self.xp = 0

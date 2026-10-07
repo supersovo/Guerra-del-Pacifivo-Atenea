@@ -69,8 +69,12 @@ sus unidades del campo y guarda las fichas de sus veteranos.
 Los camilleros (`comportamiento.camilleros`) no tienen límite de distancia: cada
 4 ticks un equipo libre busca entre todos los heridos de su bando el que le
 conviene (primero los que alcanza antes de `hasta`, después el más cercano) y
-deja el herido al equipo libre que lo tenga más cerca; el herido va al hospital
-más cercano (`hospital_cercano`). Los pacientes de un hospital y los de una
+deja el herido al equipo libre que lo tenga más cerca entre los de su misma
+región del mapa; el herido va al hospital más cercano (`hospital_cercano`). Un
+herido nunca queda descartado: si el equipo no llega (un atasco, un paso cerrado
+por obras) lo suelta y no vuelve a intentarlo con ese mismo herido durante 6 s
+(`descarte`). Los equipos que esperan se asientan en su lugar frente a la puerta
+(`puesto`) sin volver a pedir camino. Los pacientes de un hospital y los de una
 ambulancia los atiende el mismo `Mundo.atender_pacientes`.
 
 La ambulancia es una unidad con `"monta"` y el hospital de sangre un edificio con
@@ -93,6 +97,13 @@ del carro a las carpas y de vuelta con esos eventos.
   a una isla inalcanzable se resuelve sin buscar.
 - Un grupo comparte el camino del primero y avanza en formación; cada unidad salta
   los puntos intermedios que ya ve, y si no progresa vuelve a calcular.
+- **Caminos por tramos**: si la búsqueda agota su presupuesto, el camino llega
+  hasta la casilla más cercana a la meta que alcanzó a ver; al terminarlo la
+  unidad pide el tramo siguiente (`comportamiento._tramo_siguiente`) mientras la
+  meta esté en su misma región. Si un tramo no la acercó al menos una casilla (un
+  obstáculo cóncavo atrapó la búsqueda), el siguiente se busca una sola vez con un
+  presupuesto amplio (`PRESUPUESTO_RODEO`); tras dos tramos más sin avance,
+  desiste (la meta quedó encerrada por obras).
 - Dos capas de movimiento: **tierra** y **agua**. En tierra solo se pasa entre
   casillas del mismo nivel o por una **rampa**.
 
