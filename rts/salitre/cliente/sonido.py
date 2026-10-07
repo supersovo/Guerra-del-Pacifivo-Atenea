@@ -1,8 +1,14 @@
-"""Sonido sintetizado: fusilería, cañones, ametralladora, explosiones, corneta.
+"""Sonido sintetizado: fusilería, cañones, ametralladora, explosiones, corneta;
+y las voces de la tropa.
 
-No se usan grabaciones: cada efecto se genera al iniciar a partir de ruido y
-osciladores (como en el FPS del proyecto). Si en recursos/sonidos/ hay un .wav
+Los efectos no son grabaciones: cada uno se genera al iniciar a partir de ruido
+y osciladores (como en el FPS del proyecto). Si en recursos/sonidos/ hay un .wav
 o .ogg con el mismo nombre que un efecto, se usa ese archivo en su lugar.
+
+Las voces (recursos/sonidos/voces/<clave>_<n>.ogg, hechas con
+herramientas/generar_voces.py) se cargan la primera vez que se dicen y suenan
+por un canal propio, de a una: la tropa no se pisa al hablar. Con las voces
+desactivadas en las opciones vuelven los toques de corneta.
 Si el equipo no tiene audio, todo queda en silencio sin errores.
 """
 
@@ -158,18 +164,31 @@ class Sonido:
     def __init__(self, config):
         self.ok = False
         self.vol = 0.7
+        self.config = config
         self.efectos = {}
         self.ultimo = {}
+        self.voces = {}             # clave -> rutas de sus variantes
+        self._voz_cargada = {}      # ruta -> Sound (se cargan al decirlas por primera vez)
+        self._ultima_voz = {}       # clave -> última variante dicha (para no repetirla)
+        self.canal_voz = None
+        self._prioridad_voz = 0
+        self._pendiente = None      # aviso que espera turno: (ruta, prioridad, vence en ms)
         if config is not None:
             self.vol = float(config["volumen_efectos"])
         try:
             if not pygame.mixer.get_init():
                 pygame.mixer.init(FREC, -16, 2, 512)
             pygame.mixer.set_num_channels(32)
+            pygame.mixer.set_reserved(1)
+            # el canal 0 queda para las voces y los efectos usan los demás (find_channel()
+            # no respeta los canales reservados, por eso se eligen aquí)
+            self.canal_voz = pygame.mixer.Channel(0)
+            self._canales = [pygame.mixer.Channel(i) for i in range(1, pygame.mixer.get_num_channels())]
             self.ok = True
         except pygame.error:
             self.ok = False
             return
+        self._indexar_voces()
         rnd = random.Random(1879)
         gen = {
             "fusil": sint_fusil, "canon": sint_canon, "explosion": sint_explosion, "gatling": sint_gatling,
@@ -181,6 +200,69 @@ class Sonido:
             self.efectos["toque_" + nombre] = self._cargar("toque_" + nombre) or _a_sonido(sint_corneta(rnd, notas), 0.6)
         global _instancia
         _instancia = self
+
+    def _indexar_voces(self):
+        carpeta = rutas.dir_recursos() / "sonidos" / "voces"
+        if not carpeta.is_dir():
+            return
+        for ruta in sorted(carpeta.iterdir()):
+            if ruta.suffix.lower() in (".ogg", ".wav"):
+                clave, _, n = ruta.stem.rpartition("_")
+                if clave and n.isdigit():
+                    self.voces.setdefault(clave, []).append(ruta)
+
+    @property
+    def voces_activas(self):
+        try:
+            return bool(self.config["voces"]) if self.config is not None else True
+        except (KeyError, TypeError):
+            return True
+
+    def voz(self, claves, prioridad=1):
+        """Dice una frase de la tropa: la primera de las claves que tenga voces (una variante al azar).
+
+        Prioridades: 0 al seleccionar, 1 al dar una orden, 2 para los avisos (unidad lista,
+        obra terminada...) y 3 para las alarmas (¡bajo ataque!, victoria). Una voz más
+        importante corta a la que suena; una de igual o menor importancia se descarta,
+        salvo los avisos, que esperan su turno unos segundos. Devuelve False si no hay voz
+        (desactivadas o sin archivos), para que suene el toque de corneta en su lugar."""
+        if not self.ok or self.vol <= 0 or not self.voces_activas:
+            return False
+        if isinstance(claves, str):
+            claves = (claves,)
+        clave = next((c for c in claves if self.voces.get(c)), None)
+        if clave is None:
+            return False
+        variantes = self.voces[clave]
+        ruta = random.choice([r for r in variantes if r != self._ultima_voz.get(clave)] or variantes)
+        self._ultima_voz[clave] = ruta
+        if self.canal_voz.get_busy() and prioridad <= self._prioridad_voz:
+            if prioridad >= 2:
+                self._pendiente = (ruta, prioridad, pygame.time.get_ticks() + 4000)
+            return True
+        self._decir(ruta, prioridad)
+        return True
+
+    def _decir(self, ruta, prioridad):
+        s = self._voz_cargada.get(ruta)
+        if s is None:
+            try:
+                s = pygame.mixer.Sound(str(ruta))
+            except pygame.error:
+                return
+            self._voz_cargada[ruta] = s
+        self.canal_voz.set_volume(min(1.0, self.vol * 1.15))
+        self.canal_voz.play(s)
+        self._prioridad_voz = prioridad
+
+    def actualizar(self):
+        """Da la palabra al aviso que esperaba turno (una vez por cuadro)."""
+        if self._pendiente is None or self.canal_voz is None or self.canal_voz.get_busy():
+            return
+        ruta, prioridad, vence = self._pendiente
+        self._pendiente = None
+        if pygame.time.get_ticks() <= vence:
+            self._decir(ruta, prioridad)
 
     def _cargar(self, nombre):
         for ext in (".ogg", ".wav"):
@@ -202,7 +284,7 @@ class Sonido:
         if ahora - self.ultimo.get(nombre, -9999) < minimo_ms:
             return
         self.ultimo[nombre] = ahora
-        canal = pygame.mixer.find_channel()
+        canal = next((c for c in self._canales if not c.get_busy()), None)
         if canal is None:
             return
         v = max(0.0, min(1.0, volumen * self.vol))

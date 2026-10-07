@@ -33,6 +33,17 @@ DOBLE_CLIC = 0.35
 MARGEN_BORDE = 6
 
 
+def grupo_voz(tipo):
+    """Qué voces le tocan a una unidad al seleccionarla o al darle una orden."""
+    if tipo.id in ("trabajador", "cantinera", "espia"):
+        return tipo.id
+    if tipo.sprite.get("forma") == "heroina":
+        return "heroina"
+    if tipo.clase in ("caballeria", "artilleria", "naval"):
+        return tipo.clase
+    return "infanteria"
+
+
 class _Origen:
     """Punto de donde sale un disparo cuando el tirador no está a la vista (guarnecido)."""
     __slots__ = ("x", "y", "ultimo_disparo")
@@ -124,6 +135,7 @@ class Juego(Escena):
         for ev in est.tomar_eventos():
             self._evento(ev)
         self.vista.efx.actualizar(dt)
+        sonido().actualizar()
         self.seleccion = [i for i in self.seleccion if i in est.ents and not est.ents[i].fantasma]
         self.botones = tarjeta(est, self.seleccion, self.submenu) if not est.espectador else []
         if self.submenu and not any(b for b in self.botones):
@@ -251,6 +263,7 @@ class Juego(Escena):
                     efx.polvo_obra(o.x + (kk % 4 - 1.5) * 26, o.y + (kk // 4 - 1) * 18)
                 if o.dueno == est.yo:
                     self.hud.mensaje("¡Llegó el cuartel general! Los trabajadores salen a la faena.", P.CREMA, 6)
+                    snd.voz("llegada", 2)
             snd.en_mapa("silbato" if ev[4] == "tren" else "martillo", o.x if o else 0, o.y if o else 0, cam,
                         minimo_ms=400, volumen=0.8)
         elif k == "recuperado":
@@ -261,6 +274,7 @@ class Juego(Escena):
                 if o.dueno == est.yo:
                     self.hud.mensaje(f"Vuelve a filas, curado en el hospital: {self._nombre(est.yo, ev[4])}",
                                      (150, 220, 140), 4)
+                    snd.voz("recuperado", 0)
         elif k == "carga":
             o = est.ents.get(ev[2])
             if o is not None:
@@ -286,26 +300,35 @@ class Juego(Escena):
                 snd.en_mapa("martillo", o.x, o.y, cam, minimo_ms=300, volumen=0.5)
         elif k == "fin_obra":
             self.hud.mensaje(f"Obra terminada: {self._nombre(est.yo, ev[3])}", P.BRONCE_CLARO)
-            snd.toque("obra")
+            if not snd.voz("obra", 2):
+                snd.toque("obra")
         elif k == "lista":
+            # la unidad recién formada se presenta con su voz (o, sin voces, el toque de corneta)
             self.hud.mensaje(f"Lista: {self._nombre(est.yo, ev[3])}", P.CREMA, 4)
-            snd.toque("lista")
+            tipo = est.tipo_por_idx(ev[3])
+            if tipo is None or not snd.voz(["lista_" + tipo.id, "lista"], 2):
+                snd.toque("lista")
         elif k == "investigado":
             m = list(est.cat.mejoras.values())[ev[2]]
             self.hud.mensaje(f"Investigación completa: {m.nombre}", P.BRONCE_CLARO)
-            snd.toque("investigado")
+            if not snd.voz("investigado", 2):
+                snd.toque("investigado")
         elif k == "pob":
             self.hud.mensaje("Hace falta otro Depósito de Intendencia para mantener más tropa.", (240, 180, 90))
+            snd.voz("pob", 2)
         elif k == "ata":
             x, y = ev[2], ev[3]
             self.ultimo_aviso = (x, y)
             self.hud.ping(x, y)
             txt = "¡Atacan a nuestros trabajadores!" if ev[4] else "¡Nuestras tropas están bajo ataque!"
             self.hud.mensaje(txt + " (Espacio para ir)", (240, 110, 90))
-            snd.toque("ataque")
+            if not snd.voz("ataque_trabajadores" if ev[4] else "ataque_tropas", 3):
+                snd.toque("ataque")
         elif k == "err":
             self.hud.mensaje(ev[2], (240, 110, 90), 4)
-            snd.ui("clic")
+            falta = ev[2].startswith("Falta")
+            if not (falta and snd.voz("falta_agua" if ev[2].startswith("Falta agua") else "falta_dinero", 2)):
+                snd.ui("clic")
         elif k == "revela":
             est.revelar(ev[2], ev[3], ev[4])
             self.hud.ping(ev[2], ev[3], (90, 160, 240))
@@ -367,9 +390,11 @@ class Juego(Escena):
         elif m["ganador"] == mi_equipo:
             titulo = "¡Victoria!"
             sonido().toque("victoria")
+            sonido().voz("victoria", 3)
         else:
             titulo = "Derrota"
             sonido().toque("derrota")
+            sonido().voz("derrota", 3)
         self.fin_titulo = titulo
         lz = self.lz
         self.widgets = [Boton((lz.W // 2 - 110, lz.H // 2 + 50, 220, 44), "Ver el parte de guerra",
@@ -444,6 +469,10 @@ class Juego(Escena):
         px, py = int(mx), int(my)
         t = ent.id if ent is not None else None
         color = (90, 230, 90)
+        momento = {"mover": "mover", "patrullar": "mover", "descargar": "mover", "atacar": "atacar",
+                   "recolectar": "trabajar", "reparar": "trabajar"}.get(dato)
+        if momento is not None and unidades:
+            self._voz_de_tropa(momento, unidades)
         if dato == "mover":
             self.enviar({"c": "mover", "u": unidades, "x": px, "y": py, "cola": cola})
         elif dato == "atacar":
@@ -478,11 +507,16 @@ class Juego(Escena):
         if unidades:
             cmd = {"c": "inteligente", "u": unidades, "x": int(mx), "y": int(my), "cola": cola}
             color = (90, 230, 90)
+            momento = "mover"
             if ent is not None and (not ent.fantasma or ent.es_recurso or ent.es_edificio):
                 cmd["t"] = ent.id
                 if not est.aliado(ent.dueno) and not ent.es_recurso:
                     color = (230, 70, 60)
+                    momento = "atacar"
+                elif ent.es_recurso or ent.es_edificio:
+                    momento = "trabajar"
             self.enviar(cmd)
+            self._voz_de_tropa(momento, unidades)
             self.marcas_orden.append((mx, my, color, time.monotonic() + 0.6))
             sonido().ui("clic")
         elif edificios:
@@ -541,6 +575,25 @@ class Juego(Escena):
             self.seleccion = list(ids)
         self.submenu = None
         self.modo = None
+        if ids:
+            self._voz_de_tropa("seleccion", self.seleccion)
+
+    def _voz_de_tropa(self, momento, ids):
+        """Responde la tropa propia: momento es "seleccion", "mover", "atacar" o "trabajar".
+
+        Habla el grupo más numeroso (infantería, caballería, artillería, buques,
+        trabajadores...). Fuera de los trabajadores, una faena es una marcha."""
+        est = self.est
+        grupos = [grupo_voz(est.ents[i].tipo) for i in ids
+                  if i in est.ents and est.propio(est.ents[i]) and est.ents[i].es_unidad]
+        if not grupos:
+            return
+        g = max(dict.fromkeys(grupos), key=grupos.count)
+        if momento == "trabajar":
+            claves = ["trabajar"] if g == "trabajador" else ["mover_" + g]
+        else:
+            claves = [momento + "_" + g]
+        sonido().voz(claves, 0 if momento == "seleccion" else 1)
 
     def _seleccion_caja(self, x0, y0, x1, y1, agregar):
         est = self.est
@@ -824,6 +877,7 @@ class Juego(Escena):
                     self.enviar({"c": "construir", "u": self._ids_unidades_propias(), "e": self.modo[2],
                                  "tx": lugar[0], "ty": lugar[1], "cola": cola})
                     sonido().ui("clic")
+                    self._voz_de_tropa("trabajar", self._ids_unidades_propias())
                     if not cola:
                         self.modo = None
                         self.submenu = None

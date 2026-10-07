@@ -342,6 +342,80 @@ def test_uniformes_distintos_por_arma(app):
     assert distintos(pixeles("infante", vista="frente"), pixeles("zapador", vista="frente")) > 0.25
 
 
+def test_voces_de_la_tropa(app, monkeypatch):
+    """Cada unidad que se forma tiene su voz, toda la tropa responde al seleccionarla y al
+    recibir órdenes, las voces no se pisan y, desactivadas, vuelven los toques de corneta."""
+    from salitre.cliente.escenas.juego import grupo_voz
+    from salitre.cliente.juego.estado import Ent
+    from salitre.cliente.sonido import sonido
+    snd = sonido()
+    assert snd is app.sonido
+    for t in app.cat.unidades.values():
+        if t.produce_en is not None:
+            assert "lista_" + t.id in snd.voces, t.id
+        if not t.autonomo:
+            g = grupo_voz(t)
+            assert "seleccion_" + g in snd.voces and "mover_" + g in snd.voces, t.id
+    for clave in ("obra", "investigado", "ataque_tropas", "ataque_trabajadores", "pob", "falta_dinero",
+                  "falta_agua", "llegada", "victoria", "derrota", "trabajar", "lista"):
+        assert clave in snd.voces, clave
+    # los efectos (la fusilería de una batalla) nunca ocupan el canal de las voces
+    for _ in range(12):
+        snd.reproducir("canon", 1.0, 0.0, 0)
+    assert not snd.canal_voz.get_busy()
+    pygame.mixer.stop()
+    # una voz a la vez: la selección no corta a la anterior, el aviso sí y luego espera su turno
+    assert snd.voz("seleccion_infanteria", 0)
+    primera = snd.canal_voz.get_sound()
+    assert primera is not None and snd.canal_voz.get_busy()
+    assert snd.voz("seleccion_caballeria", 0)
+    assert snd.canal_voz.get_sound() is primera
+    assert snd.voz("lista_infante", 2)
+    lista = snd.canal_voz.get_sound()
+    assert lista is not primera
+    assert snd.voz("obra", 2) and snd._pendiente is not None
+    snd.canal_voz.stop()
+    snd.actualizar()
+    assert snd._pendiente is None and snd.canal_voz.get_sound() not in (primera, lista)
+    snd.canal_voz.stop()
+    app.config["voces"] = False
+    assert not snd.voz("lista_infante", 2)
+    app.config["voces"] = True
+    # en la batalla: la unidad lista se presenta y la tropa responde a la selección y a las órdenes
+    esc = Escaramuza(app)
+    app.cambiar(esc)
+    esc.elegir_mapa("pampa_del_tamarugal")
+    esc.comenzar()
+    hasta(app, lambda: escena(app) == "Juego")
+    juego = app.escena
+    est = juego.est
+    dichas = []
+    monkeypatch.setattr(snd, "voz", lambda claves, prioridad=1: dichas.append(
+        ([claves] if isinstance(claves, str) else list(claves), prioridad)) or True)
+    infante = app.cat.unidades["infante"]
+    juego._evento([0, "lista", 4321, infante.idx])
+    assert dichas[-1] == (["lista_infante", "lista"], 2)
+    juego._evento([0, "err", "Falta agua"])
+    assert dichas[-1] == (["falta_agua"], 2)
+    juego._evento([0, "ata", 100, 100, 1])
+    assert dichas[-1] == (["ataque_trabajadores"], 3)
+    granadero = app.cat.unidades["granadero"]
+    for i, t in ((90001, infante), (90002, granadero), (90003, granadero)):
+        est.ents[i] = Ent([i, t.idx, est.yo, 300, 300, 50, 0, 0, None], t, 0.0)
+    juego.seleccionar([90001, 90002, 90003])
+    assert dichas[-1] == (["seleccion_caballeria"], 0)
+    juego._orden_derecha(320.0, 320.0, None, False)
+    assert dichas[-1] == (["mover_caballeria"], 1)
+    juego.seleccionar([90001])
+    juego.modo = ("orden", "atacar", "atacar")
+    juego._orden_objetivo(330.0, 330.0, None, False)
+    assert dichas[-1] == (["atacar_infanteria"], 1)
+    juego.abrir_menu()
+    cuadros(app)
+    juego.abandonar()
+    cuadros(app)
+
+
 def test_camara_con_el_borde_y_raton_encerrado(app, sdl, monkeypatch):
     lz = app.lz
     lz.window.size = (1920, 1009)
