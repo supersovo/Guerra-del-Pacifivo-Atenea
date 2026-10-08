@@ -420,6 +420,10 @@ python.org sirve para Intel y Apple Silicon).
 - [Multijugador](docs/MULTIJUGADOR.md): cómo jugar con los compañeros.
 - [Recomendaciones](docs/RECOMENDACIONES.md): próximos pasos y uso como material
   de estudio de ciencias militares.
+- [Guía del código para asistentes de programación](GEMINI.md): módulos, flujo de
+  una orden, reglas que no se deben romper (determinismo, huella, protocolo),
+  recetas para cambios frecuentes, pruebas y oportunidades de mejora. Gemini CLI
+  la carga sola; también sirve para cualquier persona que se sume al proyecto.
 
 ## Créditos
 
