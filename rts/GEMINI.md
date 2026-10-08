@@ -22,7 +22,7 @@ Todas las rutas son relativas a `rts/`, salvo que se indique otra cosa.
 | **Dependencias** | El cliente usa `pygame-ce` 2.x y dibuja con la GPU (`pygame._sdl2.video.Renderer`). La simulación, el servidor y la IA usan **solo la biblioteca estándar**. |
 | **Dónde está** | Todo el juego vive en `rts/`. La raíz del repositorio guarda además **otro proyecto sin relación**: un *shooter* en JavaScript, el «Motor Atenea» (`index.html`, `src/`, `content/`, `tools/`, y los `tests/` y `docs/` de la raíz). Esta guía no lo cubre. |
 | **Tamaño** | Unas 20 300 líneas en `salitre/`: cliente 10 500, simulación 5 200, servidor 1 900, contenido 1 000, IA 900, red 560. Además, 2 100 líneas de pruebas y 1 900 de herramientas. |
-| **Cómo se arranca** | `python -m salitre` abre el juego. `python -m salitre --servidor` arranca el servidor dedicado, con las opciones `--puerto 47800 --nombre … --sin-invitados --sin-lan --bd ruta --detallado`. |
+| **Cómo se arranca** | `python -m salitre` abre el juego (opciones: `--conectar HOST[:PUERTO]`, `--nombre`, `--version`). `python -m salitre --servidor` arranca el servidor dedicado, con las opciones `--host 0.0.0.0 --puerto 47800 --nombre … --sin-invitados --sin-lan --bd ruta --detallado`. |
 | **Pruebas** | `SDL_VIDEODRIVER=dummy SDL_AUDIODRIVER=dummy python -m pytest -q` corre 66 pruebas en unos 2,5 minutos. La revisión estática es `python -m pyflakes salitre herramientas instalador docker tests`. |
 | **Integración continua** | `.github/workflows/rts.yml`, en la raíz del repositorio: pruebas en Linux, Windows y macOS; instalador de Windows (PyInstaller + Inno Setup); `.app` y `.dmg` universal2; versión portátil para Linux; imagen Docker del servidor. |
 | **Idioma** | Todo en **español**: identificadores, datos, textos, comentarios, documentación y mensajes de commit. Los identificadores van sin tildes ni eñe: `dueno`, `danio`, `tamano`, `campana` (= campaña). |
@@ -102,16 +102,17 @@ Diseño completo en `docs/DISENO.md`. Cifras de unidades, edificios y mejoras en
 4. **Huella del contenido y protocolo**
    - Al conectarse, el cliente manda `PROTOCOLO` y la **huella**. El servidor rechaza al que no coincide (`servidor.py`, `_saludo`).
    - La huella son los primeros 16 caracteres hexadecimales del sha256 de los **seis** archivos de `contenido/catalogo.py:ARCHIVOS`: tablas, unidades, edificios, mejoras, habilidades y facciones.
-   - El hash se calcula sobre el JSON canónico (`sort_keys`). Por eso el formato del archivo no importa, pero **cambiar un texto, incluso un `_comentario`, cambia la huella**.
+   - El hash se calcula sobre el JSON canónico (`sort_keys=True`). Por eso **ni el formato del archivo ni el orden de las entradas cambian la huella**; en cambio, **cambiar cualquier valor o texto, incluso un `_comentario`, sí la cambia**.
    - `campanas.json` y `nombres.json` **no** entran en la huella.
    - La huella solo cubre los **datos**: dos versiones con código distinto y datos iguales sí se conectan entre sí. Por eso, si cambia el formato de un mensaje o de la instantánea de forma incompatible, **suba `PROTOCOLO`**.
    - `VERSION` es informativa: se muestra en pantalla, se guarda en la base de datos y en las repeticiones, y la escena de repeticiones avisa si la versión difiere.
 
-5. **Índices de red y repeticiones**
-   - En las instantáneas y los eventos, cada tipo viaja como `tipo.idx`, su posición en el catálogo: primero las unidades en el orden de `unidades.json`, luego los edificios en el orden de `edificios.json`. Las mejoras viajan por su orden en `mejoras.json`.
-   - Cliente y servidor deben tener el mismo orden, y la huella ya lo garantiza.
-   - Los **comandos**, en cambio, usan los ids de texto (`"infante"`, `"barracas"`).
-   - Una repetición solo se puede ver con la misma huella con que se grabó: `Servidor.m_ver_repeticion` la rechaza si no coincide. Por eso, cualquier cambio en los datos deja inservibles las repeticiones grabadas antes.
+5. **Índices de red: no reordene los JSON**
+   - En las instantáneas y los eventos, el tipo de cada entidad viaja como `tipo.idx`, su posición en el catálogo: primero las unidades en el orden de `unidades.json`, luego los edificios en el orden de `edificios.json`. También van por índice los tipos de `g`, `c` y `pc` y el `extra.u` del herido. Las mejoras van por su orden en `mejoras.json`, pero solo en el evento `investigado`.
+   - En cambio, usan ids de texto (`"infante"`, `"barracas"`): los **comandos**, la cola `q`, `j.m`, `j.i`, `j.h`, las claves de `cd` y el evento `hab`.
+   - **La huella no cubre el orden** (§2.4). Reordenar entradas existentes sin cambiar nada más deja la misma huella pero cambia los índices: un cliente y un servidor con distinto orden se conectarían y verían tipos equivocados. Si reordena, suba `PROTOCOLO`.
+   - Agregar una entrada nueva sí es seguro, porque cambia el contenido y con él la huella.
+   - Una repetición solo se puede ver con la misma huella con que se grabó: `Servidor.m_ver_repeticion` la rechaza si no coincide. Por eso, cualquier cambio de contenido en los datos deja inservibles las repeticiones grabadas antes.
 
 6. **Capas separadas**
    - `sim`, `ia`, `red`, `servidor` y `contenido` **no importan pygame**: el servidor dedicado y la imagen Docker corren sin él.
@@ -157,8 +158,8 @@ rts/
 │   │   ├── comandos.py           validación de los comandos → órdenes (MANEJADORES)
 │   │   ├── comportamiento.py     qué hace cada unidad en cada tick (mover, combatir, recolectar,
 │   │   │                         construir, reparar, curar, embarcar, camilleros) y separación
-│   │   ├── edificios.py          obras, colas de producción e investigación, defensas, guarniciones,
-│   │   │                         molino, hospital (camilleros y pacientes), desmontaje
+│   │   ├── edificios.py          edificios terminados: colas de producción e investigación, defensas,
+│   │   │                         guarniciones, molino, hospital (camilleros y pacientes), desmontaje
 │   │   ├── combate.py            alcance, blancos, daño, explosiones, proyectiles, ventaja de altura
 │   │   ├── habilidades.py        habilidades activas (auras, curas, andanadas, minas, sabotaje,
 │   │   │                         demolición, golpe, revelar, emplazar, desmontar)
@@ -207,7 +208,8 @@ rts/
 ├── herramientas/                 generar_mapas.py, generar_tablas.py (→ docs/TABLAS.md), generar_icono.py,
 │                                 generar_musica.py (numpy + soundfile), generar_voces.py (Kokoro-82M),
 │                                 vista_mapa.py (PNG de cada mapa)
-├── instalador/                   salitre.spec (PyInstaller), salitre.iss (Inno Setup), construir_mac.sh,
+├── instalador/                   salitre.spec (PyInstaller), salitre.iss (Inno Setup), construir.sh (portátil
+│                                 de Linux, lo usa la CI), construir_windows.ps1, construir_mac.sh,
 │                                 lanzar_juego.py / lanzar_servidor.py (puntos de entrada empaquetados)
 ├── docker/                       Dockerfile y docker-compose.yml del servidor dedicado; probar_servidor.py
 ├── descargas/                    instalador .exe y .dmg guardados a pedido por la CI, más LEEME.md
@@ -237,7 +239,7 @@ rts/
    4. Reconstruye la rejilla espacial.
    5. Procesa las rutas pendientes, con presupuesto.
    6. Llama a `edificios.actualizar(m, b)` para cada edificio vivo.
-   7. Llama a `comportamiento.actualizar(m, u)` para cada unidad viva que no esté embarcada o guarecida.
+   7. Llama a `comportamiento.actualizar(m, u)` para cada unidad viva que no esté `dentro` (embarcada, guarecida o en un molino).
    8. Reconstruye la rejilla y separa las unidades superpuestas (`comportamiento.separar`).
    9. Resuelve los impactos de los proyectiles.
    10. Activa las minas (cada 2 ticks).
@@ -250,16 +252,16 @@ rts/
 5. **Validación y orden.** `comandos.aplicar` busca el manejador en `MANEJADORES`. Cada `c_*` valida:
    - la propiedad de las unidades (`_propias`);
    - la visibilidad de los blancos (`_visible_para`);
-   - los requisitos, el costo y la población.
+   - los requisitos y el costo.
 
-   Si todo está en regla, asigna una `Orden` con `dar(m, u, orden, cola)`.
+   Si todo está en regla, asigna una `Orden` con `dar(m, u, orden, cola)`. La población no se comprueba aquí, sino al empezar a formar la unidad, en `edificios._avanzar_cola`, que espera y avisa con el evento `pob`.
 6. **Eventos.** Durante el tick, la simulación emite eventos de tres maneras:
    - `m.ev_pos(x, y, tipo, ...)` llega a quien ve esa casilla;
    - `m.ev_jugador(p, ...)` llega solo al jugador p;
    - `m.ev_todos(...)` llega a todos.
 
    `Emisor.acumular()` los filtra por la visión de cada jugador.
-7. **Instantánea.** Cada 2 ticks (`INSTANTANEA_CADA`, es decir, 8 por segundo), `Emisor.construir()` arma para cada jugador `{"t": "inst", "k": tick, "e": [...], "q": [...], "ev": [...], "j": {...}, "completa": 1?}`. Solo incluye lo que su bando ve y lo que cambió desde la instantánea anterior.
+7. **Instantánea.** Cada 2 ticks (`INSTANTANEA_CADA`, es decir, 8 por segundo), `Emisor.construir()` arma para cada jugador `{"t": "inst", "k": tick, "e": [...], "q": [...], "ev": [...], "j": {...}, "completa": 1}`. Solo incluye lo que su bando ve y lo que cambió desde la instantánea anterior; las claves vacías no se envían (detalle en §7.2).
 8. **Cliente.** `Conexion.recibir()` entrega el mensaje, en cada cuadro y sin bloquear.
    - `EstadoJuego.aplicar(msg)` actualiza el espejo de entidades.
    - `interpolar()` suaviza las posiciones entre instantáneas.
@@ -273,7 +275,7 @@ rts/
 ### 5.1 `Mundo` (`mundo.py`)
 
 **Construcción:** `Mundo(catalogo, mapa_datos, configs, semilla=1, registrar=False, llegada=False)`.
-- `configs` es una lista de diccionarios por jugador: `nombre`, `faccion`, `equipo`, `color`, `ia` y `veteranos`.
+- `configs` es una lista de diccionarios por jugador: `nombre`, `faccion`, `equipo`, `color`, `ia`, `veteranos` y `posicion` (el inicio del mapa; sin ella, se sortea con `azar`).
 - `registrar=True` guarda los comandos para la repetición.
 - `llegada=True` hace que el Cuartel General llegue en tren o carreta.
 
@@ -331,7 +333,7 @@ rts/
 | Órdenes | `orden`, `cola` (hasta 16), `fase`, `objetivo`, `auto` |
 | Camino | `ruta`, `ruta_meta`, `ruta_pend`, `tramo` (avance por tramos), `atasco` |
 | Combate | `enfr` (enfriamiento), `buffs`, `aura`, `cd` (esperas de habilidades), `disparo_t`, `golpeado_por`, `golpeado_t` |
-| Estado | `emplazada`, `emplazando`, `oculta`, `dentro` (embarcada o guarecida), `cargamento` (lo que lleva un transporte), `carga`, `carga_tipo` (salitre o agua que lleva un trabajador) |
+| Estado | `emplazada`, `emplazando`, `oculta`, `dentro` (embarcada, guarecida o en un molino), `cargamento` (lo que lleva un transporte), `carga`, `carga_tipo` (salitre o agua que lleva un trabajador) |
 | Veteranía | `xp`, `grado`, `nombre`, `ficha`, `batallas`, `abatidos` |
 | Sanidad | `paciente` y `paciente_hoja` (el herido en la camilla), `pacientes` (los convalecientes en el carro de la ambulancia), `base_id` (el hospital de un equipo de camilleros), `puesto` (su lugar de espera), `descarte` (herido que no se reintenta hasta un tick dado) |
 
@@ -339,7 +341,7 @@ rts/
 - Generales: `tx, ty, w, h`, `construido`, `progreso`, `constructor`, `cola` (producción e investigación), `reunion`, `guarnicion`, `pozo`, `ocupante` (molino).
 - Sanidad: `camilleros` (ids de los equipos), `camilleros_t`, `pacientes`, `desmontando` (ticks que faltan) y `pob_reservada` (la población de la ambulancia montada).
 
-**Herido:** `hasta` (tick en que muere si nadie lo recoge), `camillero` (id del equipo que va o lo lleva) y `hoja`.
+**Herido:** `hasta` (tick en que muere si nadie lo recoge), `camillero` (id del equipo que va a buscarlo) y `hoja`. Al recogerlo, el `Herido` desaparece y pasa a ser el `paciente` de los camilleros, con su `paciente_hoja`.
 
 **Otras clases:** `Recurso` (`rtipo`, `cantidad`, `minero`, `molino`), `Mina`, `Proyectil` y `Convoy`.
 
@@ -365,7 +367,7 @@ Formato (coordenadas en **píxeles**; `u` son ids de unidades, `e` de edificios;
 {"c":"senal","x","y"}   {"c":"rendirse"}   {"c":"truco",...} (solo con Mundo.trucos)
 ```
 
-- Límites: `MAX_SELECCION = 255` unidades por comando y `MAX_COLA = 16` órdenes encoladas.
+- Límites: `MAX_SELECCION = 255` unidades por comando, `MAX_COLA = 16` órdenes encoladas por unidad, hasta 5 elementos en la cola de producción de cada edificio y `n` de 1 a 5 en `entrenar`.
 - `_mover_grupo` reparte destinos en formación (`_formacion`) y calcula **un** camino para la unidad más cercana al centro del grupo. Las demás lo reutilizan desde el punto más avanzado que ven en línea recta.
 - `puede_levantar(u, b)`: los trabajadores no levantan edificios con `desmonta_en` (el hospital de sangre); el constructor declarado sí.
 - Las unidades `autonomo` (los camilleros) no reciben órdenes: `_propias` las filtra.
@@ -394,11 +396,13 @@ Formato (coordenadas en **píxeles**; `u` son ids de unidades, `e` de edificios;
 
 ### 5.5 Edificios (`edificios.py`)
 
-`actualizar(m, b)` en cada tick:
+`actualizar(m, b)` solo actúa sobre edificios **terminados**. Las obras avanzan aparte: `comportamiento.trabajar_obra` llama a `Mundo.construir_paso`.
+
+En cada tick:
 - cuenta atrás de `desmontando`; al llegar a cero, llama a `m.desmontar(b)`;
-- colas de producción e investigación (`_avanzar_cola`);
+- colas de producción e investigación (`_avanzar_cola`), que comprueba la población antes de empezar a formar;
 - defensa con arma propia (`_defender`) y fuego de la guarnición (`_fuego_guarnicion`);
-- entrada y salida de los trabajadores del molino (`_salir_molino`);
+- salida del trabajador del molino (`_salir_molino`); la entrada está en `comportamiento.recolectar`;
 - `_hospital`: repone los equipos de camilleros (`equipos_de(m, b)` = `tipo.camilleros + sanidad["equipos"]`) y atiende a los pacientes.
 
 ### 5.6 Combate (`combate.py`)
@@ -417,7 +421,7 @@ Formato (coordenadas en **píxeles**; `u` son ids de unidades, `e` de edificios;
 
 - `calcular(mapa, buscador, capa, x0, y0, x1, y1, presupuesto)` prueba primero la línea recta (`mapa.linea_libre`) y, si no hay, usa A\* de 8 direcciones con costo octil 10/14 (`Buscador.buscar`).
 - Si se agota el presupuesto, devuelve el camino hasta el nodo más cercano a la meta. `suavizar` quita los puntos intermedios innecesarios.
-- `mapa.region[capa]` guarda las regiones conexas precalculadas (0 = no pisable). Una meta en otra región se resuelve sin buscar.
+- `mapa.region[capa]` guarda las regiones conexas precalculadas (0 = no pisable). Si la meta no es pisable o está en otra región, `calcular` la reemplaza por la casilla pisable más cercana de la región de la unidad (hasta 24 casillas; si no hay ninguna, devuelve un camino vacío) y busca hacia ella.
 - Cada tick hay `PRESUPUESTO_RUTAS = 12000` nodos. Cada búsqueda en cola recibe `min(4000, max(500, restante))`.
 
 ### 5.8 Mapa, niveles y visión (`mapa.py`, `vision.py`)
@@ -452,13 +456,12 @@ Formato (coordenadas en **píxeles**; `u` son ids de unidades, `e` de edificios;
 
 **Estado del jugador**
 - `Jugador` tiene `dinero`, `agua`, `pob_usada` y `pob_max`.
-- También: `mejoras`, `investigando` y `terminados` (cuántos edificios de cada tipo terminó).
+- También: `mejoras`, `investigando` y `terminados` (cuántos edificios terminados de cada tipo tiene en pie; de ahí salen `tiene()` y los requisitos).
 - `heroes`, `minas` y el diccionario de estadísticas `est` para el parte de guerra.
 - `sanidad`: `{"equipos", "segundos_herido", "vida_al_volver"}`, que suman las investigaciones del hospital.
 
 **Efectos y estadísticas**
-- Los **efectos estáticos** (nación, investigaciones y grado) se suman en `stats.tabla(...)`.
-- `Jugador.stats_de(tipo_id, grado)` guarda en caché las estadísticas de cada combinación de tipo y grado.
+- Los **efectos estáticos** (nación, investigaciones y grado) se suman en `stats.calcular`. `stats.tabla(...)` arma la tabla de nación más investigaciones, y `Jugador.stats_de(tipo_id, grado)` agrega el grado y guarda en caché cada combinación de tipo y grado.
 - Al terminar una investigación, `Mundo.refrescar_stats(j)` recalcula.
 - Los **efectos dinámicos** (auras y habilidades) se aplican por unidad con `u.mod(campo, tick)`. Sus campos están en `CAMPOS_DINAMICOS`.
 
@@ -475,22 +478,22 @@ Formato (coordenadas en **píxeles**; `u` son ids de unidades, `e` de edificios;
 
 **Instrucción y encuadramiento**
 - `instruccion(m)`: la mejora *Ejercicios de tiro* lleva a los reclutas ociosos junto al Barracón de Instrucción hasta Fogueado.
-- Encuadramiento: el recluta aprende +50 % cerca de un Aguerrido de su arma y +25 % cerca de un héroe.
+- Encuadramiento (`veterania.auras`): todo soldado aliado de grado menor aprende +50 % cerca de un Aguerrido de su misma clase, y +25 % cerca de un héroe.
 
-**Quién tiene grados:** no los tienen los héroes, los trabajadores ni las unidades `autonomo`. Lo decide `tipo.veterania` en `Catalogo.__init__`.
+**Quién tiene grados:** solo la tropa que combate o cura (con `arma` o `curar`). No los tienen los héroes, los trabajadores, las unidades `autonomo` ni las que no tienen arma (espía, ambulancia, transporte). Lo decide `tipo.veterania` en `Catalogo.__init__`.
 
 ### 5.11 Sanidad: heridos, camilleros, hospitales y ambulancia
 
 **Cuándo una baja queda herida.** `matar()` crea un `Herido` si `puede_herirse(u)` se cumple:
-- la unidad es infantería o caballería biológica, no es héroe ni `autonomo`, está en tierra y fuera de transportes y obras;
+- la unidad es infantería o caballería biológica, no es héroe ni `autonomo`, está en tierra y no está `dentro` (embarcada, guarecida o en un molino);
 - la muerte no fue por explosión;
-- el jugador tiene algún edificio de `cat.hospitales` (los que tienen `camilleros`).
+- el jugador sigue vivo y tiene terminado algún edificio de `cat.hospitales` (los que tienen `camilleros`).
 
 El herido dura `segundos_herido` (40 s, más lo que sumen las mejoras).
 
 **Camilleros** (`comportamiento.camilleros`). Son una unidad `autonomo` que pertenece a un hospital.
 - Cada 4 ticks, un equipo libre elige herido con `_buscar_caido`:
-  - entre **todos** los heridos de su bando, sin límite de radio;
+  - entre **todos** los heridos de su mismo jugador (no los de los aliados), sin límite de radio, salvo los que están en otra región del mapa;
   - prefiere los que alcanza antes de `hasta` (estimación de `_a_tiempo`: 5/4 de la línea recta), luego el de mayor grado, luego el más cercano;
   - cede el herido a otro equipo libre más cercano, pero solo de su misma región.
 - Lleva al herido al **hospital más cercano** (`hospital_cercano`).
@@ -523,7 +526,7 @@ El herido dura `segundos_herido` (40 s, más lo que sumen las mejoras).
 **Objetivos:** `ninguno`, `punto`, `unidad_enemiga`, `edificio_enemigo` y `propio`.
 
 **Lanzamiento**
-- `lanzar(m, c, h, x, y, obj)` aplica la habilidad. Antes, `error_lanzar` valida energía, enfriamiento, alcance, etc.
+- `lanzar(m, c, h, x, y, obj)` aplica la habilidad. Antes, `error_lanzar(m, c, h)` comprueba la energía, el enfriamiento, el tope de minas y que no se esté desmontando ya. El alcance lo resuelve `orden_habilidad`, que acerca a la unidad antes de lanzar.
 - Las acciones con retardo usan `m.programar(...)` y se ejecutan en `ejecutar_programado`.
 
 ---
@@ -688,7 +691,7 @@ El herido dura `segundos_herido` (40 s, más lo que sumen las mejoras).
 
 ### 7.1 Transporte
 
-**Marco de cada mensaje:** 4 bytes de longitud (*big-endian*) + 1 byte de formato + cuerpo.
+**Marco de cada mensaje:** 4 bytes de longitud (*big-endian*; cuentan el byte de formato y el cuerpo) + 1 byte de formato + cuerpo.
 - Formato 1: JSON en UTF-8.
 - Formato 2: JSON comprimido con zlib; se usa si el cuerpo pasa de 1 KB.
 
@@ -698,12 +701,15 @@ El herido dura `segundos_herido` (40 s, más lo que sumen las mejoras).
 
 **Saludo:** `{"t": "hola", "protocolo", "version", "huella", nombre, clave, registrar}`. El servidor responde `bienvenida` o `error`.
 
-**Otros mensajes:**
-- Salón: `salas`, `crear_sala`, `unirse`, `ajustar`, `listo`, `agregar_ia`, `mapa`, `serie`, `iniciar`.
-- Partida: `partida_rapida`, `cmd`, `chat`, `pausa`.
-- Repeticiones: `observar`, `ver_repeticion`.
+**Otros mensajes del cliente:**
+- Salón: `salas`, `escalafon`, `historial`, `crear_sala`, `unirse`, `salir_sala`, `ajustar`, `listo`, `agregar_ia`, `quitar`, `mapa`, `serie`, `iniciar`, `ping`.
+- Partida: `partida_rapida`, `cmd`, `chat`, `rendirse`, `abandonar`, `pausa` (solo en el servidor local y en las repeticiones).
+- Espectador: `observar` (una partida en curso; no sirve para repeticiones).
+- Repeticiones: `ver_repeticion` y `velocidad_rep` (solo en el servidor local); `pedir_repeticion` (copia de la última partida, una vez cada 10 s).
 
-La tabla completa está en `docs/ARQUITECTURA.md`.
+**Límites del servidor:** 40 comandos por segundo por sesión, chat de 4 mensajes por segundo y 240 caracteres, 50 salas como máximo.
+
+La tabla completa de mensajes está en `docs/ARQUITECTURA.md`.
 
 **Mensaje `inicio`:**
 ```
@@ -743,10 +749,11 @@ La tabla completa está en `docs/ARQUITECTURA.md`.
 {"t": "inst", "k": tick, "e": [cambios], "q": [[id, "m"|"v"]], "ev": [[tick, tipo, ...]],
  "j": {d, a, p, pm, m, i, h, mi}, "completa": 1}
 ```
+- `e`, `q` y `ev` solo van si no están vacías.
 - `q` lista lo que sale: `"m"` si murió, `"v"` si salió de la vista.
-- `j` son los recursos del jugador: dinero, agua, población, población máxima, mejoras, investigaciones, héroes y minas.
+- `j` son los recursos del jugador: dinero, agua, población, población máxima, mejoras, investigaciones, héroes y minas. Solo se envía cuando cambia la tupla `est` de `Emisor.construir`: **un campo nuevo de `j` debe agregarse también a esa tupla**, o no llegará cuando solo cambie él.
 - `completa` va en la primera instantánea y tras una reconexión.
-- Los espectadores reciben `js` (los recursos de todos los jugadores) en vez de `j`.
+- Los espectadores reciben `js` (los recursos de todos los jugadores) en vez de `j`. Para ellos `registro()` recibe `propio=True`: lo que va bajo `if propio:` también lo ven los espectadores.
 
 **Eventos de la simulación** (el segundo elemento de cada evento):
 - Combate: `dis`, `pro`, `exp`, `mue`, `ata`.
@@ -764,7 +771,10 @@ Quien los dibuja o los dice es `cliente/escenas/juego.py:Juego._evento`.
 
 ## 8. Servidor (`salitre/servidor`)
 
-**Proceso.** Una sola tarea `asyncio` atiende todas las sesiones. Cada `Partida` corre su propio bucle de ticks dentro del mismo proceso, y cada `Sesion` tiene una cola de envío.
+**Proceso.** Un solo bucle de eventos `asyncio`, en un hilo, atiende todo:
+- cada conexión tiene una tarea de lectura (`Servidor._conexion`) y otra de envío (`Sesion.bucle_envio`);
+- la cola de envío admite hasta 2000 mensajes; si se llena, el servidor desconecta a esa sesión;
+- cada `Partida` corre su bucle de ticks como otra tarea del mismo bucle.
 
 **Desconexiones**
 - A los 20 s la IA toma el mando del ejército (`ESPERA_IA_TOMA`).
@@ -775,13 +785,17 @@ Quien los dibuja o los dice es `cliente/escenas/juego.py:Juego._evento`.
 **Manejadores.** `Servidor.m_<tipo>` atiende cada mensaje. Los principales: `m_crear_sala`, `m_unirse`, `m_iniciar`, `m_partida_rapida` (escaramuza o batalla de campaña), `m_cmd`, `m_serie`, `m_ver_repeticion`.
 
 **Fin de la partida.** `Partida.finalizar()`:
-1. guarda la repetición (`repeticion.guardar`);
-2. registra la partida y el ELO (`bd.registrar_partida`);
+1. si no es una repetición y duró al menos `minimo_registro` (30 s por omisión; 0 en el servidor local), guarda la repetición (`repeticion.guardar`);
+2. si además la partida no fue `abortada`, la registra en la base de datos (`bd.registrar_partida`). El ELO solo cambia en las partidas clasificatorias: al menos dos equipos con jugadores registrados y un ganador;
 3. en una serie, aplica el parte de guerra (`Servidor.serie_tras_batalla`);
-4. envía `fin` a los jugadores;
+4. envía `fin` a los jugadores y a los espectadores;
 5. llama a `Servidor.partida_terminada`, que devuelve la sala a la espera.
 
-**Escaramuzas.** `ServidorEnHilo` levanta el servidor dentro del juego, escuchando en `127.0.0.1`; el cliente se conecta a él igual que a uno remoto.
+**Servidor dentro del juego** (`ServidorEnHilo`, iniciado por `App.iniciar_servidor_local`), en dos modos:
+- **Privado**, para escaramuzas, campaña y repeticiones: escucha en `127.0.0.1`, usa la base `local.db` y guarda todas las repeticiones (`minimo_registro = 0`).
+- **Público**, desde «Crear servidor en este equipo»: escucha en `0.0.0.0`, puerto 47800, responde al descubrimiento de la red local y usa `servidor.db`.
+
+En los dos casos, el cliente se conecta a él igual que a uno remoto.
 
 **Base de datos** (`bd.py`, SQLite en modo WAL)
 - Tablas: `usuarios`, `partidas`, `partida_jugadores`, `configuracion`, `series` y `serie_jugadores`. El esquema lleva versión en `PRAGMA user_version` (`VERSION_ESQUEMA = 2`).
@@ -813,11 +827,17 @@ Quien los dibuja o los dice es `cliente/escenas/juego.py:Juego._evento`.
 **`DIFICULTADES`** fija para cada nivel: trabajadores, umbral de ataque, barracas, si investiga, si se expande, cuántas obras, si usa habilidades y cuántas `ambulancias` lleva (0, 1 o 2).
 
 **Ambulancias** (`_ambulancias`)
-- Montan el hospital de sangre unas 9 casillas detrás del frente, hacia la base, cuando al menos el 25 % de la tropa disparó en los últimos 3 s.
+- Montan el hospital de sangre unas 9 casillas detrás del frente, hacia la base, cuando hay al menos 4 unidades atacando y el 25 % de ellas disparó en los últimos 3 s.
 - Lo sostienen 30 s o más.
-- Lo desmontan cuando el frente se alejó más de 24 casillas, no quedan pacientes, no hay heridos a menos de 14 casillas ni enemigos a menos de 8.
+- Lo desmontan cuando el frente se alejó más de 24 casillas o ya no hay ataque en curso (menos de 4 unidades atacando), y además no quedan pacientes, no hay heridos a menos de 14 casillas ni enemigos a menos de 8.
 
-**Limitación conocida:** `_blanco_enemigo()` elige el blanco de las oleadas entre **todos** los edificios enemigos, sin mirar la niebla; el resto de las decisiones sí respeta la visión (`m.visible`). Ver §14.
+**Limitación conocida: la IA ve a través de la niebla en varias decisiones.**
+- `_blanco_enemigo()` elige el blanco de las oleadas entre **todos** los edificios enemigos.
+- Ese mismo blanco usan el `reconocimiento` del telégrafo y la decisión de desembarcar (`_necesita_barco`, `_operacion_naval`).
+- `_expandir` descarta los yacimientos cercanos a cualquier edificio ajeno, lo haya visto o no.
+- Sí respetan la visión `_amenaza`, `_enemigos_cerca` y los blancos de sabotaje y demolición.
+
+Ver §14.
 
 ---
 
@@ -858,10 +878,11 @@ Quien los dibuja o los dice es `cliente/escenas/juego.py:Juego._evento`.
 - `grupo_voz(tipo)` elige el grupo de voces de cada unidad: `seleccion_<grupo>`, `mover_<grupo>`, etc. Al formarse, cada unidad dice `lista_<id>`.
 - La música son dos pistas `.ogg`: `marcha` y `campana`.
 
-**Datos del usuario**
+**Datos del usuario** (en la carpeta de `rutas.dir_usuario()`)
 - `config.json` (pantalla, sonido, controles).
 - `perfil.db` (servidores recientes, escaramuzas y campañas).
-- Carpetas `repeticiones/`, `registros/` (`cliente.log`, …) y `capturas/`.
+- `local.db` (la base del servidor privado de escaramuzas, campaña y repeticiones) y `servidor.db` (la del servidor dedicado y la del servidor público dentro del juego).
+- Carpetas `repeticiones/`, `registros/` (`cliente.log`, `servidor.log`), `capturas/` y `mapas/`. Los mapas propios de esa carpeta también aparecen en `mapas.listar()`.
 
 ---
 
@@ -874,7 +895,7 @@ Quien los dibuja o los dice es `cliente/escenas/juego.py:Juego._evento`.
 4. Recuerde que el cambio altera la huella: servidor y jugadores deben actualizarse juntos.
 
 **Agregar una unidad**
-1. Escriba la entrada en `datos/unidades.json`. Agréguela al `produce` de su edificio y a `facciones.json`: en `_comunes.unidades` si es común, o en las `unidades` de su nación si es propia.
+1. Escriba la entrada en `datos/unidades.json`, sin reordenar las existentes (§2.5). Agréguela al `produce` de su edificio y a `facciones.json`: en `_comunes.unidades` si es común, o en las `unidades` de su nación si es propia.
 2. Dibujo: use una `sprite.forma` existente; o cree una nueva en `cliente/graficos/sprites.py` (agregue la forma a `FORMA_TAM` y la función de dibujo en `Sprites.superficie`); o ponga un PNG en `recursos/graficos/unidades/`.
 3. Voces: la prueba `test_voces_de_la_tropa` **exige** que exista `lista_<id>` para toda unidad formable, y `seleccion_<grupo>` y `mover_<grupo>` para su grupo de voces.
    - Para generarlas, agregue las frases en `herramientas/generar_voces.py` (`FRASES`) y corra el script. Necesita `kokoro-onnx`, `soundfile` y los archivos del modelo; están en el comentario inicial del script.
@@ -972,7 +993,7 @@ def test_infante_abate_a_un_enemigo():
 **Rendimiento medido**
 - Una batalla de 320 unidades toma unos 3 ms por tick. El presupuesto es de 62 ms por tick a velocidad normal.
 - Peor caso medido: 40 infantes enviados a un rincón cercado por obras dan un máximo de unos 30 ms por tick.
-- Las pruebas de cliente son las más lentas: recorren pantallas reales con el controlador de video ficticio.
+- Las pruebas más lentas son las de red y las de cliente, porque juegan partidas reales por TCP o recorren pantallas con el controlador de video ficticio. La más larga, `test_partida_entre_dos_jugadores`, tarda unos 23 s. Para iterar rápido, corra solo `tests/test_simulacion.py`.
 
 **Integración continua**
 - Cada push a cualquier rama que toque `rts/**` corre las pruebas en tres sistemas operativos y construye el instalador de Windows (con prueba de humo `--prueba-humo` del `.exe`), la `.app`/`.dmg`, la versión portátil de Linux y la imagen Docker (probada con `docker/probar_servidor.py`).
@@ -983,17 +1004,27 @@ def test_infante_abate_a_un_enemigo():
 ## 13. Trampas conocidas
 
 1. **Las entidades muertas siguen en los diccionarios hasta `_limpiar()`.** Compruebe siempre `.vivo`, o use `m.entidad(id)`, que devuelve `None` si murió.
-2. **Cualquier cambio en los seis archivos de datos cambia la huella**, incluso editar un comentario `_…`. Obliga a actualizar servidor y jugadores a la vez y deja inservibles las repeticiones grabadas antes (§2.4 y §2.5).
+2. **Cualquier cambio de contenido en los seis archivos de datos cambia la huella**, incluso editar un comentario `_…`; no la cambian el formato ni el orden de las entradas. Un cambio de contenido obliga a actualizar servidor y jugadores a la vez y deja inservibles las repeticiones grabadas antes. Un reordenamiento, en cambio, pasa inadvertido para la huella y desordena los índices de red (§2.4 y §2.5).
 3. **Nueva unidad formable sin voces = prueba de cliente en rojo** (§11).
 4. **El hospital de sangre cuesta 0, y reparar cuesta el 25 % del costo:** sus reparaciones son gratis. Como la proporción de vida pasa de las carpas al carro, montar, reparar y desmontar cura gratis a la ambulancia. Es un hueco de equilibrio.
 5. **La población de una ambulancia montada** queda en `Edificio.pob_reservada` y se libera al destruirse el edificio (`_quitar_edificio`). Si toca el cálculo de población, revise `Mundo.recalcular_pob`.
-6. **`Unidad.dentro`** (embarcada o guarecida): no se actualiza ni se ve en la instantánea, pero sigue existiendo.
-7. **`comandos.aplicar` se traga los errores comunes** (`KeyError`, …) y responde con el evento `"err"`. Un error en un manejador puede pasar inadvertido: pruebe los comandos nuevos con datos malos.
-   - Además, un comando contra un blanco que el jugador **no ve** se ignora **en silencio**, sin evento. En las pruebas, las unidades recién creadas no ven nada hasta que se recalcula la visión: avance 4 ticks antes de ordenar (ver el ejemplo de §12).
+6. **`Unidad.dentro`** (embarcada, guarecida o dentro de un molino):
+   - `comportamiento` no la actualiza y no viaja como entidad en la instantánea, pero sigue existiendo;
+   - el dueño la ve en `extra` (`c`, `g`, `gv`, `gid`);
+   - la guarnición sigue disparando desde `edificios._fuego_guarnicion`.
+7. **`Mundo.paso()` se traga los errores comunes** (`KeyError`, `ValueError`, `TypeError`, `IndexError`, `AttributeError`) que lance `comandos.aplicar`, y responde con el evento `"err"`. Un error en un manejador puede pasar inadvertido: pruebe los comandos nuevos con datos malos.
+   - Un blanco que el jugador **no ve** se descarta:
+     - `atacar` sin `x`/`y`, `recolectar`, `reparar` y `cargar` se ignoran en silencio;
+     - `atacar` con `x`/`y` se convierte en atacar avanzando hacia ese punto;
+     - `inteligente` se convierte en movimiento;
+     - `habilidad` responde con `"err"`.
+   - En las pruebas, las unidades recién creadas no ven nada hasta que se recalcula la visión: avance 4 ticks antes de ordenar (ver el ejemplo de §12).
 8. **Una excepción en la IA no tumba la partida:** `Partida.bucle` la registra y **desactiva esa IA**. Si la IA «se queda quieta», revise los registros: `registros/cliente.log` en una escaramuza (el servidor corre dentro del juego), `registros/servidor.log` o la consola en el servidor dedicado.
-9. **El cliente nunca debe bloquear:** la red es no bloqueante y la conexión inicial va en un hilo. No agregue llamadas bloqueantes en `actualizar` ni en `dibujar`.
+9. **El cliente no debe bloquear:** la red es no bloqueante, y la conexión a un servidor remoto va en un hilo. La excepción es el servidor privado: al empezar una escaramuza, una batalla de campaña o una repetición, la escena espera unos instantes dentro del manejador del botón. No agregue llamadas bloqueantes en `actualizar` ni en `dibujar`.
 10. **Coordenadas del cliente:** use la cámara (`Camara.a_pantalla` y `Camara.a_mapa`) y el lienzo (`logico_de`). Las pruebas `test_clics_con_la_ventana_agrandada` y `test_imagen_centrada_y_recortes_con_franjas` vigilan esto.
 11. **Windows y macOS:** las rutas se arman con `rutas.py`, sin construirlas a mano; la CI prueba en los tres sistemas.
+12. **Los yacimientos son las entidades 1 a N, en el orden del mapa.** `EstadoJuego.__init__` lo da por hecho para dibujarlos desde el comienzo, y se cumple porque `Mundo.__init__` crea los recursos antes que nada. Si crea otra entidad antes que ellos, el cliente se desordena.
+13. **La rejilla espacial se reconstruye solo dos veces por tick** (pasos 4 y 8 de `Mundo.paso()`). Entre medio, `m.rejilla.cerca(...)` puede devolver unidades que murieron o se embarcaron en ese tick, y no ve las recién creadas. Compruebe siempre `vivo` y `dentro` en los resultados.
 
 ---
 
@@ -1014,7 +1045,7 @@ Ordenadas por valor estimado. Cada una indica dónde atacar.
    - Sirve un guion que corra `Mundo` + `IA` sin red, como `test_determinismo`.
    - La tabla `partida_jugadores` del servidor guarda victorias por nación.
 3. **IA**
-   - Que `_blanco_enemigo` use solo lo explorado o los fantasmas (hoy ve todos los edificios enemigos).
+   - Que la IA no vea a través de la niebla (§9): que `_blanco_enemigo` (y con él el reconocimiento y los desembarcos) use solo lo explorado o los edificios recordados, y que `_expandir` descarte solo los yacimientos cercanos a obras enemigas ya vistas.
    - Exploración activa.
    - Adaptación a la composición del rival (contrapesos de la tabla de multiplicadores).
    - Mejor uso de la ambulancia y de los hospitales de sangre en `_cuidar_veteranos`, que hoy mira solo el `hospital_campana`.
