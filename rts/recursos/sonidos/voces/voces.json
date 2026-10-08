@@ -1,0 +1,443 @@
+{
+ "_modelo": "Kokoro-82M v1.0 (Apache 2.0), voces em_alex, em_santa y ef_dora",
+ "ascenso_1_1.ogg": {
+  "texto": "¡Ya estamos fogueados, mi comandante!",
+  "voz": "em_alex"
+ },
+ "ascenso_1_2.ogg": {
+  "texto": "¡Bautizo de fuego cumplido!",
+  "voz": "em_alex"
+ },
+ "ascenso_2_1.ogg": {
+  "texto": "¡Ascendido a veterano, mi comandante!",
+  "voz": "em_alex"
+ },
+ "ascenso_2_2.ogg": {
+  "texto": "¡Somos veteranos de esta guerra!",
+  "voz": "em_alex"
+ },
+ "ascenso_3_1.ogg": {
+  "texto": "¡Aguerridos, mi comandante! ¡Nada nos detiene!",
+  "voz": "em_alex"
+ },
+ "atacar_artilleria_1.ogg": {
+  "texto": "¡Fuego!",
+  "voz": "em_alex"
+ },
+ "atacar_artilleria_2.ogg": {
+  "texto": "¡Apunten! ¡Fuego!",
+  "voz": "em_alex"
+ },
+ "atacar_caballeria_1.ogg": {
+  "texto": "¡A la carga!",
+  "voz": "em_alex"
+ },
+ "atacar_caballeria_2.ogg": {
+  "texto": "¡Sable en mano!",
+  "voz": "em_alex"
+ },
+ "atacar_heroina_1.ogg": {
+  "texto": "¡Al ataque!",
+  "voz": "ef_dora"
+ },
+ "atacar_infanteria_1.ogg": {
+  "texto": "¡Calen bayoneta!",
+  "voz": "em_alex"
+ },
+ "atacar_infanteria_2.ogg": {
+  "texto": "¡Fuego a discreción!",
+  "voz": "em_alex"
+ },
+ "atacar_infanteria_3.ogg": {
+  "texto": "¡Al ataque!",
+  "voz": "em_alex"
+ },
+ "atacar_naval_1.ogg": {
+  "texto": "¡Fuego de andanada!",
+  "voz": "em_alex"
+ },
+ "atacar_naval_2.ogg": {
+  "texto": "¡Al ataque!",
+  "voz": "em_alex"
+ },
+ "atacar_trabajador_1.ogg": {
+  "texto": "¡A defenderse!",
+  "voz": "em_alex"
+ },
+ "ataque_trabajadores_1.ogg": {
+  "texto": "¡Atacan a nuestros trabajadores!",
+  "voz": "em_santa"
+ },
+ "ataque_tropas_1.ogg": {
+  "texto": "¡Nuestras tropas están bajo ataque!",
+  "voz": "em_santa"
+ },
+ "derrota_1.ogg": {
+  "texto": "Hemos sido derrotados.",
+  "voz": "em_santa"
+ },
+ "desmontar_ambulancia_1.ogg": {
+  "texto": "¡Carpas al carro, seguimos a la tropa!",
+  "voz": "em_alex"
+ },
+ "falta_agua_1.ogg": {
+  "texto": "Falta agua, mi comandante.",
+  "voz": "em_santa"
+ },
+ "falta_dinero_1.ogg": {
+  "texto": "Falta dinero, mi comandante.",
+  "voz": "em_santa"
+ },
+ "herido_veterano_1.ogg": {
+  "texto": "¡Camilleros! ¡Cayó herido un veterano!",
+  "voz": "em_santa"
+ },
+ "hospital_montado_1.ogg": {
+  "texto": "Hospital de sangre listo para recibir heridos.",
+  "voz": "em_santa"
+ },
+ "investigado_1.ogg": {
+  "texto": "Investigación completada.",
+  "voz": "em_santa"
+ },
+ "lista_1.ogg": {
+  "texto": "Unidad lista, mi comandante.",
+  "voz": "em_santa"
+ },
+ "lista_abaroa_1.ogg": {
+  "texto": "¿Rendirme yo? ¡Que se rinda su abuela!",
+  "voz": "em_santa"
+ },
+ "lista_ambulancia_1.ogg": {
+  "texto": "Ambulancia lista: camillas, vendas y cirujanos.",
+  "voz": "em_alex"
+ },
+ "lista_artilleria_montana_1.ogg": {
+  "texto": "¡Cañón de montaña en batería!",
+  "voz": "em_alex"
+ },
+ "lista_baqueano_1.ogg": {
+  "texto": "Baqueano listo. Conozco cada huella del desierto.",
+  "voz": "em_alex"
+ },
+ "lista_baquedano_1.ogg": {
+  "texto": "General Baquedano en campaña. ¡Adelante, muchachos!",
+  "voz": "em_santa"
+ },
+ "lista_bolognesi_1.ogg": {
+  "texto": "Tengo deberes sagrados que cumplir, y los cumpliré hasta quemar el último cartucho.",
+  "voz": "em_santa"
+ },
+ "lista_caceres_1.ogg": {
+  "texto": "General Cáceres, presente. ¡La resistencia continúa!",
+  "voz": "em_santa"
+ },
+ "lista_camacho_1.ogg": {
+  "texto": "Coronel Camacho, presente. ¡A las armas!",
+  "voz": "em_santa"
+ },
+ "lista_campero_1.ogg": {
+  "texto": "General Campero, presente. ¡Adelante, Bolivia!",
+  "voz": "em_santa"
+ },
+ "lista_canon_campana_1.ogg": {
+  "texto": "¡Cañón de campaña, listo para abrir fuego!",
+  "voz": "em_alex"
+ },
+ "lista_canonera_1.ogg": {
+  "texto": "¡Cañonera lista para zarpar!",
+  "voz": "em_alex"
+ },
+ "lista_cantinera_1.ogg": {
+  "texto": "Cantinera lista. Traigo agua para la tropa.",
+  "voz": "ef_dora"
+ },
+ "lista_cazador_1.ogg": {
+  "texto": "¡Cazador a caballo, listo para explorar!",
+  "voz": "em_alex"
+ },
+ "lista_colorado_1.ogg": {
+  "texto": "¡Colorados de Bolivia, presentes!",
+  "voz": "em_alex"
+ },
+ "lista_espia_1.ogg": {
+  "texto": "El espía está listo. Nadie sabrá que estuve aquí.",
+  "voz": "em_alex"
+ },
+ "lista_gatling_1.ogg": {
+  "texto": "¡Ametralladora Gatling, lista!",
+  "voz": "em_alex"
+ },
+ "lista_granadero_1.ogg": {
+  "texto": "¡Granadero a caballo, listo para la carga!",
+  "voz": "em_alex"
+ },
+ "lista_grau_1.ogg": {
+  "texto": "Grau, al mando del Huáscar. ¡Avante!",
+  "voz": "em_santa"
+ },
+ "lista_infante_1.ogg": {
+  "texto": "¡Infante de línea, listo para el combate!",
+  "voz": "em_alex"
+ },
+ "lista_infante_2.ogg": {
+  "texto": "¡Presente, mi comandante!",
+  "voz": "em_alex"
+ },
+ "lista_ingeniero_1.ogg": {
+  "texto": "Dinamitero listo. ¡Cuidado con la mecha!",
+  "voz": "em_alex"
+ },
+ "lista_irene_morales_1.ogg": {
+  "texto": "Sargento Irene Morales, presente. ¡A la lucha!",
+  "voz": "ef_dora"
+ },
+ "lista_montonero_1.ogg": {
+  "texto": "¡Montonero listo! ¡Por la patria!",
+  "voz": "em_alex"
+ },
+ "lista_piedrabuena_1.ogg": {
+  "texto": "Comandante Piedrabuena, al timón. ¡Avante!",
+  "voz": "em_santa"
+ },
+ "lista_prat_1.ogg": {
+  "texto": "¡Al abordaje, muchachos!",
+  "voz": "em_santa"
+ },
+ "lista_roca_1.ogg": {
+  "texto": "General Roca, presente. ¡Adelante!",
+  "voz": "em_santa"
+ },
+ "lista_saenz_pena_1.ogg": {
+  "texto": "Sáenz Peña, presente. ¡Por la causa aliada!",
+  "voz": "em_santa"
+ },
+ "lista_san_martin_1.ogg": {
+  "texto": "San Martín, presente. ¡Cuarto de Línea, adelante!",
+  "voz": "em_santa"
+ },
+ "lista_torpedista_1.ogg": {
+  "texto": "Torpedista listo para sembrar las minas.",
+  "voz": "em_alex"
+ },
+ "lista_trabajador_1.ogg": {
+  "texto": "Trabajador listo para la faena.",
+  "voz": "em_alex"
+ },
+ "lista_transporte_1.ogg": {
+  "texto": "Transporte a vapor, listo para zarpar.",
+  "voz": "em_alex"
+ },
+ "lista_ugarte_1.ogg": {
+  "texto": "Coronel Ugarte, presente. ¡Por el Perú, hasta el final!",
+  "voz": "em_santa"
+ },
+ "lista_velasquez_1.ogg": {
+  "texto": "Coronel Velásquez, presente. ¡Artillería, fuego a discreción!",
+  "voz": "em_santa"
+ },
+ "lista_villegas_1.ogg": {
+  "texto": "Coronel Villegas, presente. ¡A caballo!",
+  "voz": "em_santa"
+ },
+ "lista_zapador_1.ogg": {
+  "texto": "¡Zapador listo, con pala y fusil!",
+  "voz": "em_alex"
+ },
+ "lista_zeballos_1.ogg": {
+  "texto": "Ignacia Zeballos, lista para atender a los heridos.",
+  "voz": "ef_dora"
+ },
+ "llegada_1.ogg": {
+  "texto": "¡Llegó el cuartel general!",
+  "voz": "em_santa"
+ },
+ "montar_ambulancia_1.ogg": {
+  "texto": "¡Montamos el hospital aquí!",
+  "voz": "em_alex"
+ },
+ "montar_ambulancia_2.ogg": {
+  "texto": "¡Arriba las carpas!",
+  "voz": "em_alex"
+ },
+ "mover_ambulancia_1.ogg": {
+  "texto": "¡Arreen las mulas!",
+  "voz": "em_alex"
+ },
+ "mover_ambulancia_2.ogg": {
+  "texto": "Vamos tras la tropa.",
+  "voz": "em_alex"
+ },
+ "mover_artilleria_1.ogg": {
+  "texto": "¡Enganchen la pieza!",
+  "voz": "em_alex"
+ },
+ "mover_artilleria_2.ogg": {
+  "texto": "¡Muevan los cañones!",
+  "voz": "em_alex"
+ },
+ "mover_caballeria_1.ogg": {
+  "texto": "¡Al trote!",
+  "voz": "em_alex"
+ },
+ "mover_caballeria_2.ogg": {
+  "texto": "¡A caballo!",
+  "voz": "em_alex"
+ },
+ "mover_cantinera_1.ogg": {
+  "texto": "Voy con la tropa.",
+  "voz": "ef_dora"
+ },
+ "mover_espia_1.ogg": {
+  "texto": "Sin ser visto.",
+  "voz": "em_alex"
+ },
+ "mover_heroina_1.ogg": {
+  "texto": "¡En marcha!",
+  "voz": "ef_dora"
+ },
+ "mover_heroina_2.ogg": {
+  "texto": "¡Vamos!",
+  "voz": "ef_dora"
+ },
+ "mover_infanteria_1.ogg": {
+  "texto": "¡En marcha!",
+  "voz": "em_alex"
+ },
+ "mover_infanteria_2.ogg": {
+  "texto": "¡Entendido!",
+  "voz": "em_alex"
+ },
+ "mover_infanteria_3.ogg": {
+  "texto": "¡Avanzamos!",
+  "voz": "em_alex"
+ },
+ "mover_naval_1.ogg": {
+  "texto": "¡Avante!",
+  "voz": "em_alex"
+ },
+ "mover_naval_2.ogg": {
+  "texto": "Rumbo fijado.",
+  "voz": "em_alex"
+ },
+ "mover_trabajador_1.ogg": {
+  "texto": "Voy enseguida.",
+  "voz": "em_alex"
+ },
+ "mover_trabajador_2.ogg": {
+  "texto": "En camino.",
+  "voz": "em_alex"
+ },
+ "obra_1.ogg": {
+  "texto": "Obra terminada, mi comandante.",
+  "voz": "em_santa"
+ },
+ "pob_1.ogg": {
+  "texto": "Necesitamos otro Depósito de Intendencia.",
+  "voz": "em_santa"
+ },
+ "recuperado_1.ogg": {
+  "texto": "Un soldado vuelve a filas.",
+  "voz": "em_santa"
+ },
+ "replegar_1.ogg": {
+  "texto": "¡Repliegue al hospital!",
+  "voz": "em_alex"
+ },
+ "replegar_2.ogg": {
+  "texto": "¡Heridos, a retaguardia!",
+  "voz": "em_alex"
+ },
+ "seleccion_ambulancia_1.ogg": {
+  "texto": "Ambulancia, a la orden.",
+  "voz": "em_alex"
+ },
+ "seleccion_ambulancia_2.ogg": {
+  "texto": "¿Dónde montamos el hospital?",
+  "voz": "em_alex"
+ },
+ "seleccion_artilleria_1.ogg": {
+  "texto": "¡Artillería lista!",
+  "voz": "em_alex"
+ },
+ "seleccion_artilleria_2.ogg": {
+  "texto": "Pieza en batería, mi comandante.",
+  "voz": "em_alex"
+ },
+ "seleccion_caballeria_1.ogg": {
+  "texto": "¡Caballería lista!",
+  "voz": "em_alex"
+ },
+ "seleccion_caballeria_2.ogg": {
+  "texto": "¿Hacia dónde cabalgamos?",
+  "voz": "em_alex"
+ },
+ "seleccion_cantinera_1.ogg": {
+  "texto": "¿Agua para la tropa?",
+  "voz": "ef_dora"
+ },
+ "seleccion_cantinera_2.ogg": {
+  "texto": "Aquí está la cantinera.",
+  "voz": "ef_dora"
+ },
+ "seleccion_espia_1.ogg": {
+  "texto": "Hable bajo, mi comandante.",
+  "voz": "em_alex"
+ },
+ "seleccion_espia_2.ogg": {
+  "texto": "Nadie me verá.",
+  "voz": "em_alex"
+ },
+ "seleccion_heroina_1.ogg": {
+  "texto": "¡A sus órdenes, mi comandante!",
+  "voz": "ef_dora"
+ },
+ "seleccion_heroina_2.ogg": {
+  "texto": "¡Presente!",
+  "voz": "ef_dora"
+ },
+ "seleccion_infanteria_1.ogg": {
+  "texto": "¿Órdenes, mi comandante?",
+  "voz": "em_alex"
+ },
+ "seleccion_infanteria_2.ogg": {
+  "texto": "¡Presente!",
+  "voz": "em_alex"
+ },
+ "seleccion_infanteria_3.ogg": {
+  "texto": "¡A sus órdenes!",
+  "voz": "em_alex"
+ },
+ "seleccion_naval_1.ogg": {
+  "texto": "¿Qué rumbo, mi comandante?",
+  "voz": "em_alex"
+ },
+ "seleccion_naval_2.ogg": {
+  "texto": "¡Buque listo!",
+  "voz": "em_alex"
+ },
+ "seleccion_trabajador_1.ogg": {
+  "texto": "¿Qué ordena?",
+  "voz": "em_alex"
+ },
+ "seleccion_trabajador_2.ogg": {
+  "texto": "Listo para la faena.",
+  "voz": "em_alex"
+ },
+ "trabajar_1.ogg": {
+  "texto": "A la faena.",
+  "voz": "em_alex"
+ },
+ "trabajar_2.ogg": {
+  "texto": "Manos a la obra.",
+  "voz": "em_alex"
+ },
+ "veterano_caido_1.ogg": {
+  "texto": "Perdimos a un veterano, mi comandante.",
+  "voz": "em_santa"
+ },
+ "victoria_1.ogg": {
+  "texto": "¡Victoria! ¡La jornada es nuestra!",
+  "voz": "em_santa"
+ }
+}

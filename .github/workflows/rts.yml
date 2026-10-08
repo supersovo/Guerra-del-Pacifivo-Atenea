@@ -1,0 +1,274 @@
+# Integración continua del RTS «Guerra del Pacífico: Salitre y Pólvora» (carpeta rts/).
+# - Pruebas en Linux, Windows y macOS (simulación, red, servidor y cliente sin pantalla).
+# - Instalador de Windows (PyInstaller + Inno Setup) con prueba de humo del .exe.
+# - Aplicación para macOS (Intel y Apple Silicon) en un .dmg, con prueba de humo.
+# - Versión portátil para Linux e imagen Docker del servidor dedicado.
+# - A pedido (Run workflow), guarda el instalador y el .dmg en rts/descargas/ de la rama.
+# - Con una etiqueta v* (por ejemplo v0.9.0) publica los archivos en una versión de GitHub.
+name: RTS Salitre y Pólvora
+
+on:
+  push:
+    branches: ["**"]
+    tags: ["v*"]
+    paths: ["rts/**", ".github/workflows/rts.yml"]
+  workflow_dispatch:
+    inputs:
+      guardar_instalador:
+        description: "Guardar el instalador de Windows en rts/descargas/ de la rama"
+        type: boolean
+        default: false
+      guardar_mac:
+        description: "Guardar la aplicación para macOS (.dmg) en rts/descargas/ de la rama"
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: rts-${{ github.ref }}-${{ github.event_name }}
+  cancel-in-progress: true
+
+env:
+  PYTHON_VERSION: "3.12"
+
+jobs:
+  pruebas:
+    name: Pruebas (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    defaults:
+      run:
+        working-directory: rts
+    env:
+      SDL_VIDEODRIVER: dummy
+      SDL_AUDIODRIVER: dummy
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+          cache-dependency-path: rts/requirements-dev.txt
+      - name: Dependencias
+        run: python -m pip install -r requirements-dev.txt
+      - name: Revisión estática (pyflakes)
+        run: python -m pyflakes salitre herramientas instalador docker tests
+      - name: Pruebas
+        run: python -m pytest -q
+
+  windows:
+    name: Instalador de Windows
+    needs: pruebas
+    runs-on: windows-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: rts
+        shell: pwsh
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+          cache-dependency-path: rts/requirements.txt
+      - name: Dependencias
+        env:
+          # el cargador de PyInstaller se compila aquí: los antivirus confunden menos el
+          # ejecutable con programas maliciosos que usan el cargador precompilado
+          PYINSTALLER_COMPILE_BOOTLOADER: "1"
+        run: |
+          python -m pip install -r requirements.txt
+          python -m pip install --no-binary pyinstaller pyinstaller
+      - name: Comprobar que el cargador se compiló aquí
+        shell: python
+        run: |
+          import glob, hashlib, os, subprocess, sys, zipfile
+          import PyInstaller
+          rel = "PyInstaller/bootloader/Windows-64bit-intel/runw.exe"
+          propio = hashlib.sha256(open(os.path.join(os.path.dirname(PyInstaller.__file__), "..", rel), "rb").read()).hexdigest()
+          subprocess.run([sys.executable, "-m", "pip", "download", "-q", "--no-deps", "--only-binary", ":all:",
+                          f"pyinstaller=={PyInstaller.__version__}", "-d", "oficial"], check=True)
+          oficial = hashlib.sha256(zipfile.ZipFile(glob.glob("oficial/*.whl")[0]).read(rel)).hexdigest()
+          print("cargador propio:  ", propio)
+          print("cargador oficial: ", oficial)
+          if propio == oficial:
+              sys.exit("Se está usando el cargador precompilado de PyInstaller")
+      - name: Ejecutables (PyInstaller)
+        run: python -m PyInstaller --noconfirm instalador/salitre.spec
+      - name: Prueba de humo del ejecutable
+        env:
+          SDL_VIDEODRIVER: dummy
+          SDL_AUDIODRIVER: dummy
+          SALITRE_DATOS_USUARIO: ${{ runner.temp }}\salitre
+        run: |
+          $p = Start-Process -FilePath "dist\GuerraDelPacifico\GuerraDelPacifico.exe" -ArgumentList "--prueba-humo" -Wait -PassThru
+          Get-Content "$env:SALITRE_DATOS_USUARIO\registros\cliente.log" -Tail 25
+          if ($p.ExitCode -ne 0) { throw "La prueba de humo falló con código $($p.ExitCode)" }
+          & "dist\GuerraDelPacifico\ServidorSalitre.exe" --help
+          if ($LASTEXITCODE -ne 0) { throw "El servidor dedicado no arranca" }
+      - name: Instalador (Inno Setup)
+        run: |
+          $iscc = Join-Path ${env:ProgramFiles(x86)} "Inno Setup 6\ISCC.exe"
+          if (-not (Test-Path $iscc)) {
+            choco install innosetup --no-progress -y
+            if ($LASTEXITCODE -ne 0) { throw "No se pudo instalar Inno Setup" }
+          }
+          $version = (python -c "import salitre; print(salitre.VERSION)").Trim()
+          Push-Location instalador
+          & $iscc "/DVersion=$version" salitre.iss
+          if ($LASTEXITCODE -ne 0) { throw "Inno Setup falló" }
+          Pop-Location
+      # dos artefactos separados y sin archivos comprimidos anidados: los navegadores
+      # desconfían de un zip que trae otro zip con ejecutables
+      - uses: actions/upload-artifact@v4
+        with:
+          name: instalador-windows
+          path: rts/instalador/Salida/*.exe
+          if-no-files-found: error
+      - uses: actions/upload-artifact@v4
+        with:
+          name: portatil-windows
+          path: rts/dist/
+          if-no-files-found: error
+
+  macos:
+    name: Aplicación para macOS
+    needs: pruebas
+    runs-on: macos-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: rts
+    env:
+      # una sola aplicación para Intel y Apple Silicon (el Python de setup-python es el universal2 de python.org)
+      SALITRE_ARQUITECTURA: universal2
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+          cache-dependency-path: rts/requirements.txt
+      - name: Construir, probar y empaquetar (.app y .dmg)
+        run: sh instalador/construir_mac.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: aplicacion-macos
+          path: rts/dist/*.dmg
+          if-no-files-found: error
+
+  linux:
+    name: Versión portátil para Linux
+    needs: pruebas
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: rts
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+          cache-dependency-path: rts/requirements.txt
+      - name: Construir y probar
+        run: sh instalador/construir.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: linux
+          path: rts/dist/*.tar.gz
+          if-no-files-found: error
+
+  docker:
+    name: Imagen del servidor dedicado
+    needs: pruebas
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      - name: Construir la imagen
+        run: docker build -f rts/docker/Dockerfile -t salitre-servidor rts
+      - name: Probar el contenedor
+        working-directory: rts
+        run: |
+          docker run -d --name salitre -p 47800:47800 salitre-servidor --nombre "Prueba CI" --sin-lan
+          if ! python docker/probar_servidor.py 127.0.0.1 47800 60; then docker logs salitre; exit 1; fi
+          docker logs salitre
+
+  descargas:
+    name: Guardar en rts/descargas
+    if: github.event_name == 'workflow_dispatch' && (inputs.guardar_instalador || inputs.guardar_mac)
+    needs: [windows, macos]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      WINDOWS: ${{ inputs.guardar_instalador }}
+      MAC: ${{ inputs.guardar_mac }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Retirar las versiones anteriores
+        run: |
+          if [ "$WINDOWS" = true ]; then git rm -q --ignore-unmatch 'rts/descargas/*.exe'; fi
+          if [ "$MAC" = true ]; then git rm -q --ignore-unmatch 'rts/descargas/*.dmg'; fi
+      - if: inputs.guardar_instalador
+        uses: actions/download-artifact@v4
+        with:
+          name: instalador-windows
+          path: rts/descargas
+      - if: inputs.guardar_mac
+        uses: actions/download-artifact@v4
+        with:
+          name: aplicacion-macos
+          path: rts/descargas
+      - name: Subir los archivos a la rama
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A rts/descargas
+          if git diff --cached --quiet; then echo "Nada nuevo que guardar"; exit 0; fi
+          titulo="Descargas en rts/descargas"
+          if [ "$WINDOWS" = true ] && [ "$MAC" != true ]; then titulo="Instalador de Windows en rts/descargas"; fi
+          if [ "$MAC" = true ] && [ "$WINDOWS" != true ]; then titulo="Aplicación para macOS en rts/descargas"; fi
+          git commit -m "$titulo" \
+                     -m "Copiado por la integración continua desde los artefactos de la ejecución $GITHUB_RUN_ID:" \
+                     -m "$(git diff --cached --name-status)" \
+                     -m "Claude-Session: https://claude.ai/code/session_01NLZ5idHufDYXwwcUbxeAdb"
+          # por si la rama avanzó mientras se construía
+          git pull --rebase
+          git push
+
+  publicar:
+    name: Publicar versión
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [windows, macos, linux, docker]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: artefactos
+      - name: Preparar los archivos de la versión
+        run: |
+          mkdir publicar
+          cp artefactos/instalador-windows/*.exe publicar/
+          cp artefactos/aplicacion-macos/*.dmg publicar/
+          (cd artefactos/portatil-windows && zip -qr "../../publicar/GuerraDelPacifico-${GITHUB_REF_NAME#v}-windows-portatil.zip" GuerraDelPacifico)
+          cp artefactos/linux/*.tar.gz publicar/
+          ls -la publicar
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: publicar/*
+          generate_release_notes: true
