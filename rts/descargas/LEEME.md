@@ -14,7 +14,7 @@ evitarlo, descárguelo con PowerShell (tecla Windows → escriba *PowerShell* �
 Intro) y pegue:
 
 ```powershell
-curl.exe -L -o "$env:USERPROFILE\Downloads\GuerraDelPacifico-0.12.1-Instalador.exe" https://raw.githubusercontent.com/supersovo/Guerra-del-Pacifivo-Atenea/refs/heads/claude/friendly-keller-8ieqfo/rts/descargas/GuerraDelPacifico-0.12.1-Instalador.exe
+curl.exe -L -o "$env:USERPROFILE\Downloads\GuerraDelPacifico-0.13.0-Instalador.exe" https://raw.githubusercontent.com/supersovo/Guerra-del-Pacifivo-Atenea/refs/heads/claude/friendly-keller-8ieqfo/rts/descargas/GuerraDelPacifico-0.13.0-Instalador.exe
 ```
 
 El instalador queda en la carpeta *Descargas*. Si la rama ya se fusionó, cambie
@@ -34,8 +34,8 @@ Sirve para Mac con procesador Intel o Apple Silicon (M1 en adelante), con macOS
 ⌘ + espacio y escriba *Terminal*) y pegue:
 
 ```sh
-curl -L -o ~/Downloads/GuerraDelPacifico-0.12.1-macOS.dmg https://raw.githubusercontent.com/supersovo/Guerra-del-Pacifivo-Atenea/refs/heads/claude/friendly-keller-8ieqfo/rts/descargas/GuerraDelPacifico-0.12.1-macOS.dmg
-open ~/Downloads/GuerraDelPacifico-0.12.1-macOS.dmg
+curl -L -o ~/Downloads/GuerraDelPacifico-0.13.0-macOS.dmg https://raw.githubusercontent.com/supersovo/Guerra-del-Pacifivo-Atenea/refs/heads/claude/friendly-keller-8ieqfo/rts/descargas/GuerraDelPacifico-0.13.0-macOS.dmg
+open ~/Downloads/GuerraDelPacifico-0.13.0-macOS.dmg
 ```
 
 Se abre la imagen de disco: arrastre *Guerra del Pacífico* sobre *Aplicaciones*
@@ -62,6 +62,31 @@ encuentra las partidas de los compañeros y ellos pueden entrar a la suya.
 En Mac, ⌘ (Cmd) sirve igual que Ctrl. El servidor dedicado viene dentro de la
 aplicación y se usa desde la Terminal:
 `"/Applications/Guerra del Pacífico.app/Contents/MacOS/ServidorSalitre" --help`.
+
+## Novedades de la 0.13.0
+
+- **Sed en el desierto**: la infantería y la caballería gastan la cantimplora
+  al marchar o combatir en la pampa y, más aún, en el salar. Sin agua marchan
+  un 25 % más lento y tardan el doble en disparar; al rato llega el **golpe de
+  calor**. A la sombra de un tamarugo la sed baja un 70 %. La tropa bebe junto
+  a los molinos y al Cuartel General.
+- **Nueva unidad: la Carreta de agua** (depósito de intendencia, con un molino
+  en pie): lleva una pipa de 2000 de agua detrás de la columna, da de beber a
+  la tropa que la rodea y vuelve a llenarse en molinos y cuarteles.
+- **Formaciones** de la infantería de fusil (tecla **F**): **línea** (+30 % de
+  cadencia, pero la artillería le hace más daño), **guerrilla** (−35 % del daño
+  a distancia, más rápida, pega menos) y **cuadro** (la carga de la caballería
+  no la arrolla; muy lento).
+- **La artillería dispersa sus granadas** alrededor del blanco, más cuanto más
+  lejos y cuesta arriba; un **espía** o un **baqueano** cerca del blanco la
+  corrige, y el **viento** (a la vista en la barra superior) corre los tiros.
+- **Cobertura**: la infantería detenida junto a rocas, ruinas o tamarugos recibe
+  un 30 % menos de daño de la fusilería.
+- La IA lleva carretas de agua y forma en línea, en guerrilla o en cuadro.
+- Nuevas voces: la carreta, las formaciones («¡Formen cuadro! ¡Bayoneta
+  calada!») y los avisos de sed y de golpe de calor.
+- La 0.13.0 cambia los datos y el protocolo: para jugar en red, todos deben
+  tener la 0.13.0.
 
 ## Novedades de la 0.12.1
 

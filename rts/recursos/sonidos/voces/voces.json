@@ -72,6 +72,10 @@
   "texto": "¡Nuestras tropas están bajo ataque!",
   "voz": "em_santa"
  },
+ "calor_1.ogg": {
+  "texto": "¡Golpe de calor! La tropa necesita agua.",
+  "voz": "em_santa"
+ },
  "derrota_1.ogg": {
   "texto": "Hemos sido derrotados.",
   "voz": "em_santa"
@@ -87,6 +91,22 @@
  "falta_dinero_1.ogg": {
   "texto": "Falta dinero, mi comandante.",
   "voz": "em_santa"
+ },
+ "formacion_cuadro_1.ogg": {
+  "texto": "¡Formen cuadro! ¡Bayoneta calada!",
+  "voz": "em_alex"
+ },
+ "formacion_guerrilla_1.ogg": {
+  "texto": "¡En guerrilla! ¡Aprovechen el terreno!",
+  "voz": "em_alex"
+ },
+ "formacion_linea_1.ogg": {
+  "texto": "¡En línea de batalla! ¡Fuego por descargas!",
+  "voz": "em_alex"
+ },
+ "formacion_ninguna_1.ogg": {
+  "texto": "¡Rompan filas!",
+  "voz": "em_alex"
  },
  "herido_veterano_1.ogg": {
   "texto": "¡Camilleros! ¡Cayó herido un veterano!",
@@ -151,6 +171,10 @@
  "lista_cantinera_1.ogg": {
   "texto": "Cantinera lista. Traigo agua para la tropa.",
   "voz": "ef_dora"
+ },
+ "lista_carreta_agua_1.ogg": {
+  "texto": "Carreta de agua lista, con la pipa llena.",
+  "voz": "em_alex"
  },
  "lista_cazador_1.ogg": {
   "texto": "¡Cazador a caballo, listo para explorar!",
@@ -288,6 +312,14 @@
   "texto": "Voy con la tropa.",
   "voz": "ef_dora"
  },
+ "mover_carreta_1.ogg": {
+  "texto": "¡Agua para la tropa!",
+  "voz": "em_alex"
+ },
+ "mover_carreta_2.ogg": {
+  "texto": "Allá vamos con la pipa.",
+  "voz": "em_alex"
+ },
  "mover_espia_1.ogg": {
   "texto": "Sin ser visto.",
   "voz": "em_alex"
@@ -348,6 +380,10 @@
   "texto": "¡Heridos, a retaguardia!",
   "voz": "em_alex"
  },
+ "sed_1.ogg": {
+  "texto": "¡La tropa se quedó sin agua, mi comandante!",
+  "voz": "em_santa"
+ },
  "seleccion_ambulancia_1.ogg": {
   "texto": "Ambulancia, a la orden.",
   "voz": "em_alex"
@@ -379,6 +415,14 @@
  "seleccion_cantinera_2.ogg": {
   "texto": "Aquí está la cantinera.",
   "voz": "ef_dora"
+ },
+ "seleccion_carreta_1.ogg": {
+  "texto": "Carreta de agua, a la orden.",
+  "voz": "em_alex"
+ },
+ "seleccion_carreta_2.ogg": {
+  "texto": "¿Adónde llevamos el agua?",
+  "voz": "em_alex"
  },
  "seleccion_espia_1.ogg": {
   "texto": "Hable bajo, mi comandante.",

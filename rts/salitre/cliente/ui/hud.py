@@ -1,6 +1,7 @@
-"""Panel de mando de la batalla: barra superior, minimapa, selección, tarjeta
-de órdenes, mensajes y chat."""
+"""Panel de mando de la batalla: barra superior (con el viento), minimapa, selección,
+tarjeta de órdenes, mensajes y chat."""
 
+import math
 import time
 
 import pygame
@@ -18,6 +19,20 @@ ALTO_SUP = 30
 ALTO_INF = 178
 LADO_MINI = 164
 BTN_W, BTN_H, BTN_SEP = 60, 48, 4
+# rumbos de la rosa de los vientos, empezando por el este y en el sentido de las agujas del reloj
+# (como el rumbo del viento en la simulación: 0 = hacia el este, 4 = hacia el sur)
+ROSA = ("E", "ESE", "SE", "SSE", "S", "SSO", "SO", "OSO", "O", "ONO", "NO", "NNO", "N", "NNE", "NE", "ENE")
+NOMBRES_ROSA = {"N": "norte", "S": "sur", "E": "este", "O": "oeste"}
+
+
+def nombre_rumbo(abrev):
+    """«ONO» -> «oeste-noroeste»; «SE» -> «sudeste»."""
+    if len(abrev) == 1:
+        return NOMBRES_ROSA[abrev]
+    medio = {"NE": "noreste", "NO": "noroeste", "SE": "sudeste", "SO": "sudoeste"}
+    if len(abrev) == 2:
+        return medio[abrev]
+    return NOMBRES_ROSA[abrev[0]] + "-" + medio[abrev[1:]]
 
 
 class HUD:
@@ -45,6 +60,7 @@ class HUD:
         self.mensajes = []
         self.pings = []
         self.boton_menu = pygame.Rect(6, 3, 96, 24)
+        self.rect_viento = pygame.Rect(self.boton_menu.right + 12, 3, 190, 24)
 
     # ------------------------------------------------------------------
     def mensaje(self, texto, color=P.CREMA, segundos=7.0):
@@ -81,6 +97,7 @@ class HUD:
             else f"{segundos // 60:02d}:{segundos % 60:02d}"
         f = fuentes.negrita(17)
         lz.texto(reloj, r.centerx, 5, f, P.CREMA, "centro")
+        self._viento()
         if est.espectador:
             x = r.right - 10
             for i, j in enumerate(est.jugadores):
@@ -103,6 +120,35 @@ class HUD:
         lat = self.esc.app.red.latencia if self.esc.app.red else None
         if lat is not None and not self.esc.local:
             lz.texto(f"{int(lat * 1000)} ms", r.right - 380 - 70, 7, fuentes.cuerpo(14), (200, 190, 170))
+
+    def _viento(self):
+        """Rumbo y fuerza del viento: una flecha hacia donde sopla y de dónde viene. Corre las
+        granadas de la artillería, más cuanto más largo es el tiro."""
+        est = self.esc.est
+        if est.viento is None:
+            return
+        lz = self.lz
+        rumbo, fuerza = est.viento
+        r = self.rect_viento
+        cx, cy = r.x + 11, r.centery
+        a = rumbo * math.pi / 8
+        dx, dy = math.cos(a), math.sin(a)
+        largo = 4 + 5 * min(100, fuerza) / 100
+        col = P.CREMA if fuerza < 70 else (240, 180, 90)
+        x0, y0 = cx - dx * largo, cy - dy * largo
+        x1, y1 = cx + dx * largo, cy + dy * largo
+        for k in (-0.6, 0.0, 0.6):
+            lz.linea((x0 - dy * k, y0 + dx * k), (x1 - dy * k, y1 + dx * k), col)
+        lz.triangulo((x1 + dx * 4, y1 + dy * 4), (x1 - dy * 4, y1 + dx * 4), (x1 + dy * 4, y1 - dx * 4), col)
+        desde = ROSA[(rumbo + 8) % 16]
+        lz.texto(f"Viento del {desde} · {fuerza}", r.x + 26, r.y + 3, fuentes.negrita(15), col)
+        if r.collidepoint(self.esc.ui.raton):
+            viento_max = est.cat.balistica.viento_max / 512
+            self.esc.ui.poner_tooltip(
+                f"Viento del {nombre_rumbo(desde)}, fuerza {fuerza} de 100",
+                "Corre las granadas de los cañones hacia donde sopla la flecha: "
+                f"a esta fuerza, {viento_max * fuerza / 100:.2f} casillas por cada casilla de tiro. "
+                "Rola y cambia de fuerza durante la batalla.")
 
     def _panel_inferior(self):
         lz = self.lz
@@ -318,9 +364,64 @@ class HUD:
         f = fuentes.cuerpo(16)
         for i, ln in enumerate(lineas[:max_lineas]):
             lz.texto(ln, x, y + i * 19, f, P.TINTA)
-        if getattr(tipo, "heroe", False) and tipo.aura_efectos:
+        heroe = getattr(tipo, "heroe", False) and tipo.aura_efectos
+        if not tipo.es_edificio:
+            self._estado_tropa(e, ex, r, 3 if heroe else 5)
+        if heroe:
             lz.parrafo(tipo.descripcion, r.x + 8, r.bottom - 38, r.w - 16, fuentes.cursiva(14), P.TINTA_SUAVE,
                        max_lineas=2)
+
+    def _estado_tropa(self, e, ex, r, max_filas):
+        """Agua de la cantimplora y fatiga (solo de la tropa propia), formación y cobertura (a la
+        vista de los dos bandos) y la pipa de la carreta de agua."""
+        lz = self.lz
+        est = self.esc.est
+        cat = est.cat
+        tipo = e.tipo
+        x = r.x + 430
+        ancho = min(150, r.right - x - 70)
+        if ancho < 60:
+            return
+        filas = []          # (etiqueta, fracción de la barra o None, color, texto)
+        propio = est.propio(e)
+        sed = tipo.sed
+        if sed is not None and propio:
+            agua = ex.get("ag", 100)
+            filas.append(("Agua", agua / 100, (70, 140, 220) if agua > 25 else (220, 130, 50), f"{agua} %"))
+            fa = ex.get("fa", 0)
+            if fa:
+                filas.append(("Fatiga", min(1.0, fa / 100), (220, 150, 50) if fa < 100 else (200, 50, 40),
+                              f"{fa} %" if fa < 100 else "golpe de calor"))
+        if e.fl & I.F_DESHIDRATADA and sed is not None:
+            recarga = ("recarga el doble" if sed.enfriamiento_pct == 100
+                       else f"+{sed.enfriamiento_pct} % de recarga")
+            filas.append(("", None, (170, 40, 30), f"Sin agua: {sed.velocidad_pct} % de velocidad, {recarga}"))
+        if tipo.estanque_cap and propio:
+            pipa = ex.get("es", 0)
+            filas.append(("Pipa", pipa / 100, (70, 140, 220) if pipa > 25 else (220, 130, 50), f"{pipa} %"))
+            filas.append(("", None, P.TINTA_SUAVE,
+                          f"Da de beber a la tropa a {tipo.estanque_radio / 512:g} casillas a la redonda."))
+            filas.append(("", None, P.TINTA_SUAVE, "Llena la pipa junto a un molino o al Cuartel General."))
+        fo = ex.get("fo")
+        if fo and fo < len(cat.formaciones_codigo):
+            f = cat.formaciones_codigo[fo]
+            filas.append(("", None, P.TINTA, f"Formación: {f.nombre}"))
+        if e.fl & I.F_COBERTURA:
+            filas.append(("", None, (60, 100, 50),
+                          f"A cubierto: -{cat.cobertura.reduccion_pct} % del daño de la fusilería"))
+        if e.fl & I.F_SOMBRA and sed is not None:
+            filas.append(("", None, (60, 100, 50), f"A la sombra: -{100 - sed.sombra_pct} % de sed y fatiga"))
+        y = r.y + 34
+        for etiqueta, frac, col, texto in filas[:max_filas]:
+            if frac is None:
+                lz.texto(texto, x, y - 2, fuentes.cuerpo(15), col)
+            else:
+                lz.texto(etiqueta, x, y - 3, fuentes.negrita(15), P.TINTA)
+                bx = x + 52
+                lz.rect((bx, y, ancho, 10), (60, 40, 26))
+                lz.rect((bx + 1, y + 1, (ancho - 2) * max(0.0, min(1.0, frac)), 8), col)
+                lz.texto(texto, bx + ancho + 8, y - 3, fuentes.cuerpo(15), P.TINTA)
+            y += 19
 
     def _hoja_de_servicio(self, e, ex, grado, fac, x, y):
         """Grado, nombre y cuerpo del veterano; para los propios, la experiencia hacia el próximo grado."""
@@ -455,7 +556,7 @@ class HUD:
             base = (236, 222, 190) if activo else (170, 160, 142)
             if encima and activo:
                 base = (250, 238, 206)
-            if esc.modo is not None and esc.modo[1] == b.clave:
+            if (esc.modo is not None and esc.modo[1] == b.clave) or b.marcado:
                 base = (250, 210, 140)
             lz.rect(r, (40, 26, 16))
             lz.rect(r.inflate(-2, -2), base)

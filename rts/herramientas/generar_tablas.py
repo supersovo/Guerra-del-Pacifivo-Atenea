@@ -49,6 +49,81 @@ def tabla(encabezados, filas):
     return "\n".join(out)
 
 
+def _agua_formaciones_artilleria(cat, t, U, E):
+    """Secciones de la sed y el agua, las formaciones, la dispersión de la artillería y la cobertura."""
+    ataque = cat.nombres_ataque
+    partes = []
+    s = t["sed"]
+    calor = y_lista(f"{k} {v} %" for k, v in s["calor"].items())
+    partes += ["## Agua y sed", "",
+               "La infantería y la caballería en tierra (no los trabajadores ni los camilleros) gastan el agua de la "
+               "cantimplora al marchar o combatir en una casilla de calor; quietas, o fuera de la pampa y el salar, "
+               "no gastan.", "",
+               tabla(["Parámetro", "Valor"], [
+                   ("Cantimplora", f"{s['cantimplora']} de agua"),
+                   ("Consumo al marchar o combatir",
+                    f"{decimal(s['consumo'])} por segundo por el calor de la casilla ({calor})"),
+                   ("Cuenta como combate", f"hasta {decimal(s['combate'])} s después del último disparo"),
+                   ("Sin agua", f"{s['velocidad_pct']} % de velocidad y +{s['enfriamiento_pct']} % de tiempo entre "
+                                "disparos"),
+                   ("Golpe de calor", f"tras {s['golpe_calor']} s sin agua al sol de la pampa (en el salar, antes): "
+                                      f"{decimal(s['danio_calor'])} de vida por segundo"),
+                   ("Fatiga", f"con agua se repone {s['recuperacion']} veces más rápido de lo que sube en la pampa; "
+                              "junto a una carreta, un molino o el Cuartel General, "
+                              f"{s['recuperacion'] + s['alivio']} veces más rápido"),
+                   ("A la sombra de un tamarugo", f"el consumo y la fatiga quedan en el {s['sombra_pct']} %"),
+               ]), "",
+               tabla(["Fuente de agua", "Radio", "Da de beber (por segundo)", "Llena las pipas (por segundo)"],
+                     [(v["nombre"], decimal(v["abastece"]["radio"]), decimal(v["abastece"]["tropa"]),
+                       decimal(v["abastece"]["pipa"])) for v in E.values() if v.get("abastece")]), "",
+               tabla(["Carreta", "Pipa", "Radio", "Reparto a cada soldado (por segundo)"],
+                     [(v["nombre"], v["estanque"]["capacidad"], decimal(v["estanque"]["radio"]),
+                       decimal(v["estanque"]["reparto"])) for v in U.values() if v.get("estanque")]), ""]
+
+    filas = []
+    for k, v in t["formaciones"].items():
+        if k.startswith("_") or k == "pueden":
+            continue
+        efectos = [f"{v[c]:+d} % de {n}" for c, n in (("cadencia_pct", "cadencia"), ("velocidad_pct", "velocidad"),
+                                                       ("danio_pct", "daño")) if v.get(c)]
+        por_pct = {}
+        for a, pct in v.get("recibido_pct", {}).items():
+            por_pct.setdefault(pct, []).append(ataque.get(a, a).lower())
+        efectos += [f"{pct:+d} % del daño recibido de {y_lista(nombres)}" for pct, nombres in por_pct.items()]
+        if v.get("inmune_carga"):
+            efectos.append("la carga de la caballería no multiplica su daño")
+        filas.append((v["nombre"], v.get("atajo", ""), "; ".join(efectos)))
+    forman = y_lista(tu.nombre for tu in cat.unidades.values() if tu.forma_filas)
+    partes += ["## Formaciones", "", f"Forman (tecla F): {forman}. La guarnición de una obra no forma.", "",
+               tabla(["Formación", "Tecla", "Efectos"], filas), ""]
+
+    b = t["balistica"]
+    filas = [(v["nombre"], decimal(v["arma"]["cep"]), decimal(v["arma"]["alcance"]),
+              decimal(round(v["arma"]["cep"] * v["arma"]["alcance"], 2)))
+             for v in U.values() if (v.get("arma") or {}).get("cep")]
+    observadores = y_lista(f"{tu.nombre} ({decimal(tu.observador / 512)})" for tu in cat.unidades.values()
+                           if tu.observador)
+    partes += ["## Artillería: dispersión y viento", "",
+               "La mitad de las granadas cae dentro del error circular probable (CEP) alrededor del blanco. "
+               f"CEP = CEP por casilla × distancia × (1 + {b['altura_pct']} % si tira cuesta arriba, menos con la "
+               f"veteranía); con un observador propio cerca del blanco, el {b['observador_pct']} %. Observadores "
+               f"(radio): {observadores}. El viento corre la granada hasta {decimal(b['viento_max'])} casillas por "
+               f"casilla de vuelo con fuerza 100 y cambia cada {b['viento_cambio']} s.", "",
+               tabla(["Pieza", "CEP por casilla", "Alcance", "CEP al alcance máximo"], filas), ""]
+
+    c = t["cobertura"]
+    plural = {"roca": "rocas", "tamarugo": "tamarugos"}
+
+    def o_lista(cosas):
+        return y_lista(plural.get(x, x) for x in cosas).replace(" y ", " o ")
+    clases = y_lista(cat.nombres_armadura.get(x, x).lower() for x in c["clases"])
+    partes += ["## Cobertura", "",
+               f"La {clases} detenida junto a {o_lista(c['terrenos'])} recibe un {c['reduccion_pct']} % menos de "
+               f"daño de {y_lista(ataque.get(a, a).lower() for a in c['ataques'])} (no de la artillería); junto a "
+               f"{o_lista(c['sombra'])}, además, está a la sombra. En marcha pierde la cobertura.", ""]
+    return partes
+
+
 def main():
     cat = mod_cat.cargar()
     U, E, M, H, F = crudo("unidades.json"), crudo("edificios.json"), crudo("mejoras.json"), \
@@ -155,6 +230,8 @@ def main():
              for k, v in t["multiplicadores"].items()]
     partes += ["## Daño según el tipo de ataque y de blanco", "",
                tabla(["Ataque"] + [cat.nombres_armadura.get(c, c) for c in clases], filas), ""]
+
+    partes += _agua_formaciones_artilleria(cat, t, U, E)
 
     vet = cat.veterania
     x_regen = t["veterania"]["experiencia"].get("regeneracion_tras", 10)

@@ -18,6 +18,7 @@ la visibilidad de los blancos, los requisitos, la población y los recursos.
     {"c": "habilidad", "u": [ids], "h": habilidad, "x", "y", "t": id|null}
     {"c": "descargar", "u": [ids], "x", "y"}     (en un edificio, "g": id saca a un solo soldado)
     {"c": "senal", "x", "y"}      {"c": "rendirse"}
+    {"c": "formacion", "u": [ids], "f": "linea" | "guerrilla" | "cuadro" | "ninguna"}
 
 Las coordenadas x, y van en píxeles del mapa.
 """
@@ -197,17 +198,21 @@ def c_patrullar(m, p, cmd):
 
 
 def _sanitaria(u):
-    """Cantineras y enfermeras: curan a la tropa propia, no combaten."""
-    return bool(u.tipo.curar_ritmo) and u.tipo.arma is None
+    """Cantineras, enfermeras y carretas de agua: atienden a la tropa propia, no combaten."""
+    return (bool(u.tipo.curar_ritmo) or bool(u.tipo.estanque_cap)) and u.tipo.arma is None
 
 
 def _acompanar(m, p, sanitarias, tropa, cola):
     """En una orden de ataque las sanitarias no van hacia el enemigo: siguen a la tropa
-    armada más cercana de la misma orden (y la curan); si van solas, se quedan donde están."""
+    armada más cercana de la misma orden (y la curan o le dan de beber); si van solas, se
+    quedan donde están."""
     if not sanitarias:
         return
     if not tropa:
-        m.ev_jugador(p, "err", "La cantinera no combate: solo atiende a la tropa propia")
+        if all(u.tipo.estanque_cap for u in sanitarias):
+            m.ev_jugador(p, "err", "La carreta de agua no combate: acompaña a la tropa y le da de beber")
+        else:
+            m.ev_jugador(p, "err", "La cantinera no combate: solo atiende a la tropa propia")
         return
     for u in sanitarias:
         g = min(tropa, key=lambda v: ((v.x - u.x) ** 2 + (v.y - u.y) ** 2, v.id))
@@ -600,6 +605,24 @@ def c_rendirse(m, p, cmd):
     m.jugadores[p].rendido = True
 
 
+def c_formacion(m, p, cmd):
+    """Formación táctica de la infantería de fusil: línea, guerrilla, cuadro o ninguna."""
+    fid = cmd.get("f")
+    if fid in (None, "", "ninguna", 0):
+        f = None
+    else:
+        f = m.cat.formaciones.get(str(fid))
+        if f is None:
+            return
+    us = [u for u in _propias(m, p, cmd.get("u", [])) if u.tipo.forma_filas]
+    if not us:
+        m.ev_jugador(p, "err", "Solo la infantería de fusil forma en línea, en guerrilla o en cuadro")
+        return
+    for u in us:
+        u.formacion = f
+    m.ev_jugador(p, "formacion", f.codigo if f is not None else 0, len(us))
+
+
 def c_truco(m, p, cmd):
     if not m.trucos:
         return
@@ -635,6 +658,7 @@ MANEJADORES = {
     "descargar": c_descargar,
     "senal": c_senal,
     "rendirse": c_rendirse,
+    "formacion": c_formacion,
     "truco": c_truco,
 }
 

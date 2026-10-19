@@ -85,5 +85,61 @@
       "instruccion": {"mejora": "ejercicios_tiro", "radio": 6, "por_segundo": 1.0},
       "regeneracion_tras": 10
     }
+  },
+
+  "sed": {
+    "_comentario": "La sed de la tropa (infantería y caballería; no los trabajadores ni los camilleros). 'cantimplora': agua de cada soldado, en puntos. 'consumo': puntos por segundo que gasta al marchar o combatir en una casilla de calor ('combate': segundos después del último disparo que cuentan como combatiendo). 'calor': % del consumo según el terreno (el salar es calor extremo). Sin agua: 'velocidad_pct' a la marcha y 'enfriamiento_pct' más de tiempo entre disparos (100 = el doble). 'golpe_calor': segundos sin agua al sol (pampa; en el salar, menos) hasta que la unidad empieza a perder 'danio_calor' de vida por segundo. 'recuperacion': cuánto se repone la fatiga por segundo con agua en la cantimplora; 'alivio': cuánto más junto a una carreta de agua, un molino o el Cuartel General. 'sombra_pct': lo que queda del consumo y de la fatiga a la sombra de un tamarugo. 'aviso': segundos entre los avisos de sed y de golpe de calor.",
+    "cantimplora": 100,
+    "consumo": 1.0,
+    "combate": 1.5,
+    "calor": {"pampa": 100, "salar": 150},
+    "velocidad_pct": -25,
+    "enfriamiento_pct": 100,
+    "golpe_calor": 30,
+    "danio_calor": 0.5,
+    "recuperacion": 2,
+    "alivio": 4,
+    "sombra_pct": 30,
+    "aviso": 20,
+    "excluir_categorias": ["trabajador"]
+  },
+
+  "formaciones": {
+    "_comentario": "Formaciones tácticas de la infantería de fusil ('pueden'), que se eligen con la orden Formación. 'cadencia_pct': más disparos por segundo; 'velocidad_pct': marcha; 'danio_pct': potencia de fuego; 'recibido_pct': cuánto más (o menos) daño recibe según el tipo de ataque; 'inmune_carga': la carga de la caballería no multiplica su daño.",
+    "pueden": {"clases": ["infanteria"], "armas": ["fusil"], "excluir_categorias": ["heroe", "trabajador"]},
+    "linea": {
+      "nombre": "Línea", "atajo": "L",
+      "descripcion": "Dos filas de fusiles que hacen fuego a discreción: +30 % de cadencia, -10 % de velocidad; las granadas y la dinamita hacen un 15 % más de daño a la línea apretada.",
+      "cadencia_pct": 30, "velocidad_pct": -10,
+      "recibido_pct": {"explosivo": 15, "dinamita": 15, "canon_naval": 15}
+    },
+    "guerrilla": {
+      "nombre": "Guerrilla", "atajo": "G",
+      "descripcion": "Tiradores dispersos que aprovechan el terreno: -35 % del daño de la fusilería y de la artillería, +20 % de velocidad, -20 % de potencia de fuego.",
+      "danio_pct": -20, "velocidad_pct": 20,
+      "recibido_pct": {"fusil": -35, "metralla": -35, "explosivo": -35, "canon_naval": -35}
+    },
+    "cuadro": {
+      "nombre": "Cuadro", "atajo": "C",
+      "descripcion": "Cuadro cerrado con las bayonetas hacia fuera: la carga de la caballería no multiplica su daño; -60 % de velocidad.",
+      "velocidad_pct": -60, "inmune_carga": true
+    }
+  },
+
+  "balistica": {
+    "_comentario": "Dispersión de la artillería (las armas con 'cep' en unidades.json). El error circular probable crece con la distancia ('cep' casillas por casilla) y, cuesta arriba, un 'altura_pct' más (menos con la veteranía); un observador adelantado propio (espía o baqueano) cerca del blanco lo deja en 'observador_pct'. El viento corre las granadas hasta 'viento_max' casillas por casilla de vuelo y cambia cada 'viento_cambio' segundos.",
+    "altura_pct": 50,
+    "observador_pct": 50,
+    "viento_max": 0.03,
+    "viento_cambio": 45
+  },
+
+  "cobertura": {
+    "_comentario": "Cobertura natural: la infantería que no se mueve junto a rocas, ruinas o tamarugos ('terrenos') recibe un 'reduccion_pct' menos de daño de los 'ataques'. Junto a un tamarugo ('sombra') está además a la sombra: gasta menos agua y se fatiga menos (sed.sombra_pct).",
+    "terrenos": ["roca", "ruinas", "tamarugo"],
+    "sombra": ["tamarugo"],
+    "ataques": ["fusil", "metralla"],
+    "reduccion_pct": 30,
+    "clases": ["infanteria"]
   }
 }

@@ -41,6 +41,8 @@ def grupo_voz(tipo):
         return tipo.id
     if getattr(tipo, "monta", None):
         return "ambulancia"
+    if getattr(tipo, "estanque_cap", 0):
+        return "carreta"
     if tipo.sprite.get("forma") == "heroina":
         return "heroina"
     if tipo.clase in ("caballeria", "artilleria", "naval"):
@@ -437,6 +439,23 @@ class Juego(Escena):
             pass
         elif k == "pozo_agotado":
             self.hud.mensaje("Un pozo se agotó: el molino rendirá muy poca agua.", (240, 180, 90))
+        elif k in ("sed", "calor"):
+            # la tropa se quedó sin agua o, peor, sufre el golpe de calor (Espacio para ir)
+            x, y = ev[2], ev[3]
+            self.ultimo_aviso = (x, y)
+            self.hud.ping(x, y, (240, 150, 60))
+            if k == "sed":
+                txt = ("¡La tropa se quedó sin agua! Marcha más lento y tarda el doble en recargar: "
+                       "llévele una carreta de agua o vuelva a un molino.")
+            else:
+                txt = "¡Golpe de calor! La tropa sin agua pierde vida al sol de la pampa."
+            self.hud.mensaje(txt + " (Espacio para ir)", (240, 150, 60), 8)
+            snd.voz(k, 2)
+        elif k == "formacion":
+            f = est.cat.formaciones_codigo[ev[2]] if 0 < ev[2] < len(est.cat.formaciones_codigo) else None
+            nombre = f.nombre if f is not None else "Sin formación"
+            self.hud.mensaje(f"Formación: {nombre} ({ev[3]})", P.CREMA, 3)
+            snd.voz("formacion_" + (f.id if f is not None else "ninguna"), 1)
         elif k == "emplaza":
             o = est.ents.get(ev[2])
             if o is not None:
@@ -691,8 +710,8 @@ class Juego(Escena):
         if momento == "trabajar":
             claves = ["trabajar"] if g == "trabajador" else (["montar_ambulancia"] if g == "ambulancia"
                                                                else ["mover_" + g])
-        elif momento == "atacar" and g == "ambulancia":
-            claves = ["mover_ambulancia"]          # la ambulancia no combate: acompaña
+        elif momento == "atacar" and g in ("ambulancia", "carreta"):
+            claves = ["mover_" + g]                 # la ambulancia y la carreta no combaten: acompañan
         else:
             claves = [momento + "_" + g]
         sonido().voz(claves, 0 if momento == "seleccion" else 1)

@@ -25,6 +25,7 @@ Costos en dinero ($) / agua: el salitre se vende en el Cuartel General a 1 $ por
 | Cantinera | Barracas | $ 50 / 25 | 1 | 18 | 40 | 0 | — | — | — | 1.6 | Hospital de campaña |
 | Camilleros | — | $ 0 | 0 | 30 | 60 | 0 | — | — | — | 2.0 | Hospital de campaña |
 | Ambulancia | Hospital de campaña | $ 150 / 50 | 3 | 30 | 250 | 1 | — | — | — | 1.6 | Hospital de campaña |
+| Carreta de agua | Depósito de Intendencia | $ 100 / 50 | 2 | 20 | 180 | 1 | — | — | — | 1.6 | Molino de agua |
 | Ingeniero dinamitero | Barracas | $ 75 / 50 | 2 | 20 | 70 | 0 | 25 (Dinamita) | 4.5 | 2.2 | 1.5 | Barracón de Instrucción |
 | Granadero a caballo | Caballeriza | $ 150 / 75 | 5 | 30 | 250 | 1 | 26 (Arma blanca) | 0.35 | 1.1 | 2.8 | — |
 | Cazador a caballo | Caballeriza | $ 125 / 75 | 5 | 28 | 200 | 1 | 14 (Fusil) | 4 | 0.8 | 3.0 | — |
@@ -48,8 +49,8 @@ Costos en dinero ($) / agua: el salitre se vende en el Cuartel General a 1 $ por
 - **Zapador**: Infante de ingenieros: detecta minas y unidades ocultas, destruye edificios con su carga de demolición y levanta trincheras y reductos al doble de velocidad.
 - **Torpedista**: Siembra minas ocultas ('polvorazos') que estallan al paso del enemigo. Solo los detectores las ven.
 - **Montonero**: Guerrillero de la sierra: barato y rápido. Se oculta si permanece quieto unos segundos.
-- **Colorado de Bolivia**: Infantería de élite: más vida y daño; formada en cuadro recibe la mitad del daño de las armas blancas.
-- **Baqueano**: Guía y rastreador a caballo: el explorador más veloz, con enorme visión; descubre espías y minas.
+- **Colorado de Bolivia**: Infantería de élite: más vida y daño; curtida en el cuadro, recibe siempre la mitad del daño de las armas blancas, y en formación de cuadro la carga de la caballería no la arrolla.
+- **Baqueano**: Guía y rastreador a caballo: el explorador más veloz, con enorme visión; descubre espías y minas. Observador adelantado: la artillería propia que tira cerca de él dispersa la mitad.
 
 ## Héroes
 
@@ -80,7 +81,7 @@ Cada héroe es único: si cae, puede volver a formarse en el Estado Mayor (o en 
 | Edificio | Tamaño | Costo | Tiempo | Vida | Población | Forma | Requiere |
 |---|---|---|---|---|---|---|---|
 | Cuartel General | 4×3 | $ 400 | 100 | 1500 | +10 | Trabajador chino | — |
-| Depósito de Intendencia | 2×2 | $ 100 | 25 | 400 | +10 | — | — |
+| Depósito de Intendencia | 2×2 | $ 100 | 25 | 400 | +10 | Carreta de agua | — |
 | Molino de agua | 3×3 | $ 75 | 30 | 500 | — | — | — |
 | Barracas | 3×3 | $ 150 | 50 | 1000 | — | Infante de línea, Cantinera, Ingeniero dinamitero, Zapador, Torpedista, Montonero, Colorado de Bolivia | Cuartel General |
 | Maestranza | 3×3 | $ 125 | 40 | 850 | — | — | Cuartel General |
@@ -96,9 +97,9 @@ Cada héroe es único: si cae, puede volver a formarse en el Estado Mayor (o en 
 | Muelle | 3×3 | $ 150 | 50 | 900 | — | Transporte a vapor, Cañonera, héroes | Maestranza |
 | Fortín de frontera (Argentina) | 2×2 | $ 125 | 30 | 600 | +5 | — | Barracas |
 
-- **Cuartel General**: Centro del campamento: forma trabajadores, compra el salitre que traen (1 $ por cada unidad de salitre) y recibe el agua. Otorga 10 de población. Hasta 8 de población de infantería pueden subir al techo y disparar desde arriba con +2 de alcance.
-- **Depósito de Intendencia**: Almacena víveres, munición y forraje. Cada depósito permite mantener 10 de población más (máximo 200).
-- **Molino de agua**: Molino de viento con bomba sobre un pozo. Los trabajadores entran y salen cargados de agua.
+- **Cuartel General**: Centro del campamento: forma trabajadores, compra el salitre que traen (1 $ por cada unidad de salitre) y recibe el agua: a su lado la tropa llena las cantimploras y las carretas de agua, la pipa. Otorga 10 de población. Hasta 8 de población de infantería pueden subir al techo y disparar desde arriba con +2 de alcance.
+- **Depósito de Intendencia**: Almacena víveres, munición y forraje. Cada depósito permite mantener 10 de población más (máximo 200). Forma las carretas de agua que acompañan a la tropa en la pampa.
+- **Molino de agua**: Molino de viento con bomba sobre un pozo. Los trabajadores entran y salen cargados de agua; la tropa que llega a su lado llena las cantimploras y las carretas de agua, la pipa.
 - **Barracas**: Cuartel de tropa: forma infantes, cantineras, ingenieros y la infantería especial de cada país. Hasta 6 de población de infantería pueden subir al techo y disparar desde arriba con +2 de alcance, como en una pequeña fortaleza.
 - **Maestranza**: Taller de armas y equipo: investiga las mejoras de ataque y armadura. Habilita el reducto y el muelle.
 - **Hospital de campaña**: Hospital de la retaguardia: habilita a las cantineras, forma las ambulancias, cura lentamente a la tropa cercana y mantiene cuatro equipos de camilleros que salen a buscar a los heridos a todo el campo de batalla. Los heridos se recuperan en el hospital y vuelven a filas.
@@ -198,6 +199,52 @@ Cada héroe es único: si cae, puede volver a formarse en el Estado Mayor (o en 
 | Granada explosiva | 75 % | 100 % | 100 % | 150 % | 100 % |
 | Dinamita | 75 % | 75 % | 125 % | 200 % | 100 % |
 | Cañón naval | 75 % | 100 % | 100 % | 150 % | 125 % |
+
+## Agua y sed
+
+La infantería y la caballería en tierra (no los trabajadores ni los camilleros) gastan el agua de la cantimplora al marchar o combatir en una casilla de calor; quietas, o fuera de la pampa y el salar, no gastan.
+
+| Parámetro | Valor |
+|---|---|
+| Cantimplora | 100 de agua |
+| Consumo al marchar o combatir | 1 por segundo por el calor de la casilla (pampa 100 % y salar 150 %) |
+| Cuenta como combate | hasta 1,5 s después del último disparo |
+| Sin agua | -25 % de velocidad y +100 % de tiempo entre disparos |
+| Golpe de calor | tras 30 s sin agua al sol de la pampa (en el salar, antes): 0,5 de vida por segundo |
+| Fatiga | con agua se repone 2 veces más rápido de lo que sube en la pampa; junto a una carreta, un molino o el Cuartel General, 6 veces más rápido |
+| A la sombra de un tamarugo | el consumo y la fatiga quedan en el 30 % |
+
+| Fuente de agua | Radio | Da de beber (por segundo) | Llena las pipas (por segundo) |
+|---|---|---|---|
+| Cuartel General | 3 | 10 | 50 |
+| Molino de agua | 3 | 10 | 50 |
+
+| Carreta | Pipa | Radio | Reparto a cada soldado (por segundo) |
+|---|---|---|---|
+| Carreta de agua | 2000 | 4 | 5 |
+
+## Formaciones
+
+Forman (tecla F): Infante de línea, Zapador, Torpedista, Montonero y Colorado de Bolivia. La guarnición de una obra no forma.
+
+| Formación | Tecla | Efectos |
+|---|---|---|
+| Línea | L | +30 % de cadencia; -10 % de velocidad; +15 % del daño recibido de granada explosiva, dinamita y cañón naval |
+| Guerrilla | G | +20 % de velocidad; -20 % de daño; -35 % del daño recibido de fusil, metralla, granada explosiva y cañón naval |
+| Cuadro | C | -60 % de velocidad; la carga de la caballería no multiplica su daño |
+
+## Artillería: dispersión y viento
+
+La mitad de las granadas cae dentro del error circular probable (CEP) alrededor del blanco. CEP = CEP por casilla × distancia × (1 + 50 % si tira cuesta arriba, menos con la veteranía); con un observador propio cerca del blanco, el 50 %. Observadores (radio): Espía (6) y Baqueano (6). El viento corre la granada hasta 0,03 casillas por casilla de vuelo con fuerza 100 y cambia cada 45 s.
+
+| Pieza | CEP por casilla | Alcance | CEP al alcance máximo |
+|---|---|---|---|
+| Cañón de montaña | 0,06 | 8 | 0,48 |
+| Cañón de campaña | 0,05 | 12 | 0,6 |
+
+## Cobertura
+
+La infantería detenida junto a rocas, ruinas o tamarugos recibe un 30 % menos de daño de fusil y metralla (no de la artillería); junto a tamarugos, además, está a la sombra. En marcha pierde la cobertura.
 
 ## Veteranía
 

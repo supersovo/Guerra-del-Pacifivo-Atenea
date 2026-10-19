@@ -8,7 +8,7 @@ defiende, cura (las cantineras) o vuelve a su puesto.
 
 from math import isqrt
 
-from . import combate, habilidades, veterania
+from . import combate, habilidades, logistica, veterania
 from .constantes import AGUA, HFP, MEDIA, TICKS, TIERRA, TILE
 from .entidades import (ATACAR, ATACAR_MOVER, CARGAR, CONSTRUIR, CURAR, DESCARGAR, HABILIDAD,
                         MANTENER, MOVER, PATRULLAR, RECOLECTAR, REGRESAR, REPARAR, SEGUIR, Orden)
@@ -31,10 +31,17 @@ def direccion(dx, dy):
 
 
 def velocidad(u, t):
+    """Velocidad efectiva (subunidades por tick): la del tipo con las auras y habilidades, la
+    formación (la guerrilla marcha más rápido, el cuadro mucho más lento) y la sed."""
     v = u.st.velocidad
     pct = u.mod("velocidad_pct", t)
+    if u.formacion is not None:
+        pct += u.formacion.velocidad_pct
+    s = u.tipo.sed
+    if s is not None and u.agua <= 0:
+        pct += s.velocidad_pct
     if pct:
-        v = v * (100 + pct) // 100
+        v = v * (100 + max(-90, pct)) // 100
     return v
 
 
@@ -338,11 +345,13 @@ def atacar(m, u, obj, puede_mover):
         if u.enfr <= 0:
             bonus = 0
             if tipo.carga_bonus and u.mov_ticks >= tipo.carga_ticks:
-                bonus = u.st.carga_pct
+                # el cuadro rompe la carga: el choque de la caballería no multiplica su daño
+                if not (obj.es_unidad and obj.formacion is not None and obj.formacion.inmune_carga):
+                    bonus = u.st.carga_pct
                 u.mov_ticks = 0
                 m.ev_pos(u.x, u.y, "carga", u.id)
             nivel = m.mapa.nivel_en(u.x, u.y)
-            combate.disparar(m, u, obj, u.x, u.y, u.st, arma, u.mod("danio_pct", t), nivel,
+            combate.disparar(m, u, obj, u.x, u.y, u.st, arma, combate.danio_pct_unidad(u, t), nivel,
                              u.mod("ignora_altura", t), bonus)
             u.enfr = combate.enfriamiento_unidad(u, t)
             u.ataco_t = t
@@ -1242,6 +1251,14 @@ def _fin_tick(m, u, t):
     if not oculta and tipo.camuflaje_quieto and u.quieto >= tipo.camuflaje_quieto:
         oculta = True
     u.oculta = oculta
+    # cobertura natural: la infantería posicionada (que no se mueve) junto a rocas, ruinas o
+    # tamarugos está a cubierto, y junto a un árbol, además, a la sombra
+    if tipo.cubre and not u.moviendo:
+        u.cobertura = m.mapa.cobertura[m.mapa.idx_de(u.x, u.y)]
+    else:
+        u.cobertura = 0
+    if tipo.sed is not None:
+        logistica.sed(m, u, t)
 
 
 # ----------------------------------------------------------------------

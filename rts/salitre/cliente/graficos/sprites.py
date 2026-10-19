@@ -36,7 +36,7 @@ FORMA_TAM = {
     "heroina": "pie", "jinete_sable": "montado", "jinete_carabina": "montado", "baqueano": "montado",
     "heroe_montado": "montado", "canon_montana": "artilleria", "canon_campana": "artilleria",
     "gatling": "artilleria", "transporte": "buque", "canonera": "buque", "monitor": "buque", "corbeta": "buque",
-    "camilleros": "camilla", "ambulancia": "carro",
+    "camilleros": "camilla", "ambulancia": "carro", "carreta_agua": "carro",
 }
 LONA_CAMILLA = (226, 220, 200)
 CRUZ_ROJA = (200, 30, 30)
@@ -632,6 +632,58 @@ def ambulancia(ropa, frame, color_jugador):
     return p.resultado()
 
 
+def carreta_agua(ropa, frame, color_jugador):
+    """Carreta de agua de perfil, hacia la derecha: la pipa de duelas con sus zunchos de hierro
+    acostada en la plataforma, el grifo y el balde atrás, dos mulas, el carretero y un banderín
+    con el color del jugador. Cuadros 1-2: marcha (ruedas y patas)."""
+    w, h, fx, fy = TAM["carro"]
+    p = Pintor(w, h)
+    base = fy
+    giro = {1: 0.4, 2: 0.8}.get(frame, 0.0)
+    madera = (112, 80, 52)
+    duela = (150, 104, 62)
+    hierro = (64, 62, 60)
+    for dx, db, c in ((3, -1.8, (92, 74, 58)), (-2, 0, (124, 98, 74))):
+        mx = 50 + dx
+        caballo(p, mx, base + db, frame, c)
+        cy = base + db - 9
+        p.poli([(mx + 10.4, cy - 9.2), (mx + 9.0, cy - 14.8), (mx + 11.8, cy - 9.6)], oscuro(c, 0.8))
+        p.linea(mx - 8, cy - 2.4, mx + 7, cy - 2.6, (70, 46, 30), 0.9)
+    p.linea(34, base - 10.5, 52, base - 11.5, madera, 1.3)
+    # plataforma y la pipa acostada encima: duelas, zunchos, brillo y el tapón de carga
+    p.rect(4, base - 15, 32, 5, madera, 1)
+    p.rect(5, base - 30, 29, 15.5, duela, 6)
+    p.elipse(3, base - 30, 6, 15.5, oscuro(duela, 0.85))
+    for k in range(1, 4):
+        yy = base - 30 + k * 3.9
+        p.linea(8, yy, 32, yy, oscuro(duela, 0.88), 0.5)
+    for xx in (11, 19.5, 28):
+        p.linea(xx, base - 29.6, xx, base - 15, hierro, 1.2)
+    p.linea(9, base - 28.4, 31, base - 28.4, claro(duela, 0.25), 0.7)
+    p.rect(18.4, base - 32, 3.2, 2.6, (90, 64, 40))
+    # el grifo de la tapa, con una gota a punto de caer
+    p.linea(3.2, base - 22, 0.8, base - 22, hierro, 1.1)
+    p.circ(1.0, base - 19.6, 0.9, (90, 160, 230))
+    p.rect(4.5, base - 13, 31, 1.6, color_jugador)
+    _rueda_carro(p, 10, base - 6.5, 6.5, giro)
+    _rueda_carro(p, 31, base - 5.5, 5.5, giro)
+    # el balde colgado atrás
+    p.poli([(0.4, base - 15), (4.4, base - 15), (4.0, base - 10.8), (0.8, base - 10.8)], (128, 132, 138))
+    p.linea(0.4, base - 15, 4.4, base - 15, oscuro((128, 132, 138), 0.7), 0.6)
+    # banderín sobre la pipa, flameando hacia atrás
+    p.linea(33, base - 29, 33, base - 40, (70, 54, 40), 0.9)
+    p.poli([(33, base - 40), (25.6, base - 38), (33, base - 36)], color_jugador)
+    # el carretero en el pescante, con las riendas
+    cx = 38.5
+    p.rect(cx - 2.6, base - 24.6, 5.2, 8.6, ropa["casaca"], 1)
+    p.rect(cx - 1.4, base - 17, 6, 2.4, ropa["pantalon"])
+    p.linea(cx + 2, base - 21, 52, base - 21.5, (60, 40, 26), 0.5)
+    r = dict(ropa)
+    r["cubre"] = True
+    _cabeza_lado(p, cx, base - 27.8, r, "kepi")
+    return p.resultado()
+
+
 def caballo(p, x, base, frame, color=(110, 72, 44), mirar=1):
     """Caballo de perfil con las patas según el cuadro."""
     m = mirar
@@ -869,6 +921,8 @@ class Sprites:
             return camilleros(_ropa(faccion.uniforme, color_jugador), frame, emplazada)
         if tipo.sprite.get("forma") == "ambulancia":
             return ambulancia(_ropa(faccion.uniforme, color_jugador), frame, color_jugador)
+        if tipo.sprite.get("forma") == "carreta_agua":
+            return carreta_agua(_ropa(faccion.uniforme, color_jugador), frame, color_jugador)
         forma = tipo.sprite.get("forma", "infante")
         insignia = tipo.sprite.get("insignia")
         especial = forma if forma in ("colorado", "trabajador", "espia", "montonero", "baqueano") else None

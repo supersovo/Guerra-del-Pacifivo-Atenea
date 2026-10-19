@@ -11,7 +11,8 @@ import json
 from pathlib import Path
 
 from .. import rutas
-from ..sim.constantes import EFP, HFP, TICKS, TILE, XPF, sub, ticks, vel
+from ..sim.constantes import AFP, EFP, HFP, TICKS, TILE, XPF, sub, ticks, vel
+from ..sim.mapa import NOMBRES_TERRENO
 
 ARCHIVOS = ("tablas.json", "unidades.json", "edificios.json", "mejoras.json",
             "habilidades.json", "facciones.json")
@@ -110,7 +111,7 @@ class Efecto:
 
 class Arma:
     __slots__ = ("tipo", "danio", "alcance", "alcance_min", "enfriamiento", "objetivos",
-                 "salpicadura", "vel_proyectil")
+                 "salpicadura", "vel_proyectil", "cep")
 
     def __init__(self, d, donde, multiplicadores):
         self.tipo = d.get("tipo")
@@ -126,6 +127,11 @@ class Arma:
         self.salpicadura = sub(d.get("salpicadura", 0))
         p = d.get("proyectil", 0)
         self.vel_proyectil = vel(p) if p else 0
+        # error circular probable (casillas por casilla de distancia): la granada no cae en el
+        # blanco sino desviada (sim/balistica.py); 0 = tiro directo
+        self.cep = sub(d.get("cep", 0))
+        if self.cep and not self.vel_proyectil:
+            raise ContenidoError(f"{donde}: 'cep' solo vale para armas con 'proyectil'")
 
 
 class TipoUnidad:
@@ -220,6 +226,23 @@ class TipoUnidad:
         self.monta = d.get("monta")
         if self.monta and self.monta not in self.construye:
             self.construye = self.construye + (self.monta,)
+        # carreta de agua: la pipa (en 1/AFP de punto), el radio en que da de beber y cuánto da
+        # por tick a cada soldado
+        es = d.get("estanque")
+        if es:
+            self.estanque_cap = int(es.get("capacidad", 2000)) * AFP
+            self.estanque_radio = sub(es.get("radio", 4))
+            self.estanque_reparto = int(round(float(es.get("reparto", 5)) * AFP / TICKS))
+            if self.estanque_cap <= 0 or self.estanque_reparto <= 0:
+                raise ContenidoError(f"{donde}: 'estanque' necesita capacidad y reparto positivos")
+        else:
+            self.estanque_cap = self.estanque_radio = self.estanque_reparto = 0
+        # observador adelantado (espía, baqueano): la artillería propia que tira cerca de él
+        # dispersa la mitad
+        self.observador = sub(p["observador"].get("radio", 6)) if "observador" in p else 0
+        self.sed = None             # parámetros de la sed (tablas.json): los completa el catálogo
+        self.forma_filas = False    # infantería de fusil que forma en línea, guerrilla o cuadro
+        self.cubre = False          # se pone a cubierto junto a rocas, ruinas y árboles
 
 
 class TipoEdificio:
@@ -305,6 +328,14 @@ class TipoEdificio:
         self.habilidades = tuple(d.get("habilidades", []))
         self.sprite = d.get("sprite", {})
         self.radio = max(self.ancho, self.alto) * TILE // 2
+        # fuente de agua: la tropa bebe y las carretas llenan la pipa a su lado
+        a = d.get("abastece")
+        if a:
+            self.abastece_radio = sub(a.get("radio", 3))
+            self.abastece_tropa = int(round(float(a.get("tropa", 10)) * AFP / TICKS))
+            self.abastece_pipa = int(round(float(a.get("pipa", 50)) * AFP / TICKS))
+        else:
+            self.abastece_radio = self.abastece_tropa = self.abastece_pipa = 0
 
 
 class Mejora:
@@ -373,6 +404,100 @@ class Veterania:
     def umbral(self, tipo, nivel):
         """Experiencia interna (en 1/XPF) que necesita una unidad de ese tipo para el grado."""
         return tipo.valor * self.grados[nivel].umbral * XPF // 100
+
+
+class Sed:
+    """La sed de la tropa en la pampa y el salar (tablas.json, "sed").
+
+    El agua se mide en 1/AFP de punto y la fatiga en centésimas de tick al sol sin agua: cada
+    tick sin agua en una casilla de calor suma el calor de la casilla (pampa 100, salar 150) y,
+    a la sombra, solo una parte. Al pasar el umbral del golpe de calor, la unidad pierde vida."""
+
+    def __init__(self, d):
+        donde = "tablas.json:sed"
+        self.cantimplora = int(d.get("cantimplora", 100)) * AFP
+        self.consumo = int(round(float(d.get("consumo", 0.5)) * AFP / TICKS))
+        self.combate = ticks(d.get("combate", 1.5))
+        self.calor = {}
+        for nombre, pct in (d.get("calor") or {}).items():
+            if nombre.startswith("_"):
+                continue
+            if nombre not in NOMBRES_TERRENO.values():
+                raise ContenidoError(f"{donde}.calor: terreno desconocido '{nombre}'")
+            if not 0 <= int(pct) <= 255:
+                raise ContenidoError(f"{donde}.calor: el calor de '{nombre}' va de 0 a 255 %")
+            self.calor[nombre] = int(pct)
+        self.velocidad_pct = int(d.get("velocidad_pct", -25))
+        self.enfriamiento_pct = int(d.get("enfriamiento_pct", 100))
+        self.golpe_calor = ticks(d.get("golpe_calor", 30)) * 100
+        self.danio_calor = int(round(float(d.get("danio_calor", 0.5)) * HFP / TICKS))
+        self.recuperacion = int(round(float(d.get("recuperacion", 2)) * 100))
+        self.alivio = int(round(float(d.get("alivio", 4)) * 100))
+        self.sombra_pct = int(d.get("sombra_pct", 30))
+        self.aviso = ticks(d.get("aviso", 20))
+        self.excluir = tuple(d.get("excluir_categorias", ["trabajador"]))
+        if self.cantimplora <= 0 or self.consumo <= 0 or self.golpe_calor <= 0:
+            raise ContenidoError(f"{donde}: cantimplora, consumo y golpe_calor deben ser positivos")
+        if not 0 <= self.sombra_pct <= 100:
+            raise ContenidoError(f"{donde}: 'sombra_pct' va de 0 a 100")
+
+
+class Formacion:
+    """Formación táctica de la infantería de fusil (tablas.json, "formaciones")."""
+
+    __slots__ = ("id", "codigo", "nombre", "descripcion", "atajo", "cadencia_pct", "velocidad_pct",
+                 "danio_pct", "recibido", "inmune_carga")
+
+    def __init__(self, fid, codigo, d, multiplicadores):
+        donde = f"tablas.json:formaciones.{fid}"
+        self.id = fid
+        self.codigo = codigo
+        self.nombre = d.get("nombre", fid)
+        self.descripcion = d.get("descripcion", "")
+        self.atajo = (d.get("atajo") or "").upper()[:1]
+        self.cadencia_pct = int(d.get("cadencia_pct", 0))
+        self.velocidad_pct = int(d.get("velocidad_pct", 0))
+        self.danio_pct = int(d.get("danio_pct", 0))
+        self.recibido = {}
+        for tipo, pct in (d.get("recibido_pct") or {}).items():
+            if tipo not in multiplicadores:
+                raise ContenidoError(f"{donde}.recibido_pct: tipo de ataque desconocido '{tipo}'")
+            self.recibido[tipo] = int(pct)
+        self.inmune_carga = bool(d.get("inmune_carga", False))
+        if self.cadencia_pct <= -100 or self.velocidad_pct <= -100:
+            raise ContenidoError(f"{donde}: cadencia y velocidad no pueden bajar al -100 %")
+
+
+class Balistica:
+    """Dispersión de la artillería y viento (tablas.json, "balistica")."""
+
+    def __init__(self, d):
+        self.altura_pct = int(d.get("altura_pct", 50))
+        self.observador_pct = int(d.get("observador_pct", 50))
+        # deriva con el viento a toda fuerza, en subunidades por casilla de vuelo
+        self.viento_max = sub(d.get("viento_max", 0.03))
+        self.viento_cambio = max(TICKS, ticks(d.get("viento_cambio", 45)))
+
+
+class Cobertura:
+    """Cobertura natural del terreno (tablas.json, "cobertura")."""
+
+    def __init__(self, d, multiplicadores):
+        donde = "tablas.json:cobertura"
+        nombres = set(NOMBRES_TERRENO.values())
+        self.refugio = tuple(d.get("terrenos", ["roca", "ruinas", "tamarugo"]))
+        self.sombra = tuple(d.get("sombra", ["tamarugo"]))
+        for n in self.refugio + self.sombra:
+            if n not in nombres:
+                raise ContenidoError(f"{donde}: terreno desconocido '{n}'")
+        self.ataques = tuple(d.get("ataques", ["fusil"]))
+        for a in self.ataques:
+            if a not in multiplicadores:
+                raise ContenidoError(f"{donde}: tipo de ataque desconocido '{a}'")
+        self.reduccion_pct = int(d.get("reduccion_pct", 30))
+        self.clases = tuple(d.get("clases", ["infanteria"]))
+        if not 0 <= self.reduccion_pct <= 100:
+            raise ContenidoError(f"{donde}: 'reduccion_pct' va de 0 a 100")
 
 
 class Habilidad:
@@ -480,6 +605,18 @@ class Catalogo:
         self.ticks_herido = ticks(t.get("segundos_herido", 40))
         self.dist_recursos_cuartel = int(t.get("distancia_minima_recursos_cuartel", 3))
         self.veterania = Veterania(t.get("veterania", {}))
+        self.sed = Sed(t.get("sed", {}))
+        self.balistica = Balistica(t.get("balistica", {}))
+        self.cobertura = Cobertura(t.get("cobertura", {}), self.multiplicadores)
+        fo = t.get("formaciones", {})
+        self.formacion_filtro = Filtro(fo.get("pueden"))
+        self.formaciones = {}
+        for fid, fd in fo.items():
+            if fid.startswith("_") or fid == "pueden":
+                continue
+            self.formaciones[fid] = Formacion(fid, len(self.formaciones) + 1, fd, self.multiplicadores)
+        # por código (el que viaja en la instantánea): 0 = sin formación
+        self.formaciones_codigo = (None,) + tuple(self.formaciones.values())
 
         def sin_comentarios(d):
             return {k: v for k, v in d.items() if not k.startswith("_")}
@@ -513,6 +650,16 @@ class Catalogo:
             te.valor = max(1, te.costo[0] + te.costo[1])
         # edificios con camilleros: con cualquiera de ellos en pie, la tropa que cae queda herida
         self.hospitales = tuple(e.id for e in self.edificios.values() if e.camilleros)
+        # quién tiene sed (la tropa de a pie y de a caballo; no los trabajadores ni los camilleros),
+        # quién forma en línea, guerrilla o cuadro y quién se pone a cubierto
+        for tu in self.unidades.values():
+            if tu.biologica and tu.capa == 0 and not tu.trabajador and not tu.autonomo \
+                    and tu.categoria not in self.sed.excluir:
+                tu.sed = self.sed
+            tu.forma_filas = bool(self.formaciones) and self.formacion_filtro.unidad(tu)
+            tu.cubre = (tu.clase in self.cobertura.clases and tu.capa == 0 and not tu.trabajador
+                        and not tu.autonomo)
+        self.observador_max = max((tu.observador for tu in self.unidades.values()), default=0)
         self._validar()
 
     # ------------------------------------------------------------------

@@ -1,6 +1,7 @@
 """Tarjeta de órdenes: qué botones ofrece la selección actual.
 
 Unidades: mover, detener, atacar, mantener, patrullar y sus habilidades;
+infantería de fusil: el menú de formaciones (línea, guerrilla, cuadro);
 trabajadores: recolectar, regresar, reparar y los dos menús de construcción;
 ambulancia: montar el hospital de sangre donde se elija (como una obra);
 edificios: lo que forman, lo que investigan y el punto de reunión.
@@ -14,7 +15,7 @@ FILAS = 3
 
 class Boton:
     __slots__ = ("clave", "texto", "atajo", "icono", "accion", "dato", "activo", "costo", "descripcion",
-                 "falta", "cuenta", "enfriando")
+                 "falta", "cuenta", "enfriando", "marcado")
 
     def __init__(self, clave, texto, atajo, icono, accion, dato=None, activo=True, costo=None, descripcion="",
                  falta=""):
@@ -30,6 +31,7 @@ class Boton:
         self.falta = falta
         self.cuenta = 0
         self.enfriando = 0
+        self.marcado = False        # la opción vigente (la formación que ya tiene la tropa)
 
 
 def _poner(slots, i, b):
@@ -37,6 +39,28 @@ def _poner(slots, i, b):
         i += 1
     if i < len(slots):
         slots[i] = b
+
+
+def _formaciones(est, unidades, slots):
+    """Submenú de formaciones: una por botón, «Sin formación» y Volver. Se marca la que ya
+    tiene toda la infantería seleccionada que puede formar."""
+    filas = [e for e in unidades if e.tipo.forma_filas]
+    vigentes = {(e.ex if isinstance(e.ex, dict) else {}).get("fo", 0) for e in filas}
+    actual = vigentes.pop() if len(vigentes) == 1 else None
+    k = 0
+    for f in est.cat.formaciones.values():
+        b = Boton("formacion_" + f.id, f.nombre, f.atajo, ("orden", "formacion_" + f.id), "orden",
+                  {"c": "formacion", "f": f.id}, descripcion=f.descripcion)
+        b.marcado = actual == f.codigo
+        slots[k] = b
+        k += 1
+    b = Boton("formacion_ninguna", "Sin formación", "N", ("orden", "formacion_ninguna"), "orden",
+              {"c": "formacion", "f": "ninguna"},
+              descripcion="Rompan filas: la tropa marcha y combate sin formar, como siempre.")
+    b.marcado = actual == 0
+    slots[k] = b
+    slots[-1] = Boton("volver", "Volver", "ESC", ("orden", "volver"), "menu", None)
+    return slots
 
 
 def tarjeta(est, seleccion, submenu=None):
@@ -85,6 +109,8 @@ def tarjeta(est, seleccion, submenu=None):
                     break
             slots[-1] = Boton("volver", "Volver", "ESC", ("orden", "volver"), "menu", None)
             return slots
+        if submenu == "formacion":
+            return _formaciones(est, unidades, slots)
         tipos = {e.tipo.id: e.tipo for e in unidades}
         con_arma = any(t.arma is not None for t in tipos.values())
         trabajadores = any(t.trabajador for t in tipos.values())
@@ -111,6 +137,10 @@ def tarjeta(est, seleccion, submenu=None):
                              descripcion="Edificios básicos: cuartel, depósito, molino, barracas, maestranza...")
             slots[9] = Boton("menu_avanzado", "Construcción avanzada", "V", ("orden", "avanzado"), "menu",
                              "avanzado", descripcion="Barracón, caballeriza, telégrafos, parque, Estado Mayor, muelle.")
+        if cat.formaciones and any(t.forma_filas for t in tipos.values()):
+            slots[6] = Boton("menu_formacion", "Formación", "F", ("orden", "formacion"), "menu", "formacion",
+                             descripcion="Línea, guerrilla o cuadro: cómo forma la infantería de fusil para "
+                                         "marchar y combatir.")
         if not trabajadores and any(t.biologica and t.capa == 0 for t in tipos.values()):
             hospital = any(terminados.get(h) for h in cat.hospitales)
             slots[7] = Boton("replegar", "Replegar heridos", "J", ("orden", "replegar"), "orden", {"c": "replegar"},

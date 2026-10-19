@@ -8,7 +8,7 @@ Orden de cada tick:
   5. unidades: órdenes, movimiento, combate, recolección
   6. separación de unidades superpuestas
   7. proyectiles y minas
-  8. auras (cada 8 ticks), bajas, visión (cada 4) y victoria (cada 16)
+  8. auras y reparto del agua (cada 8 ticks), bajas, visión (cada 4) y victoria (cada 16)
 
 Todo es determinista: con la misma semilla y los mismos comandos se obtiene
 la misma partida (así funcionan las repeticiones).
@@ -18,7 +18,7 @@ import heapq
 from collections import deque
 from math import isqrt
 
-from . import combate, comandos, comportamiento, habilidades, veterania
+from . import balistica, combate, comandos, comportamiento, habilidades, logistica, veterania
 from . import edificios as logica_edificios
 from . import vision as mod_vision
 from .azar import Azar
@@ -26,7 +26,7 @@ from .constantes import AGUA, MEDIA, TICKS, TIERRA, TILE, ticks
 from .entidades import RECOLECTAR, Convoy, Edificio, Herido, Orden, Recurso, Unidad, hoja_de
 from .espacial import Rejilla, RejillaEdificios
 from .jugador import Jugador
-from .mapa import OCUPA_EDIFICIO, OCUPA_RECURSO, Mapa
+from .mapa import CODIGO_TERRENO, OCUPA_EDIFICIO, OCUPA_RECURSO, Mapa
 from .ruta import Buscador
 from .ruta import calcular as calcular_ruta
 from ..contenido.mapas import TAM_RECURSO
@@ -46,6 +46,14 @@ class Mundo:
         self.cat = catalogo
         self.datos_mapa = mapa_datos
         self.mapa = Mapa(mapa_datos)
+        cob = catalogo.cobertura
+        self.mapa.calcular_cobertura(cob.refugio, cob.sombra)
+        # calor de cada casilla (% del consumo de agua; 0 = sin calor): la pampa y el salar
+        calor = [0] * 256
+        for nombre, pct in catalogo.sed.calor.items():
+            calor[CODIGO_TERRENO[nombre]] = pct
+        self.calor = bytes(calor[c] for c in self.mapa.terreno)
+        self.viento = None            # (rumbo 0-15, fuerza 0-100 %): balistica.nuevo_viento
         self.semilla = int(semilla)
         self.azar = Azar(self.semilla)
         self.tick = 0
@@ -98,6 +106,7 @@ class Mundo:
         self._colocar_jugadores(configs)
         self.rejilla.reconstruir(self.unidades.values())
         self._actualizar_vision()
+        balistica.nuevo_viento(self)
 
     # ------------------------------------------------------------------
     # Relaciones y visibilidad
@@ -1057,6 +1066,9 @@ class Mundo:
             self._minas()
         if t % 8 == 0:
             self._auras()
+            logistica.abastecer(self)
+        if t % self.cat.balistica.viento_cambio == 0:
+            balistica.nuevo_viento(self)
         if t % TICKS == TICKS // 2:
             veterania.instruccion(self)
         if self.heridos and t % 4 == 0:
@@ -1221,9 +1233,13 @@ class Mundo:
         mask = (1 << 64) - 1
         for e in self.ent.values():
             h = ((h ^ (e.id * 2654435761 + e.x * 31 + e.y * 17 + e.vida)) * 1099511628211) & mask
+            if e.es_unidad:
+                f = e.formacion.codigo if e.formacion is not None else 0
+                h = ((h ^ (e.agua * 3 + e.fatiga * 5 + e.estanque * 7 + f)) * 1099511628211) & mask
         for j in self.jugadores:
             h = ((h ^ (j.dinero * 7 + j.agua * 13 + j.pob_usada)) * 1099511628211) & mask
-        return h
+        rumbo, fuerza = self.viento
+        return ((h ^ (rumbo * 131 + fuerza)) * 1099511628211) & mask
 
     def distancia(self, a, b):
         return isqrt((a.x - b.x) ** 2 + (a.y - b.y) ** 2)

@@ -100,8 +100,9 @@ registros) se guardan en `%APPDATA%\GuerraDelPacifico` en Windows, en
   y una cifra el agua que le queda.
 - La **población** limita el ejército: el Cuartel General y cada **Depósito de
   Intendencia** dan 10 (el Fortín argentino, 5), hasta un máximo de **200**.
-- Costo en población: trabajador, infante y cantinera **1**; ingeniero **2**;
-  ambulancia **3**; caballería **5**; artillería y ametralladoras **10**; héroes 4.
+- Costo en población: trabajador, infante y cantinera **1**; ingeniero y
+  carreta de agua **2**; ambulancia **3**; caballería **5**; artillería y
+  ametralladoras **10**; héroes 4.
 
 ### Árbol de edificios
 
@@ -110,7 +111,7 @@ Cuartel General ── Barracas ─┬─ Hospital de campaña (cantineras, ambu
    │                         ├─ Trinchera
    │                         └─ Barracón de Instrucción ── Caballeriza ── Central de Telégrafos ─┬─ Estado Mayor (héroes, espías)
    │                                                                                            └─ Parque de Artillería*
-   ├─ Depósito de Intendencia (+10 de población)
+   ├─ Depósito de Intendencia (+10 de población; carretas de agua, con un molino en pie)
    ├─ Molino de agua (sobre un pozo)
    └─ Maestranza (mejoras de armas y equipo) ─┬─ Reducto
                                               ├─ Muelle (transportes, cañoneras, héroes navales)
@@ -126,6 +127,9 @@ Las cifras completas de cada unidad, edificio, investigación y héroe están en
 - **Cantinera** o **rabona** (barracas, requiere hospital): cura a la tropa.
 - **Ambulancia** (hospital de campaña): carro sanitario tirado por mulas que
   sigue a la tropa y **monta un hospital de sangre** junto al combate. No combate.
+- **Carreta de agua** (depósito de intendencia, requiere un molino): lleva una
+  pipa de 2000 de agua detrás de la columna y **da de beber** a la tropa que la
+  rodea. No combate.
 - **Ingeniero dinamitero** (barracas, requiere barracón): lanza dinamita contra
   tropas y fortificaciones.
 - **Granadero** y **Cazador a caballo** (caballeriza): carga al sable y
@@ -210,6 +214,74 @@ población) y acompaña a la tropa en los ataques:
   también las usa: las lleva detrás de su frente y monta sus carpas cuando su
   tropa entra en combate.
 
+### Agua y sed en el desierto
+
+La pampa y el salar no perdonan. Cada infante y cada jinete lleva una
+**cantimplora** (100 de agua) que gasta al **marchar o combatir** al sol: 1 por
+segundo en la pampa y 1,5 en el salar, que es calor extremo. Quieta y sin
+disparar, la tropa no gasta agua; fuera de la pampa y el salar (en la arena,
+los caminos y las rampas), tampoco.
+
+- **Sin agua** (una gota vacía sobre la unidad, que también ve el enemigo):
+  marcha un **25 % más lento** y tarda **el doble** en volver a disparar.
+- **Golpe de calor**: tras 30 segundos al sol de la pampa sin agua (20 en el
+  salar), la unidad pierde medio punto de vida por segundo hasta que beba. El
+  ayudante avisa («¡La tropa se quedó sin agua!», «¡Golpe de calor!»); con
+  **Espacio** la cámara va hasta allí.
+- **Dónde beber**: junto a un **molino de agua** o al **Cuartel General**
+  (3 casillas a la redonda, 10 de agua por segundo; la guarnición del cuartel
+  también bebe) o junto a una **carreta de agua**. Con agua en la cantimplora la fatiga se repone sola; junto a la
+  carreta o al molino, el doble de rápido.
+- **A la sombra de un tamarugo** la tropa gasta un 70 % menos de agua y se
+  fatiga un 70 % menos.
+- La ficha de la unidad muestra el **agua** y la **fatiga**; los trabajadores,
+  los camilleros, las piezas y los buques no tienen sed.
+
+### Carreta de agua
+
+Se forma en el **depósito de intendencia** con un molino en pie ($ 100 y 50 de
+agua, 2 de población) y acompaña a las columnas:
+
+- Lleva una **pipa de 2000 de agua** y da de beber a la tropa propia y aliada a
+  **4 casillas** a la redonda: 5 de agua por segundo a cada soldado, primero a
+  los más sedientos, y les alivia la fatiga.
+- **Llena la pipa** junto a un molino o al Cuartel General (50 por segundo). La
+  ficha y la barra celeste bajo la unidad muestran cuánta le queda.
+- Una orden de ataque no la lleva contra el enemigo: **sigue a la tropa** que va
+  al combate. La IA también lleva carretas cuando el mapa tiene pampa o salar.
+
+### Formaciones de la infantería
+
+Con la infantería de fusil seleccionada (infante, zapador, torpedista, montonero,
+Colorados), el botón **Formación** (tecla **F**) abre el submenú:
+
+| Formación | Tecla | Efecto |
+|-----------|-------|--------|
+| **Línea** | L | Fuego a discreción: **+30 % de cadencia**, −10 % de velocidad; la artillería, la dinamita y los cañones de los buques le hacen un **15 % más** de daño |
+| **Guerrilla** | G | Tiradores dispersos: **−35 % del daño** de la fusilería, la metralla y la artillería, **+20 % de velocidad**, −20 % de potencia de fuego |
+| **Cuadro** | C | Bayonetas hacia fuera: la **carga de la caballería no duplica** su daño; −60 % de velocidad |
+| Sin formación | N | Como siempre |
+
+La formación vigente se marca en el submenú y se ve en la ficha de la unidad
+(también la del enemigo). Guarecida en una trinchera o un edificio, la tropa no
+forma. La IA marcha en guerrilla, combate en línea y forma el cuadro cuando la
+caballería enemiga se le echa encima (en Normal y Difícil).
+
+### Artillería: dispersión y viento
+
+Las granadas de los cañones de montaña y de campaña **no caen siempre en el
+blanco**: se dispersan alrededor de él, y la mitad cae dentro del **error
+circular probable** (CEP), que crece con la distancia (0,06 casillas por casilla
+de tiro en el cañón de montaña y 0,05 en el de campaña).
+
+- **Cuesta arriba** el CEP crece un 50 % (menos con la veteranía).
+- Un **observador adelantado** propio (el **espía** o el **baqueano**) a 6
+  casillas o menos del blanco **reduce el CEP a la mitad**.
+- El **viento** corre las granadas hacia donde sopla, más cuanto más largo es
+  el tiro. La barra superior muestra de dónde viene y su fuerza («Viento del
+  O · 35», con una flecha hacia donde sopla); rola y cambia de fuerza cada 45
+  segundos.
+
 ### Veteranía: la tropa aprende combatiendo
 
 Cada soldado gana **experiencia** al herir y abatir enemigos (más cuanto más
@@ -286,9 +358,11 @@ Arica**, con Chile, el Perú o Bolivia (el rival cambia según la nación elegid
 Las unidades **hablan** en lugar de los toques de corneta: se presentan al
 formarse («¡Granadero a caballo, listo para la carga!»), responden al
 seleccionarlas y al recibir una orden («¡En marcha!», «¡Calen bayoneta!», «¡A la
-carga!»; la ambulancia: «¿Dónde montamos el hospital?», «¡Arriba las carpas!»),
-y el ayudante avisa de las obras terminadas, la falta de dinero o de agua y los
-ataques. Los héroes dicen sus palabras más conocidas (Bolognesi,
+carga!»; la ambulancia: «¿Dónde montamos el hospital?», «¡Arriba las carpas!»;
+la carreta de agua: «¿Adónde llevamos el agua?»; al formar: «¡En línea de
+batalla!», «¡Formen cuadro! ¡Bayoneta calada!»), y el ayudante avisa de las
+obras terminadas, la falta de dinero o de agua, la tropa sin agua, el golpe de
+calor y los ataques. Los héroes dicen sus palabras más conocidas (Bolognesi,
 Prat, Abaroa…). Se desactivan en Opciones («Voces de las tropas») y entonces
 vuelven los toques de corneta.
 
@@ -299,6 +373,10 @@ vuelven los toques de corneta.
   Intiorko o el Morro de Arica da ventaja, como en la guerra.
 - Las **rampas** son los únicos accesos entre niveles; las quebradas solo se
   cruzan por sus pasos.
+- **Cobertura**: la infantería que se detiene junto a **rocas**, **ruinas** o
+  **tamarugos** queda a cubierto y recibe un **30 % menos** de daño de la
+  fusilería y la metralla (no de la artillería). Junto a un tamarugo, además,
+  está **a la sombra** (ver *Agua y sed*). En marcha pierde la cobertura.
 - La **niebla de guerra** la calcula el servidor: nadie recibe la posición de lo
   que no ve, así que no se puede hacer trampa.
 
@@ -308,7 +386,8 @@ vuelven los toques de corneta.
 |--------|------|
 | Seleccionar | Clic izquierdo; arrastrar para un recuadro; doble clic o Ctrl + clic: todas las del mismo tipo en pantalla; Mayúsculas + clic: agregar |
 | Mover, atacar, recolectar, reparar | Clic derecho sobre el terreno, el enemigo, el recurso o el edificio |
-| Órdenes de la tarjeta | Botones abajo a la derecha o su tecla (M mover, S detener, A atacar, H mantener posición, P patrullar, G recolectar, B construir o montar el hospital de sangre, D desmontarlo, V construcción avanzada…) |
+| Órdenes de la tarjeta | Botones abajo a la derecha o su tecla (M mover, S detener, A atacar, H mantener posición, P patrullar, G recolectar, B construir o montar el hospital de sangre, D desmontarlo, V construcción avanzada, F formación…) |
+| Formaciones | F y luego L línea, G guerrilla, C cuadro o N sin formación |
 | Encolar órdenes | Mayúsculas + orden |
 | Grupos | Ctrl + 1…9 forma; 1…9 selecciona; dos veces centra la cámara |
 | Cámara | Flechas, borde de la pantalla, arrastrar con el botón central o clic en el minimapa; rueda para acercar. En ventana, el puntero queda encerrado durante la batalla para mover la cámara con el borde (se suelta con F10 o Alt + Tab; se desactiva en Opciones) |

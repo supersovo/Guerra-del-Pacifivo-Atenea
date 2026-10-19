@@ -39,9 +39,10 @@ red; el servidor dedicado es el mismo código sin la parte gráfica.
 - **Azar propio** (xorshift64\*), sembrado al inicio de cada partida: no depende de
   la versión de Python.
 - **Orden de cada tick**: comandos → acciones programadas → caminos pendientes →
-  edificios → unidades (órdenes, movimiento, combate, recolección) → separación →
-  proyectiles y minas → auras (cada 8 ticks), bajas, visión (cada 4) y victoria
-  (cada 16).
+  edificios → unidades (órdenes, movimiento, combate, recolección; al final de
+  cada una, su cobertura y su sed) → separación → proyectiles y minas → auras y
+  abastecimiento de agua (cada 8 ticks), bajas, visión (cada 4), victoria (cada
+  16) y cambio de viento (cada 45 s).
 - **Repeticiones**: como todo es determinista, una repetición guarda solo el mapa,
   la semilla, los jugadores (con los veteranos que trae cada uno) y la lista de
   comandos con su tick (`.rep`, JSON comprimido con gzip). Al reproducirla se
@@ -89,6 +90,56 @@ misma proporción de vida y los pacientes, sube a los camilleros (evento
 `desmonta`) y libera el terreno. El cliente traspasa la selección y los grupos
 del carro a las carpas y de vuelta con esos eventos.
 
+### Agua y sed: `sim/logistica.py`
+
+Las unidades con `tipo.sed` (infantería y caballería en tierra, salvo
+trabajadores y camilleros) llevan `agua` (cantimplora, en 1/256 de punto:
+`AFP`), `fatiga` (centésimas de tick al sol sin agua) y `calor_acum` (vida
+fraccional del golpe de calor, en 1/64). El calor de cada casilla se calcula al
+crear el mundo (`Mundo.calor`, un `bytes` con el % del consumo: pampa 100,
+salar 150). `logistica.sed()` corre al final de la orden de cada unidad: gasta
+agua si marcha o disparó hace menos de `combate` ticks; sin agua suma fatiga y,
+pasado `golpe_calor`, quita vida (con un hospital en pie el soldado queda
+herido, como una baja de fusil). Cada 8 ticks `logistica.abastecer()` hace beber
+a la tropa junto a los edificios con `abastece` (molino, Cuartel General) y a la
+guarnición de esos edificios, les llena la pipa a las carretas y después cada carreta (`estanque`) reparte su
+pipa a la tropa de su radio, ordenada por `(agua, id)` para que el reparto sea
+determinista. Sin agua, `comportamiento.velocidad` y
+`combate.enfriamiento_unidad` aplican la penalización.
+
+### Formaciones
+
+`Unidad.formacion` (una `Formacion` del catálogo o `None`) la fija el comando
+`formacion`, solo para los tipos con `forma_filas` (infantería de fusil). Sus
+efectos entran donde ya se calculaban la cadencia, la velocidad y el daño:
+`combate.enfriamiento_unidad` (cadencia), `comportamiento.velocidad`,
+`combate.danio_pct_unidad` (daño propio), `combate.calcular_danio` (daño
+recibido por tipo de ataque) y la carga de la caballería
+(`comportamiento.atacar`, que no multiplica el golpe contra un cuadro). La
+guarnición de un edificio no aplica su formación.
+
+### Dispersión de la artillería: `sim/balistica.py`
+
+Las armas con `cep` (cañones de montaña y de campaña) no apuntan al blanco: el
+punto de impacto es el blanco más un desvío normal bidimensional (Box-Muller en
+enteros: `log2` por cuadrados sucesivos, `math.isqrt` y una tabla de senos de
+un cuarto de vuelta en 1/16384) más la deriva del viento. El radio vale
+`cep · sqrt(−log2 U1)`, de modo que la mitad de los disparos cae dentro del
+CEP, y el CEP efectivo es `cep × distancia/TILE × (1 + penalización por tirar
+cuesta arriba)`, a la mitad con un observador (`observador` en las pasivas del
+espía y el baqueano) cerca del blanco. El viento (`Mundo.viento`: rumbo de 0 a
+15 y fuerza de 0 a 100) sale del azar de la partida al crear el mundo y cada
+`viento_cambio` ticks. Todo el azar sale de `m.azar`, en el mismo orden en cada
+equipo: la dispersión es determinista.
+
+### Cobertura y sombra
+
+`Mapa.calcular_cobertura` marca, al crear el mundo, las casillas vecinas de las
+rocas, las ruinas y los tamarugos (`COB_REFUGIO`) y las de los tamarugos
+(`COB_SOMBRA`) en `Mapa.cobertura`. La infantería detenida toma esos bits en
+`Unidad.cobertura`; `calcular_danio` resta el 30 % a la fusilería y la metralla
+que recibe a cubierto y `logistica.sed` reduce el calor a la sombra.
+
 ### Movimiento y caminos
 
 - A\* en 8 direcciones con costo octil y **presupuesto de nodos** por búsqueda;
@@ -110,10 +161,11 @@ del carro a las carpas y de vuelta con esos eventos.
 ### Combate
 
 Daño = daño del arma × multiplicador (tipo de ataque contra clase de armadura) ×
-(100 + bonificaciones %) / 100 − armadura, con un mínimo de 1. Quien dispara
-desde abajo hacia una casilla más alta falla un 30 % de las veces. Las granadas,
-la dinamita y los cañones navales tienen daño en área; los proyectiles lentos
-viajan y pueden errar si el blanco se mueve.
+(100 + bonificaciones %) / 100 × (formación y cobertura del blanco) − armadura,
+con un mínimo de 1. Quien dispara desde abajo hacia una casilla más alta falla
+un 30 % de las veces (las piezas con CEP, en cambio, dispersan más). Las
+granadas, la dinamita y los cañones navales tienen daño en área; los
+proyectiles lentos viajan y pueden errar si el blanco se mueve.
 
 ### Niebla de guerra
 
@@ -145,7 +197,12 @@ montoneros quietos, minas) solo se ven con un **detector** cerca.
   los veteranos (`v`: grado, `vm`: vida máxima, `n`: semilla del nombre); solo
   el dueño recibe además el avance hacia el grado siguiente (`x`, en %), los
   camilleros y los pacientes de cada hospital (`cm`, `ce`, `pc`) y los
-  convalecientes que viajan en el carro de una ambulancia (`pc`).
+  convalecientes que viajan en el carro de una ambulancia (`pc`). La formación
+  (`fo`: su código) la ven todos; el agua de la cantimplora (`ag`), la fatiga
+  (`fa`, en % del umbral del golpe de calor) y la pipa de una carreta (`es`),
+  de 5 en 5 %, solo el dueño. Las banderas `F_DESHIDRATADA`, `F_COBERTURA` y
+  `F_SOMBRA` viajan a todos. El viento llega con el estado del jugador
+  (`j.vi`) o, a los espectadores, en `vi`.
 - **Cliente**: el socket es no bloqueante y la conexión inicial va en un hilo, así
   la pantalla nunca se congela; las posiciones se **interpolan** entre
   instantáneas para que el movimiento se vea suave a cualquier cantidad de cuadros
@@ -280,7 +337,12 @@ ficticio de SDL):
   la altura, transporte naval, trincheras, experiencia y grados, heridos que
   conservan el grado, camilleros que buscan en todo el campo, la ambulancia que
   monta y desmonta el hospital de sangre, instrucción y encuadramiento, veteranos
-  que llegan con el cuartel, retirada del vencido, determinismo y repeticiones;
+  que llegan con el cuartel, retirada del vencido, la sed en la pampa y el golpe
+  de calor en el salar (y el alivio a la sombra), la carreta de agua que da de
+  beber y llena su pipa en el molino, la guarnición que bebe en el cuartel, las formaciones (marcha, cadencia y daño
+  recibido; el cuadro contra la carga), la dispersión de la artillería en
+  enteros (CEP, observador, viento) y su determinismo, la cobertura contra la
+  fusilería, determinismo y repeticiones;
 - **contenido**: además, la campaña del Salitre y su escalafón;
 - **red**: protocolo, huella, cuentas, partida de dos jugadores por TCP con ELO,
   escaramuza y reconexión, veteranos de la campaña y una **serie de campaña**
@@ -288,7 +350,8 @@ ficticio de SDL):
 - **cliente**: todas las pantallas, una escaramuza, la campaña y una partida
   multijugador completa en modo serie (salón, sala de espera con un segundo
   jugador, batalla, parte de guerra, regreso a la sala, salida y regreso a la
-  serie desde el salón).
+  serie desde el salón); el submenú de formaciones, la ficha de la tropa sin
+  agua, la carreta de agua, los avisos de sed y de golpe de calor y el viento.
 
 La integración continua (`.github/workflows/rts.yml`) corre las pruebas en Linux,
 Windows y macOS, construye el instalador de Windows con una prueba de humo del

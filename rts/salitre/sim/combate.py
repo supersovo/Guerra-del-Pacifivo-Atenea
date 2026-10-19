@@ -1,15 +1,18 @@
 """Combate: alcance, elección de blancos, daño, explosiones y proyectiles.
 
 Daño = daño del arma x multiplicador (tipo de ataque contra clase de armadura)
-x (100 + bonificaciones %) / 100 - armadura, con un mínimo de 1. Desde un nivel
-más bajo hacia uno más alto hay un 30 % de errar (ventaja de la altura).
+x (100 + bonificaciones %) / 100, corregido por la formación del blanco y por la
+cobertura del terreno, - armadura, con un mínimo de 1. Desde un nivel más bajo
+hacia uno más alto hay un 30 % de errar (ventaja de la altura); la artillería con
+'cep' no yerra así: dispersa sus granadas (sim/balistica.py).
 """
 
 from math import isqrt
 
-from . import veterania
+from . import balistica, veterania
 from .constantes import AGUA, TICKS, TILE
 from .entidades import Proyectil
+from .mapa import COB_REFUGIO
 
 EV_DISPARO = "dis"
 EV_PROYECTIL = "pro"
@@ -67,11 +70,28 @@ def alcance_unidad(u, tick):
 
 
 def enfriamiento_unidad(u, tick):
+    """Ticks hasta el próximo disparo: la cadencia sube con las auras y con la línea, y sin agua
+    en la cantimplora el soldado tarda el doble (sed.enfriamiento_pct)."""
     e = u.st.enfriamiento
     pct = u.mod("ataque_vel_pct", tick)
+    f = u.formacion
+    if f is not None and not u.dentro:
+        pct += f.cadencia_pct
     if pct:
         e = max(1, e * 100 // (100 + pct))
+    s = u.tipo.sed
+    if s is not None and u.agua <= 0:
+        e = e * (100 + s.enfriamiento_pct) // 100
     return e
+
+
+def danio_pct_unidad(u, tick):
+    """Bonificación (%) al daño de los disparos de la unidad: auras, habilidades y formación."""
+    pct = u.mod("danio_pct", tick)
+    f = u.formacion
+    if f is not None and not u.dentro:
+        pct += f.danio_pct
+    return pct
 
 
 def armadura_de(e, tick):
@@ -104,8 +124,18 @@ def calcular_danio(catalogo, base, tipo_ataque, danio_pct, bonus_edif, objetivo,
     d = (base * mult * (100 + danio_pct) + 5000) // 10000
     if bonus_edif and objetivo.es_edificio:
         d = d * (100 + bonus_edif) // 100
-    if objetivo.es_unidad and objetivo.tipo.cuadro and tipo_ataque == "sable":
-        d = d * (100 - objetivo.tipo.cuadro) // 100
+    if objetivo.es_unidad:
+        if objetivo.tipo.cuadro and tipo_ataque == "sable":
+            d = d * (100 - objetivo.tipo.cuadro) // 100
+        f = objetivo.formacion
+        if f is not None:
+            pct = f.recibido.get(tipo_ataque)
+            if pct:
+                d = d * (100 + pct) // 100
+        if objetivo.cobertura & COB_REFUGIO:
+            cob = catalogo.cobertura
+            if tipo_ataque in cob.ataques:
+                d = d * (100 - cob.reduccion_pct) // 100
     d -= armadura_de(objetivo, tick)
     return d if d > 1 else 1
 
@@ -195,16 +225,23 @@ def disparar(m, atacante, objetivo, ox, oy, st, arma, danio_pct, nivel_origen, i
         base = base * (100 + bonus_carga) // 100
     bonus_edif = atacante.tipo.bonus_edificios if atacante.es_unidad else 0
     falla = False
-    if not ignora_altura:
+    if not ignora_altura and not arma.cep:
         nv_obj = m.mapa.nivel_en(objetivo.x, objetivo.y)
         if nv_obj > nivel_origen and m.azar.prob(veterania.fallo_altura(m, atacante)):
             falla = True
     dueno = atacante.dueno
     if arma.vel_proyectil:
-        tx, ty = objetivo.x, objetivo.y
-        if falla:
-            tx += m.azar.rango(-TILE, TILE)
-            ty += m.azar.rango(-TILE, TILE)
+        if arma.cep:
+            # la artillería no pone la granada en el blanco: la dispersa (error circular
+            # probable, más cuesta arriba, a la mitad con un observador adelantado) y el viento
+            # la corre
+            tx, ty = balistica.punto_impacto(m, atacante, objetivo, ox, oy, arma, nivel_origen,
+                                             ignora_altura)
+        else:
+            tx, ty = objetivo.x, objetivo.y
+            if falla:
+                tx += m.azar.rango(-TILE, TILE)
+                ty += m.azar.rango(-TILE, TILE)
         dx = tx - ox
         dy = ty - oy
         dist = isqrt(dx * dx + dy * dy)

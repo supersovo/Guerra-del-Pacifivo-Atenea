@@ -13,6 +13,7 @@ energía, avance de obra...). Las bajas y lo que sale de la vista llegan en
 """
 
 from ..sim.constantes import EFP
+from ..sim.mapa import COB_SOMBRA
 from ..sim.entidades import CONSTRUIR, RECOLECTAR, REPARAR
 from ..sim.mundo import DEST_POS, DEST_TODOS
 
@@ -31,6 +32,9 @@ F_EMPLAZANDO = 2048
 F_DETECTADO = 4096
 F_CAMILLA = 8192          # camilleros que llevan a un herido
 F_DESMONTA = 16384        # hospital de sangre que recoge las carpas
+F_DESHIDRATADA = 32768    # sin agua en la cantimplora: marcha más lento y tarda el doble en disparar
+F_COBERTURA = 65536       # infantería a cubierto junto a rocas, ruinas o árboles
+F_SOMBRA = 131072         # además, a la sombra de un tamarugo
 
 TIPO_SALITRE = -1
 TIPO_AGUA = -2
@@ -64,7 +68,16 @@ def registro(m, e, propio, t, detectado=False):
             fl |= F_POTENCIADO
         if e.paciente:
             fl |= F_CAMILLA
+        sed = e.tipo.sed
+        if sed is not None and e.agua <= 0:
+            fl |= F_DESHIDRATADA
+        if e.cobertura:
+            fl |= F_COBERTURA
+            if e.cobertura & COB_SOMBRA:
+                fl |= F_SOMBRA
         ex = {}
+        if e.formacion is not None:
+            ex["fo"] = e.formacion.codigo         # la formación se ve desde los dos bandos
         if e.grado:
             # los galones se ven desde los dos bandos: grado, vida máxima y nombre del veterano
             ex["v"] = e.grado
@@ -89,6 +102,14 @@ def registro(m, e, propio, t, detectado=False):
             if e.pacientes:
                 # convalecientes en el carro de la ambulancia
                 ex["pc"] = _pacientes(m, e.pacientes, m.cat.edificios[e.tipo.monta].recuperacion)
+            if sed is not None:
+                # agua de la cantimplora y fatiga (% del umbral del golpe de calor), de 5 en 5
+                if e.agua < sed.cantimplora:
+                    ex["ag"] = e.agua * 20 // sed.cantimplora * 5
+                if e.fatiga:
+                    ex["fa"] = min(200, e.fatiga * 20 // sed.golpe_calor * 5)
+            if e.tipo.estanque_cap:
+                ex["es"] = e.estanque * 20 // e.tipo.estanque_cap * 5     # la pipa de la carreta
         return [e.id, e.tipo.idx, e.dueno, e.x >> 4, e.y >> 4, e.vida, e.dir, fl, ex or 0]
     if e.es_edificio:
         fl = 0
@@ -266,12 +287,14 @@ class Emisor:
         if p is not None:
             j = m.jugadores[p]
             est = (j.dinero, j.agua, j.pob_usada, j.pob_max, tuple(sorted(j.mejoras)),
-                   tuple(sorted(j.investigando)), tuple(sorted(j.heroes)), j.minas)
+                   tuple(sorted(j.investigando)), tuple(sorted(j.heroes)), j.minas, m.viento)
             if est != self.estado:
                 self.estado = est
                 msg["j"] = {"d": j.dinero, "a": j.agua, "p": j.pob_usada, "pm": j.pob_max,
-                            "m": list(est[4]), "i": list(est[5]), "h": list(est[6]), "mi": j.minas}
+                            "m": list(est[4]), "i": list(est[5]), "h": list(est[6]), "mi": j.minas,
+                            "vi": list(m.viento)}
         else:
             msg["js"] = [{"d": j.dinero, "a": j.agua, "p": j.pob_usada, "pm": j.pob_max}
                          for j in m.jugadores]
+            msg["vi"] = list(m.viento)
         return msg

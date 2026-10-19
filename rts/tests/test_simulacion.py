@@ -785,3 +785,314 @@ def test_repeticion_reproduce_partida():
             k += 1
         m2.paso()
     assert m2.suma_control() == m.suma_control()
+
+
+# ----------------------------------------------------------------------
+# Sed y carretas de agua, formaciones, dispersión de la artillería y cobertura del terreno
+
+def _de_terreno(caracter, marcas=()):
+    """Mapa llano de un solo terreno (',' pampa, ':' salar...) con algunas casillas marcadas
+    ((x, y, carácter): rocas, tamarugos)."""
+    def extra(d):
+        filas = [list(caracter * 64) for _ in range(64)]
+        for x, y, c in marcas:
+            filas[y][x] = c
+        d["terreno"] = ["".join(f) for f in filas]
+    return U.mapa_llano(extra=extra)
+
+
+def test_la_tropa_se_deshidrata_marchando_en_la_pampa():
+    from salitre.red import instantanea as I
+    from salitre.sim import combate, comportamiento, logistica
+    m = U.mundo(_de_terreno(","))
+    s = m.cat.sed
+    u = _unidad(m, 0, "infante", 20, 20)
+    assert u.agua == s.cantimplora and not logistica.deshidratada(u)
+    v0 = comportamiento.velocidad(u, m.tick)
+    e0 = combate.enfriamiento_unidad(u, m.tick)
+    # quieta en la pampa no gasta agua
+    U.avanzar(m, 5 * S)
+    assert u.agua == s.cantimplora
+    # de ida y vuelta por la pampa, sin carreta, molino ni cuartel cerca
+    ida = True
+    while u.agua > 0 and m.tick < 400 * S:
+        if u.orden is None:
+            m.comando(0, {"c": "mover", "u": [u.id], "x": (44 if ida else 20) * 32 + 16, "y": 20 * 32 + 16})
+            ida = not ida
+        m.paso()
+    assert u.agua == 0 and logistica.deshidratada(u)
+    assert 95 * S <= m.tick <= 125 * S          # unos 100 s de marcha a pleno sol
+    # sin agua marcha un 25 % más lento y tarda el doble en volver a disparar
+    assert comportamiento.velocidad(u, m.tick) == v0 * 75 // 100
+    assert combate.enfriamiento_unidad(u, m.tick) == e0 * 2
+    assert m.jugadores[0].avisos.get("sed")      # el ayudante avisa que la tropa no tiene agua
+    reg = I.registro(m, u, True, m.tick)
+    assert reg[7] & I.F_DESHIDRATADA and reg[8]["ag"] == 0
+    # el enemigo también ve a la tropa sedienta, pero no cuánta agua le queda
+    reg = I.registro(m, u, False, m.tick)
+    assert reg[7] & I.F_DESHIDRATADA and (reg[8] == 0 or "ag" not in reg[8])
+
+
+def test_golpe_de_calor_en_el_salar_y_alivio_a_la_sombra():
+    from salitre.sim.mapa import COB_SOMBRA
+    m = U.mundo(_de_terreno(":", [(30, 20, "T")]))      # salar (calor extremo) con un tamarugo
+    s = m.cat.sed
+    sol = _unidad(m, 0, "infante", 20, 20)
+    sombra = _unidad(m, 0, "infante", 31, 20)
+    for u in (sol, sombra):
+        u.agua = 0
+    U.avanzar(m, 10 * S)
+    assert sombra.cobertura & COB_SOMBRA and not sol.cobertura & COB_SOMBRA
+    # a la sombra del tamarugo la fatiga crece un 70 % más despacio
+    assert sombra.fatiga * 100 == sol.fatiga * s.sombra_pct
+    assert sol.vida == sol.st.vida
+    U.avanzar(m, 40 * S)
+    # al sol del salar, pasado el umbral, el golpe de calor le quita vida
+    assert sol.vida < sol.st.vida - 10
+    assert sombra.vida == sombra.st.vida
+    assert m.jugadores[0].avisos.get("calor")
+    # con agua la fatiga se repone
+    f = sol.fatiga
+    sol.agua = s.cantimplora
+    U.avanzar(m, 2 * S)
+    assert sol.fatiga < f
+
+
+def test_la_carreta_de_agua_da_de_beber_y_llena_la_pipa_en_el_molino():
+    m = U.mundo(_de_terreno(","))
+    s = m.cat.sed
+    tropa = [_unidad(m, 0, "infante", 30 + k, 30) for k in range(3)]
+    for u in tropa:
+        u.agua = 0
+        u.fatiga = s.golpe_calor
+    lejos = _unidad(m, 0, "infante", 50, 50)
+    lejos.agua = 0
+    carreta = _unidad(m, 0, "carreta_agua", 31, 31)
+    cap = carreta.tipo.estanque_cap
+    assert carreta.estanque == cap and carreta.tipo.sed is None
+    U.avanzar(m, 8 * S)
+    # la tropa que rodea la carreta bebe y se le alivia la fatiga; la lejana, no
+    assert all(u.agua > 0 for u in tropa)
+    assert all(u.fatiga < s.golpe_calor for u in tropa)
+    assert lejos.agua == 0
+    # lo que perdió la pipa es lo que bebió la tropa (5 puntos por segundo a cada soldado)
+    assert cap - carreta.estanque == sum(u.agua for u in tropa)
+    assert all(u.agua == 5 * 8 * s.cantimplora // 100 for u in tropa)
+    # junto al molino (sobre el pozo del inicio) la carreta vuelve a llenar la pipa
+    m.crear_edificio(0, "molino_agua", 12, 8, True)
+    carreta.estanque = cap // 4
+    m.comando(0, {"c": "mover", "u": [carreta.id], "x": 16 * 32 + 16, "y": 9 * 32 + 16})
+    m.paso()
+    while carreta.orden is not None and m.tick < 120 * S:
+        m.paso()
+    assert carreta.orden is None and carreta.estanque < cap
+    # 50 puntos por segundo: del cuarto a la pipa llena en medio minuto
+    U.avanzar(m, 30 * S)
+    assert carreta.estanque == cap
+    # al enemigo no le da de beber
+    enemigo = _unidad(m, 1, "infante", 17, 9)
+    enemigo.agua = 0
+    enemigo.vida = 10 ** 6
+    m.comando(1, {"c": "mantener", "u": [enemigo.id]})
+    U.avanzar(m, 4 * S)
+    assert enemigo.agua == 0
+    # y la carreta acompaña a la columna: no ataca, sigue a la tropa armada
+    m.comando(0, {"c": "atacar", "u": [carreta.id, tropa[0].id], "t": enemigo.id})
+    m.paso()
+    assert carreta.orden is not None and carreta.orden.tipo == SEGUIR and carreta.orden.obj == tropa[0].id
+
+
+def test_la_guarnicion_del_cuartel_bebe():
+    m = U.mundo(_de_terreno(","))
+    s = m.cat.sed
+    cg = m.crear_edificio(0, "cuartel_general", 30, 30, construido=True)
+    adentro = _unidad(m, 0, "infante", 29, 35)
+    lejos = _unidad(m, 0, "infante", 50, 50)
+    for u in (adentro, lejos):
+        u.agua = 0
+    m.comando(0, {"c": "inteligente", "u": [adentro.id], "t": cg.id})
+    U.avanzar(m, 8 * S)
+    assert adentro.dentro == cg.id
+    # guarecida en el cuartel, la tropa llena la cantimplora (10 por segundo); lejos, no
+    adentro.agua = 0
+    U.avanzar(m, 5 * S)
+    assert adentro.agua == s.cantimplora // 2 and lejos.agua == 0
+
+
+def test_formaciones_cambian_la_marcha_la_cadencia_y_el_danio():
+    from salitre.red import instantanea as I
+    from salitre.sim import combate, comportamiento
+    m = U.mundo()
+    cat = m.cat
+    inf = _unidad(m, 0, "infante", 20, 20)
+    jinete = _unidad(m, 0, "granadero", 22, 22)
+    v0 = comportamiento.velocidad(inf, m.tick)
+    e0 = combate.enfriamiento_unidad(inf, m.tick)
+
+    def recibe(tipo_ataque):
+        return combate.calcular_danio(cat, 40, tipo_ataque, 0, 0, inf, m.tick)
+
+    # sin formación: 40 de fusil y de sable, 30 de granada (75 % contra la infantería)
+    assert (recibe("fusil"), recibe("explosivo"), recibe("sable")) == (40, 30, 40)
+    # la caballería no forma; la infantería de fusil sí
+    m.comando(0, {"c": "formacion", "u": [inf.id, jinete.id], "f": "linea"})
+    m.paso()
+    assert inf.formacion.id == "linea" and jinete.formacion is None
+    assert comportamiento.velocidad(inf, m.tick) == v0 * 90 // 100
+    assert combate.enfriamiento_unidad(inf, m.tick) == e0 * 100 // 130
+    assert (recibe("fusil"), recibe("explosivo")) == (40, 30 * 115 // 100)
+    assert I.registro(m, inf, False, m.tick)[8]["fo"] == cat.formaciones["linea"].codigo
+    m.comando(0, {"c": "formacion", "u": [inf.id], "f": "guerrilla"})
+    m.paso()
+    assert comportamiento.velocidad(inf, m.tick) == v0 * 120 // 100
+    assert combate.danio_pct_unidad(inf, m.tick) == -20
+    assert (recibe("fusil"), recibe("explosivo"), recibe("sable")) == (40 * 65 // 100, 30 * 65 // 100, 40)
+    m.comando(0, {"c": "formacion", "u": [inf.id], "f": "cuadro"})
+    m.paso()
+    assert comportamiento.velocidad(inf, m.tick) == v0 * 40 // 100
+    m.comando(0, {"c": "formacion", "u": [inf.id], "f": "ninguna"})
+    m.paso()
+    assert inf.formacion is None and comportamiento.velocidad(inf, m.tick) == v0
+    # una formación desconocida no cambia nada
+    m.comando(0, {"c": "formacion", "u": [inf.id], "f": "tortuga"})
+    m.paso()
+    assert inf.formacion is None
+
+
+def test_el_cuadro_rompe_la_carga_de_la_caballeria():
+    def primer_sablazo(formacion):
+        m = U.mundo()
+        g = _unidad(m, 0, "granadero", 20, 20)
+        inf = _unidad(m, 1, "infante", 27, 20)
+        inf.vida = 10 ** 6
+        m.comando(1, {"c": "formacion", "u": [inf.id], "f": formacion})
+        m.comando(1, {"c": "mantener", "u": [inf.id]})
+        U.avanzar(m, 4)
+        m.comando(0, {"c": "atacar", "u": [g.id], "t": inf.id})
+        for _ in range(20 * S):
+            antes = inf.vida
+            m.paso()
+            if any(ev[0] == "dis" and ev[1] == g.id for _d, ev in m.eventos):
+                return antes - inf.vida
+        raise AssertionError("el granadero no llegó a cargar")
+    sable = U.cat().unidades["granadero"].arma.danio
+    assert primer_sablazo("ninguna") == 2 * sable      # la carga duplica el daño del choque
+    assert primer_sablazo("cuadro") == sable           # contra el cuadro, el daño de siempre
+
+
+def test_dispersion_cep_de_la_artilleria_en_enteros():
+    import math
+    from salitre.sim import balistica
+    from salitre.sim.azar import Azar
+    # logaritmo en base 2 en punto fijo y tabla de senos: enteros y fieles a los valores reales
+    for k in (1, 2, 3, 1000, 4097, 65535, 65536):
+        assert abs(balistica.log2_q16(k) / 65536 - math.log2(k)) < 1e-4
+    for a in range(256):
+        assert abs(balistica.seno(a) / 16384 - math.sin(a * math.pi / 128)) <= 1 / 16384
+        assert balistica.coseno(a) == balistica.seno(a + 64)
+    # Box-Muller: la mitad de los disparos cae dentro del CEP y sin sesgo
+    az = Azar(11)
+    cep = 2000
+    n = 4000
+    dentro = sx = sy = 0
+    for _ in range(n):
+        dx, dy = balistica.desvio(az, cep)
+        dentro += dx * dx + dy * dy <= cep * cep
+        sx += dx
+        sy += dy
+    assert 0.46 < dentro / n < 0.54
+    assert abs(sx / n) < 100 and abs(sy / n) < 100
+    assert balistica.desvio(az, 0) == (0, 0)
+    # CEP efectivo: crece con la distancia, un 50 % cuesta arriba y se reduce a la mitad con un
+    # observador adelantado (espía o baqueano propio cerca del blanco)
+    m = U.mundo()
+    canon = _unidad(m, 0, "canon_campana", 20, 20)
+    arma = canon.tipo.arma
+    base = balistica.cep_efectivo(m, canon, arma, 10 * TILE, 0, 0, False, False)
+    assert base == arma.cep * 10
+    assert balistica.cep_efectivo(m, canon, arma, 10 * TILE, 0, 1, False, False) == base * 150 // 100
+    assert balistica.cep_efectivo(m, canon, arma, 10 * TILE, 0, 1, True, False) == base
+    assert balistica.cep_efectivo(m, canon, arma, 10 * TILE, 0, 0, False, True) == base // 2
+    blanco = _unidad(m, 1, "infante", 30, 20)
+    U.avanzar(m, 1)
+    assert not balistica.observado(m, 0, blanco.x, blanco.y)
+    _unidad(m, 0, "espia", 32, 22)
+    U.avanzar(m, 1)
+    assert balistica.observado(m, 0, blanco.x, blanco.y)
+    assert not balistica.observado(m, 1, blanco.x, blanco.y)
+    # el viento corre la granada hacia donde sopla, más cuanto más vuela
+    m.viento = (0, 100)
+    assert balistica.deriva(m, 10 * TILE) == (m.cat.balistica.viento_max * 10, 0)
+    m.viento = (4, 50)
+    assert balistica.deriva(m, 10 * TILE) == (0, m.cat.balistica.viento_max * 5)
+
+
+def test_la_dispersion_de_la_artilleria_es_determinista():
+    def fuego(semilla):
+        m = U.mundo(semilla=semilla)
+        canon = _unidad(m, 0, "canon_campana", 20, 20)
+        blanco = _unidad(m, 1, "infante", 30, 20)
+        blanco.vida = 10 ** 6
+        m.comando(1, {"c": "mantener", "u": [blanco.id]})
+        U.avanzar(m, 4)
+        m.comando(0, {"c": "atacar", "u": [canon.id], "t": blanco.id})
+        impactos = []
+        for _ in range(40 * S):
+            m.paso()
+            impactos += [(ev[4], ev[5]) for _d, ev in m.eventos if ev[0] == "pro" and ev[1] == canon.id]
+        return impactos, m.suma_control()
+    a, b, c = fuego(5), fuego(5), fuego(6)
+    assert a == b                           # misma semilla: las mismas granadas en el mismo lugar
+    assert len(a[0]) >= 8 and len(set(a[0])) > len(a[0]) // 2      # dispersas, no todas en el blanco
+    assert a[0] != c[0]
+
+
+def test_cobertura_del_terreno_contra_la_fusileria():
+    from salitre.red import instantanea as I
+    from salitre.sim import combate
+    from salitre.sim.mapa import COB_REFUGIO, COB_SOMBRA
+    m = U.mundo(_de_terreno(".", [(30, 20, "#"), (30, 30, "T")]))
+    roca = _unidad(m, 0, "infante", 31, 20)      # junto a una roca
+    arbol = _unidad(m, 0, "infante", 29, 31)     # junto a un tamarugo
+    raso = _unidad(m, 0, "infante", 40, 20)
+    jinete = _unidad(m, 0, "cazador", 31, 19)    # la caballería no se pone a cubierto
+    U.avanzar(m, 2)
+    assert roca.cobertura == COB_REFUGIO
+    assert arbol.cobertura == COB_REFUGIO | COB_SOMBRA
+    assert raso.cobertura == 0 and jinete.cobertura == 0
+
+    def recibe(u, tipo):
+        return combate.calcular_danio(m.cat, 40, tipo, 0, 0, u, m.tick)
+
+    assert recibe(roca, "fusil") == recibe(raso, "fusil") * 70 // 100
+    assert recibe(arbol, "metralla") == recibe(raso, "metralla") * 70 // 100
+    assert recibe(roca, "explosivo") == recibe(raso, "explosivo")      # contra la artillería, no
+    reg = I.registro(m, arbol, False, m.tick)
+    assert reg[7] & I.F_COBERTURA and reg[7] & I.F_SOMBRA
+    # en marcha no está posicionada: pierde la cobertura
+    m.comando(0, {"c": "mover", "u": [roca.id], "x": 31 * 32 + 16, "y": 40 * 32})
+    U.avanzar(m, 4)
+    assert roca.cobertura == 0
+
+
+def test_determinismo_con_sed_formaciones_y_artilleria():
+    """Dos ejércitos con cañones, carretas de agua y formaciones combaten en la pampa y el
+    salar: con la misma semilla la partida es idéntica, granada por granada."""
+    def batalla(semilla):
+        marcas = [(x, y, ":") for x in range(26, 38) for y in range(10, 50)]
+        m = U.mundo(_de_terreno(",", marcas + [(32, 8, "T"), (32, 52, "#")]), semilla=semilla)
+        ids = {0: [], 1: []}
+        for p, x in ((0, 18), (1, 46)):
+            for k in range(8):
+                ids[p].append(_unidad(m, p, "infante", x, 20 + 3 * k).id)
+            ids[p].append(_unidad(m, p, "canon_campana", x - 4 if p == 0 else x + 4, 30).id)
+            _unidad(m, p, "carreta_agua", x - 2 if p == 0 else x + 2, 32)
+            _unidad(m, p, "granadero", x, 46)
+        U.avanzar(m, 4)
+        m.comando(0, {"c": "formacion", "u": ids[0], "f": "linea"})
+        m.comando(1, {"c": "formacion", "u": ids[1], "f": "guerrilla"})
+        m.comando(0, {"c": "atacar_mover", "u": ids[0], "x": 46 * 32, "y": 30 * 32})
+        m.comando(1, {"c": "atacar_mover", "u": ids[1], "x": 18 * 32, "y": 30 * 32})
+        U.avanzar(m, 90 * S)
+        return m.suma_control(), sum(1 for u in m.unidades.values() if u.vivo)
+    assert batalla(21) == batalla(21)

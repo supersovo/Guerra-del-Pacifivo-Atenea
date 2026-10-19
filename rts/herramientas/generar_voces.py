@@ -53,6 +53,7 @@ FRASES = {
     "lista_transporte": [("Transporte a vapor, listo para zarpar.", SOLDADO)],
     "lista_canonera": [("¡Cañonera lista para zarpar!", SOLDADO)],
     "lista_ambulancia": [("Ambulancia lista: camillas, vendas y cirujanos.", SOLDADO)],
+    "lista_carreta_agua": [("Carreta de agua lista, con la pipa llena.", SOLDADO)],
     # héroes: sus palabras más conocidas o una presentación
     "lista_baquedano": [("General Baquedano en campaña. ¡Adelante, muchachos!", OFICIAL)],
     "lista_san_martin": [("San Martín, presente. ¡Cuarto de Línea, adelante!", OFICIAL)],
@@ -83,6 +84,7 @@ FRASES = {
     "seleccion_espia": [("Hable bajo, mi comandante.", SOLDADO), ("Nadie me verá.", SOLDADO)],
     "seleccion_heroina": [("¡A sus órdenes, mi comandante!", MUJER), ("¡Presente!", MUJER)],
     "seleccion_ambulancia": [("Ambulancia, a la orden.", SOLDADO), ("¿Dónde montamos el hospital?", SOLDADO)],
+    "seleccion_carreta": [("Carreta de agua, a la orden.", SOLDADO), ("¿Adónde llevamos el agua?", SOLDADO)],
     # --- órdenes de marcha
     "mover_trabajador": [("Voy enseguida.", SOLDADO), ("En camino.", SOLDADO)],
     "mover_infanteria": [("¡En marcha!", SOLDADO), ("¡Entendido!", SOLDADO), ("¡Avanzamos!", SOLDADO)],
@@ -93,6 +95,7 @@ FRASES = {
     "mover_espia": [("Sin ser visto.", SOLDADO)],
     "mover_heroina": [("¡En marcha!", MUJER), ("¡Vamos!", MUJER)],
     "mover_ambulancia": [("¡Arreen las mulas!", SOLDADO), ("Vamos tras la tropa.", SOLDADO)],
+    "mover_carreta": [("¡Agua para la tropa!", SOLDADO), ("Allá vamos con la pipa.", SOLDADO)],
     # --- órdenes de ataque
     "atacar_infanteria": [("¡Calen bayoneta!", SOLDADO), ("¡Fuego a discreción!", SOLDADO), ("¡Al ataque!", SOLDADO)],
     "atacar_caballeria": [("¡A la carga!", SOLDADO), ("¡Sable en mano!", SOLDADO)],
@@ -111,6 +114,11 @@ FRASES = {
     "replegar": [("¡Repliegue al hospital!", SOLDADO), ("¡Heridos, a retaguardia!", SOLDADO)],
     "herido_veterano": [("¡Camilleros! ¡Cayó herido un veterano!", OFICIAL)],
     "veterano_caido": [("Perdimos a un veterano, mi comandante.", OFICIAL)],
+    # --- formaciones de la infantería de fusil
+    "formacion_linea": [("¡En línea de batalla! ¡Fuego por descargas!", SOLDADO)],
+    "formacion_guerrilla": [("¡En guerrilla! ¡Aprovechen el terreno!", SOLDADO)],
+    "formacion_cuadro": [("¡Formen cuadro! ¡Bayoneta calada!", SOLDADO)],
+    "formacion_ninguna": [("¡Rompan filas!", SOLDADO)],
     # --- avisos del cuartel general
     "obra": [("Obra terminada, mi comandante.", OFICIAL)],
     "investigado": [("Investigación completada.", OFICIAL)],
@@ -122,6 +130,8 @@ FRASES = {
     "llegada": [("¡Llegó el cuartel general!", OFICIAL)],
     "recuperado": [("Un soldado vuelve a filas.", OFICIAL)],
     "hospital_montado": [("Hospital de sangre listo para recibir heridos.", OFICIAL)],
+    "sed": [("¡La tropa se quedó sin agua, mi comandante!", OFICIAL)],
+    "calor": [("¡Golpe de calor! La tropa necesita agua.", OFICIAL)],
     "victoria": [("¡Victoria! ¡La jornada es nuestra!", OFICIAL)],
     "derrota": [("Hemos sido derrotados.", OFICIAL)],
 }

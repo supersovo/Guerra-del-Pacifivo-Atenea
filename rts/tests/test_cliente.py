@@ -259,6 +259,109 @@ def test_ambulancia_monta_y_desmonta_el_hospital_de_sangre(app):
     cuadros(app)
 
 
+def test_formaciones_sed_carreta_y_viento_en_el_cliente(app, monkeypatch):
+    """La infantería forma con el botón «Formación» (F) y su submenú; la tropa sin agua lleva su
+    marca y su ficha, la carreta de agua su pipa, su dibujo y sus voces; los avisos de sed y de
+    golpe de calor se oyen, y el viento se ve en la barra superior."""
+    from salitre.cliente.escenas.juego import grupo_voz
+    from salitre.cliente.graficos import iconos
+    from salitre.cliente.ui.hud import ROSA, nombre_rumbo
+    from salitre.red import instantanea as I
+    from salitre.sim.constantes import TILE
+    esc = Escaramuza(app)
+    app.cambiar(esc)
+    esc.elegir_mapa("pampa_del_tamarugal")
+    esc.comenzar()
+    hasta(app, lambda: escena(app) == "Juego")
+    juego = app.escena
+    est = juego.est
+    hasta(app, lambda: any(e.dueno == est.yo and e.es_edificio for e in est.ents.values()))
+    cg = next(e for e in est.ents.values() if e.dueno == est.yo and e.es_edificio)
+    # el viento llega con el estado del jugador: rumbo y fuerza
+    hasta(app, lambda: est.viento is not None, 5)
+    rumbo, fuerza = est.viento
+    assert 0 <= rumbo < 16 and 0 <= fuerza <= 100
+    assert nombre_rumbo(ROSA[8]) == "oeste" and nombre_rumbo("ONO") == "oeste-noroeste"
+    assert nombre_rumbo("SE") == "sudeste"
+    creada = {}
+
+    def preparar(m):
+        b = m.ent[cg.id]
+        inf = [m.crear_unidad(b.dueno, "infante", b.x + (6 + k) * TILE, b.y + 6 * TILE) for k in range(3)]
+        # la carreta, lejos de la tropa: no le da de beber al sediento
+        car = m.crear_unidad(b.dueno, "carreta_agua", b.x + 7 * TILE, b.y + 16 * TILE)
+        for u in inf + [car]:
+            m.jugadores[b.dueno].pob_usada += u.tipo.poblacion
+        inf[0].agua = 0
+        creada["inf"] = [u.id for u in inf]
+        creada["car"] = car.id
+    en_servidor(app, preparar)
+    hasta(app, lambda: creada.get("car") in est.ents and all(i in est.ents for i in creada["inf"]), 10)
+    dichas = []
+    monkeypatch.setattr(app.sonido, "voz", lambda claves, prioridad=1: dichas.append(
+        ([claves] if isinstance(claves, str) else list(claves), prioridad)) or True)
+    # «Formación» (F) abre el submenú: línea, guerrilla, cuadro y sin formación (la vigente, marcada)
+    juego.seleccionar(creada["inf"])
+    cuadros(app)
+    boton = juego.botones[6]
+    assert boton is not None and boton.clave == "menu_formacion" and boton.atajo == "F"
+    juego.manejar(pygame.event.Event(pygame.KEYDOWN, key=pygame.K_f, mod=0))
+    assert juego.submenu == "formacion"
+    cuadros(app)
+    claves = [b.clave for b in juego.botones if b is not None]
+    assert claves == ["formacion_linea", "formacion_guerrilla", "formacion_cuadro", "formacion_ninguna",
+                      "volver"]
+    assert [b.clave for b in juego.botones if b is not None and b.marcado] == ["formacion_ninguna"]
+    juego.manejar(pygame.event.Event(pygame.KEYDOWN, key=pygame.K_l, mod=0))
+    assert juego.submenu is None
+    linea = app.cat.formaciones["linea"].codigo
+    hasta(app, lambda: all(est.ents[i].ex.get("fo") == linea for i in creada["inf"]), 10)
+    hasta(app, lambda: (["formacion_linea"], 1) in dichas, 5)
+    juego.activar_boton(next(b for b in juego.botones if b and b.clave == "menu_formacion"))
+    cuadros(app)
+    assert [b.clave for b in juego.botones if b is not None and b.marcado] == ["formacion_linea"]
+    juego.manejar(pygame.event.Event(pygame.KEYDOWN, key=pygame.K_ESCAPE, mod=0))
+    assert juego.submenu is None
+    # el soldado sin agua: su marca a la vista de los dos bandos y su ficha
+    sediento = creada["inf"][0]
+    hasta(app, lambda: est.ents[sediento].fl & I.F_DESHIDRATADA, 5)
+    assert est.ents[sediento].ex.get("ag") == 0
+    juego.seleccionar([sediento])
+    juego.cam.centrar(est.ents[sediento].x, est.ents[sediento].y)
+    cuadros(app)
+    # la carreta: su propio grupo de voces, la pipa llena, sin botón de formación y su dibujo
+    car = est.ents[creada["car"]]
+    assert grupo_voz(car.tipo) == "carreta" and car.ex.get("es") == 100
+    juego.seleccionar([car.id])
+    cuadros(app)
+    assert dichas[-1] == (["seleccion_carreta"], 0)
+    assert not any(b and b.clave == "menu_formacion" for b in juego.botones)
+    juego.modo = ("orden", "atacar", "atacar")
+    juego._orden_objetivo(car.x + 64.0, car.y, None, False)
+    assert dichas[-1] == (["mover_carreta"], 1)          # la carreta no combate: acompaña
+    fac = est.faccion(est.yo)
+    for fr in range(3):
+        t = juego.vista.sprites.textura(car.tipo, fac, (200, 40, 40), "lado", fr)
+        assert (t.width, t.height) == (68, 46)
+    juego.vista.sprites.caido(car.tipo, fac, (200, 40, 40))
+    # avisos del ayudante: sin agua y golpe de calor (Espacio lleva la cámara hasta allí)
+    juego._evento([0, "sed", 300, 310])
+    assert dichas[-1] == (["sed"], 2) and juego.ultimo_aviso == (300, 310)
+    juego._evento([0, "calor", 320, 330])
+    assert dichas[-1] == (["calor"], 2) and juego.ultimo_aviso == (320, 330)
+    juego._evento([0, "formacion", 0, 2])
+    assert dichas[-1] == (["formacion_ninguna"], 1)
+    # cada formación tiene su ícono (ninguno es el círculo de reserva)
+    reserva = pygame.image.tobytes(iconos.icono_orden("?"), "RGBA")
+    dibujos = set()
+    for nombre in ("formacion", "formacion_linea", "formacion_guerrilla", "formacion_cuadro",
+                   "formacion_ninguna"):
+        dibujos.add(pygame.image.tobytes(iconos.icono_orden(nombre), "RGBA"))
+    assert len(dibujos) == 5 and reserva not in dibujos
+    juego.abandonar()
+    cuadros(app)
+
+
 def test_volumen_de_musica_efectos_y_voces(app):
     snd = app.sonido
     # el mezclador a 44,1 kHz: los efectos (hechos a 22 050 Hz) duran lo que deben

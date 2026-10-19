@@ -6,11 +6,14 @@ Juega con las mismas reglas que una persona: solo actúa mediante comandos
 construcción por niveles tecnológicos, forma un ejército mixto, investiga,
 defiende su base, ataca por oleadas cada vez mayores, usa las habilidades de
 sus héroes, lleva ambulancias que montan hospitales de sangre detrás de su
-frente y, si el enemigo está en otra isla, embarca a su ejército.
+frente y carretas de agua con la columna en la pampa, forma a su infantería
+(guerrilla en la marcha, línea en el combate, cuadro ante la caballería) y, si
+el enemigo está en otra isla, embarca a su ejército.
 """
 
 from math import isqrt
 
+from ..sim import combate
 from ..sim.azar import Azar
 from ..sim.constantes import AGUA, TICKS, TIERRA, TILE
 from ..sim.entidades import ATACAR_MOVER, CARGAR, CONSTRUIR, RECOLECTAR, REPARAR
@@ -18,13 +21,13 @@ from ..sim.entidades import ATACAR_MOVER, CARGAR, CONSTRUIR, RECOLECTAR, REPARAR
 DIFICULTADES = {
     "facil": {"nombre": "Recluta", "periodo": 24, "trabajadores": 12, "ataque": 12, "incremento": 6,
               "barracas": 1, "investiga": False, "expandir": False, "obras": 1, "agua": 2,
-              "habilidades": False, "ambulancias": 0},
+              "habilidades": False, "ambulancias": 0, "carretas": 1, "formaciones": False},
     "normal": {"nombre": "Soldado de línea", "periodo": 12, "trabajadores": 18, "ataque": 20,
                "incremento": 8, "barracas": 2, "investiga": True, "expandir": True, "obras": 2,
-               "agua": 3, "habilidades": True, "ambulancias": 1},
+               "agua": 3, "habilidades": True, "ambulancias": 1, "carretas": 1, "formaciones": True},
     "dificil": {"nombre": "Veterano de la campaña", "periodo": 6, "trabajadores": 22, "ataque": 24,
                 "incremento": 10, "barracas": 3, "investiga": True, "expandir": True, "obras": 3,
-                "agua": 3, "habilidades": True, "ambulancias": 2},
+                "agua": 3, "habilidades": True, "ambulancias": 2, "carretas": 2, "formaciones": True},
 }
 
 # (edificio, trabajadores mínimos, cantidad deseada)
@@ -67,6 +70,8 @@ class IA:
         self.atacando = set()
         self.convalecientes = set()     # veteranos replegados al hospital hasta curarse
         self.montados = {}              # hospital de sangre -> tick en que quedó montado
+        self.llenando = set()           # carretas de agua que fueron a llenar la pipa
+        self.calor_mapa = 0             # % del terreno pisable con calor (pampa, salar)
         self.objetivo = None
         self.naval = None
         self.reunion = None
@@ -162,6 +167,10 @@ class IA:
         ry = base.y + (cy - base.y) * 18 // 100
         i = m.mapa.pasable_cercana(TIERRA, rx // TILE, ry // TILE, 10)
         self.reunion = m.mapa.centro_idx(i) if i is not None else (base.x, base.y)
+        # cuánto del terreno pisable es de calor: sin pampa ni salar no hacen falta carretas de agua
+        pis = mp.base_tierra
+        calor = sum(1 for i, c in enumerate(m.calor) if c and pis[i])
+        self.calor_mapa = calor * 100 // max(1, sum(pis))
 
     def _zona_minera(self, cg):
         x0, y0 = cg.tx, cg.ty
@@ -560,6 +569,12 @@ class IA:
                 if cuota and len(self.ejercito) >= 8 \
                         and self._contar("ambulancia") + self._contar("hospital_sangre") < cuota:
                     tid = "ambulancia"
+            elif t == "deposito":
+                # carretas de agua para la tropa que marcha y combate en la pampa
+                cuota = self.dif.get("carretas", 0)
+                if cuota and self.calor_mapa >= 10 and len(self.ejercito) >= 6 \
+                        and self._contar("carreta_agua") < cuota:
+                    tid = "carreta_agua"
             if tid is None or tid not in fac.unidades:
                 continue
             ut = self.m.cat.unidades[tid]
@@ -665,6 +680,9 @@ class IA:
         m = self.m
         self._cuidar_veteranos()
         self._ambulancias()
+        self._carretas()
+        if self.dif.get("formaciones"):
+            self._formaciones()
         amenaza, n = self._amenaza()
         defensores = [u for u in self.ejercito if u.id not in self.atacando and u.id not in self.convalecientes]
         if amenaza is not None and n > 0:
@@ -716,14 +734,10 @@ class IA:
         self.montados = {b.id: self.montados.get(b.id, t) for b in tiendas if b.construido}
         if not carros and not tiendas:
             return
-        frente = [u for i in sorted(self.atacando) if (u := m.entidad(i)) is not None
-                  and u.vivo and u.capa == TIERRA and not u.dentro]
-        centro = None
-        trabado = False
-        if len(frente) >= 4:
-            centro = (sum(u.x for u in frente) // len(frente), sum(u.y for u in frente) // len(frente))
-            # la tropa está combatiendo (no solo marchando): ahí hace falta el hospital
-            trabado = sum(1 for u in frente if t - u.disparo_t < TICKS * 3) * 4 >= len(frente)
+        frente, centro = self._frente()
+        # la tropa está combatiendo (no solo marchando): ahí hace falta el hospital
+        trabado = centro is not None and \
+            sum(1 for u in frente if t - u.disparo_t < TICKS * 3) * 4 >= len(frente)
 
         def cubre(b, radio=16):
             return centro is not None and (b.x - centro[0]) ** 2 + (b.y - centro[1]) ** 2 <= (radio * TILE) ** 2
@@ -746,11 +760,7 @@ class IA:
         cubierto = any(cubre(b) for b in tiendas) or any(
             b.construido and cubre(b) for b in self.por_tipo.get("hospital_campana", []))
         # unas nueve casillas detrás del frente, del lado de la base
-        bx, by = self.base
-        d = max(1, isqrt((centro[0] - bx) ** 2 + (centro[1] - by) ** 2))
-        atras = min(d, 9 * TILE)
-        px = centro[0] + (bx - centro[0]) * atras // d
-        py = centro[1] + (by - centro[1]) * atras // d
+        px, py = self._detras(centro, 9)
         for u in carros:
             o = u.orden
             if o is not None and o.tipo == CONSTRUIR:
@@ -763,6 +773,80 @@ class IA:
                     continue
             if o is None or (o.x - px) ** 2 + (o.y - py) ** 2 > (4 * TILE) ** 2:
                 self.cmd(c="mover", u=[u.id], x=px // 16, y=py // 16)
+
+    def _frente(self):
+        """La tropa que ataca (en tierra) y su centro; el centro es None si son menos de cuatro."""
+        m = self.m
+        frente = [u for i in sorted(self.atacando) if (u := m.entidad(i)) is not None
+                  and u.vivo and u.capa == TIERRA and not u.dentro]
+        if len(frente) < 4:
+            return frente, None
+        return frente, (sum(u.x for u in frente) // len(frente), sum(u.y for u in frente) // len(frente))
+
+    def _detras(self, centro, casillas):
+        """Un punto 'casillas' detrás de 'centro', del lado de la base."""
+        bx, by = self.base
+        d = max(1, isqrt((centro[0] - bx) ** 2 + (centro[1] - by) ** 2))
+        atras = min(d, casillas * TILE)
+        return centro[0] + (bx - centro[0]) * atras // d, centro[1] + (by - centro[1]) * atras // d
+
+    def _carretas(self):
+        """Las carretas de agua acompañan a la tropa que ataca, unas tres casillas detrás del
+        frente; con la pipa casi vacía vuelven a llenarla al molino o al Cuartel General más
+        cercano (y no se van hasta tenerla llena). Sin ataque esperan en el punto de reunión."""
+        carretas = [u for u in self.por_tipo.get("carreta_agua", []) if not u.dentro]
+        self.llenando &= {u.id for u in carretas}
+        if not carretas:
+            return
+        _frente, centro = self._frente()
+        fuentes = [b for b in self.edificios if b.construido and b.tipo.abastece_radio]
+        for u in carretas:
+            cap = u.tipo.estanque_cap
+            o = u.orden
+            if fuentes and (u.estanque * 4 < cap or (u.id in self.llenando and u.estanque * 20 < cap * 19)):
+                self.llenando.add(u.id)
+                f = min(fuentes, key=lambda b: ((b.x - u.x) ** 2 + (b.y - u.y) ** 2, b.id))
+                if combate.dist2_a(u.x, u.y, f) > (f.tipo.abastece_radio * 3 // 4) ** 2 and \
+                        (o is None or (o.x - f.x) ** 2 + (o.y - f.y) ** 2 > (3 * TILE) ** 2):
+                    self.cmd(c="mover", u=[u.id], x=f.x // 16, y=f.y // 16)
+                continue
+            self.llenando.discard(u.id)
+            if centro is not None:
+                px, py = self._detras(centro, 3)
+            else:
+                px, py = self.reunion
+                if o is not None:
+                    continue
+            if (u.x - px) ** 2 + (u.y - py) ** 2 > (3 * TILE) ** 2 and \
+                    (o is None or (o.x - px) ** 2 + (o.y - py) ** 2 > (3 * TILE) ** 2):
+                self.cmd(c="mover", u=[u.id], x=px // 16, y=py // 16)
+
+    def _formaciones(self):
+        """Guerrilla en la marcha, línea en el combate y cuadro si la caballería enemiga que
+        carga (granaderos, lanceros) está cerca y a la vista."""
+        m = self.m
+        t = m.tick
+        tropa = [u for u in self.ejercito if u.tipo.forma_filas]
+        if not tropa or not m.cat.formaciones:
+            return
+        jinetes = [e for e in m.unidades.values() if e.vivo and not e.dentro and e.tipo.carga_bonus
+                   and m.enemigos(self.p, e.dueno) and m.visible(self.p, e.x, e.y)]
+        r2 = (6 * TILE) ** 2
+        cambios = {}
+        for u in tropa:
+            if any((e.x - u.x) ** 2 + (e.y - u.y) ** 2 <= r2 for e in jinetes):
+                f = "cuadro"
+            elif t - u.disparo_t < TICKS * 3 or u.objetivo:
+                f = "linea"
+            elif u.moviendo or u.orden is not None:
+                f = "guerrilla"
+            else:
+                f = "ninguna"
+            actual = u.formacion.id if u.formacion is not None else "ninguna"
+            if f != actual:
+                cambios.setdefault(f, []).append(u.id)
+        for f, ids in cambios.items():
+            self.cmd(c="formacion", u=ids, f=f)
 
     def _lugar_cerca(self, tipo, x, y):
         """Un lugar libre para la obra cerca del punto (x, y)."""

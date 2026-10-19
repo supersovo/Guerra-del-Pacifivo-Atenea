@@ -6,7 +6,7 @@ import pygame
 
 from ...contenido import mapas as mod_mapas
 from ...contenido.textos import describir_efecto
-from ...sim.constantes import TICKS, TILE
+from ...sim.constantes import AFP, TICKS, TILE
 from .. import fuentes
 from ..graficos import paleta as P
 from ..graficos.banderas import superficie_bandera
@@ -272,7 +272,8 @@ class Archivo(Escena):
         lz.dibujar(tex, x + w - caja - 5 + (caja - tex.width * esc) / 2, y + 1 + (caja - tex.height * esc) / 2,
                    tex.width * esc, tex.height * esc)
         clases = {"infanteria": "Infantería", "caballeria": "Caballería", "artilleria": "Artillería",
-                  "apoyo": "Apoyo", "trabajador": "Trabajador", "heroe": "Héroe", "naval": "Marina"}
+                  "apoyo": "Apoyo", "trabajador": "Trabajador", "heroe": "Héroe", "naval": "Marina",
+                  "sanidad": "Sanidad", "logistica": "Logística"}
         sub = clases.get(tp.categoria, tp.categoria)
         if tp.faccion:
             sub += f" · solo {cat.facciones[tp.faccion].nombre}"
@@ -289,6 +290,16 @@ class Archivo(Escena):
                       ("Alcance", f"{casillas(a.alcance):.1f}" + (f" (mín. {casillas(a.alcance_min):.1f})"
                                                                   if a.alcance_min else "")),
                       ("Cadencia", f"{a.enfriamiento / TICKS:.1f} s")]
+            if a.cep:
+                filas.append(("Dispersión", f"CEP {casillas(a.cep):.2f} por casilla de tiro"))
+        if tp.sed is not None:
+            filas.append(("Cantimplora", f"{tp.sed.cantimplora // AFP} de agua"))
+        if tp.estanque_cap:
+            filas.append(("Pipa", f"{tp.estanque_cap // AFP} de agua, radio {casillas(tp.estanque_radio):g}"))
+        if tp.forma_filas:
+            filas.append(("Formaciones", ", ".join(f.nombre for f in cat.formaciones.values())))
+        if tp.observador:
+            filas.append(("Observador", f"radio {casillas(tp.observador):g}: el CEP a la mitad"))
         if tp.capacidad:
             filas.append(("Transporta", f"{tp.capacidad} plazas"))
         if tp.produce_en:
@@ -341,6 +352,8 @@ class Archivo(Escena):
             filas.append(("Guarnición", f"{te.guarnicion} soldados"))
         if te.arma is not None:
             filas.append(("Daño", f"{te.arma.danio} a {casillas(te.arma.alcance):.0f} casillas"))
+        if te.abastece_radio:
+            filas.append(("Aguada", f"radio {casillas(te.abastece_radio):g} (tropa y pipas)"))
         if te.requisitos:
             filas.append(("Requiere", ", ".join(cat.edificios[r].nombre if r in cat.edificios else r
                                                 for r in te.requisitos)))

@@ -64,6 +64,7 @@ class Unidad(Entidad):
         "golpeado_t", "fantasma", "recurso_id", "moviendo", "disparo_t", "espera", "creada_t",
         "buscar_t", "ultimo_x", "ultimo_y", "base_id", "paciente", "paciente_hoja", "pacientes",
         "xp", "grado", "nombre", "ficha", "batallas", "tramo", "puesto", "descarte",
+        "agua", "fatiga", "calor_acum", "estanque", "formacion", "cobertura",
     )
     es_unidad = True
 
@@ -134,6 +135,16 @@ class Unidad(Entidad):
         self.nombre = 0
         self.ficha = ""
         self.batallas = 0
+        # logística del agua (sim/logistica.py): la cantimplora (en 1/AFP), la fatiga al sol sin
+        # agua (centésimas de tick), lo que va del golpe de calor (vida en 1/HFP) y la pipa de una
+        # carreta de agua; formación táctica (contenido.catalogo.Formacion o None) y cobertura del
+        # terreno en que está posicionada (mapa.COB_*)
+        self.agua = tipo.sed.cantimplora if tipo.sed is not None else 0
+        self.fatiga = 0
+        self.calor_acum = 0
+        self.estanque = tipo.estanque_cap
+        self.formacion = None
+        self.cobertura = 0
 
     def mod(self, campo, tick):
         v = self.aura.get(campo, 0)

@@ -1,4 +1,5 @@
-"""Yacimientos de salitre (caliche), pozos de agua, tamarugos y minas."""
+"""Yacimientos de salitre (caliche), pozos de agua, tamarugos, minas y la marca de la tropa
+que se quedó sin agua."""
 
 import random
 
@@ -100,4 +101,15 @@ def bandera_reunion():
     p = Pintor(14, 22)
     p.linea(2, 21, 2, 2, (70, 54, 40), 1.2)
     p.poli([(2, 2), (13, 5.5), (2, 9)], (240, 220, 80))
+    return p.resultado()
+
+
+def sin_agua():
+    """Gota vacía con borde rojo: la tropa que se quedó sin agua (se ve desde los dos bandos)."""
+    p = Pintor(14, 18)
+    p.poli([(7, 1), (12.4, 10), (1.6, 10)], (176, 40, 30))
+    p.circ(7, 11.4, 5.6, (176, 40, 30))
+    p.poli([(7, 3.6), (10.4, 10), (3.6, 10)], (250, 236, 210))
+    p.circ(7, 11.4, 3.8, (250, 236, 210))
+    p.rect(5.8, 12.8, 2.4, 2.4, (90, 160, 230))
     return p.resultado()

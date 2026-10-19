@@ -3,7 +3,7 @@
 
   "cuartel_general": {
     "nombre": "Cuartel General",
-    "descripcion": "Centro del campamento: forma trabajadores, compra el salitre que traen (1 $ por cada unidad de salitre) y recibe el agua. Otorga 10 de población. Hasta 8 de población de infantería pueden subir al techo y disparar desde arriba con +2 de alcance.",
+    "descripcion": "Centro del campamento: forma trabajadores, compra el salitre que traen (1 $ por cada unidad de salitre) y recibe el agua: a su lado la tropa llena las cantimploras y las carretas de agua, la pipa. Otorga 10 de población. Hasta 8 de población de infantería pueden subir al techo y disparar desde arriba con +2 de alcance.",
     "historia": "Cada división tenía su cuartel general con el Estado Mayor, la intendencia y el parque. Las oficinas salitreras del Tamarugal sirvieron de campamento a los ejércitos.",
     "tamano": [4, 3],
     "vida": 1500,
@@ -12,6 +12,7 @@
     "tiempo": 100,
     "poblacion": 10,
     "deposito": true,
+    "abastece": {"radio": 3, "tropa": 10, "pipa": 50},
     "vision": 10,
     "guarnicion": {"capacidad": 8, "alcance_extra": 2, "categorias": ["infanteria", "apoyo", "heroe"], "clases": ["infanteria"], "vista": "techo"},
     "produce": ["trabajador"],
@@ -24,7 +25,7 @@
 
   "deposito": {
     "nombre": "Depósito de Intendencia",
-    "descripcion": "Almacena víveres, munición y forraje. Cada depósito permite mantener 10 de población más (máximo 200).",
+    "descripcion": "Almacena víveres, munición y forraje. Cada depósito permite mantener 10 de población más (máximo 200). Forma las carretas de agua que acompañan a la tropa en la pampa.",
     "historia": "La Intendencia General del Ejército y la Delegación en Antofagasta sostuvieron la campaña: el abastecimiento en el desierto decidió las operaciones tanto como las batallas.",
     "tamano": [2, 2],
     "vida": 400,
@@ -33,7 +34,7 @@
     "tiempo": 25,
     "poblacion": 10,
     "vision": 6,
-    "produce": [],
+    "produce": ["carreta_agua"],
     "investiga": [],
     "requisitos": [],
     "menu": "basico",
@@ -43,7 +44,7 @@
 
   "molino_agua": {
     "nombre": "Molino de agua",
-    "descripcion": "Molino de viento con bomba sobre un pozo. Los trabajadores entran y salen cargados de agua.",
+    "descripcion": "Molino de viento con bomba sobre un pozo. Los trabajadores entran y salen cargados de agua; la tropa que llega a su lado llena las cantimploras y las carretas de agua, la pipa.",
     "historia": "El agua fue el gran problema del desierto: se defendían los pozos de Dolores y de Pozo Almonte, y en Pisagua y Antofagasta las máquinas condensadoras destilaban agua de mar para la tropa.",
     "tamano": [3, 3],
     "vida": 500,
@@ -51,6 +52,7 @@
     "costo": {"dinero": 75, "agua": 0},
     "tiempo": 30,
     "sobre_recurso": "agua",
+    "abastece": {"radio": 3, "tropa": 10, "pipa": 50},
     "vision": 6,
     "produce": [],
     "investiga": [],

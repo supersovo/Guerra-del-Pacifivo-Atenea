@@ -5,8 +5,8 @@
 > Gemini CLI lo carga solo cuando trabaja en este repositorio; también se puede
 > adjuntar o pegar en una conversación.
 >
-> Describe el código de la versión **0.12.1** (`salitre/__init__.py`:
-> `VERSION = "0.12.1"`, `PROTOCOLO = 2`). Si el código y esta guía discrepan,
+> Describe el código de la versión **0.13.0** (`salitre/__init__.py`:
+> `VERSION = "0.13.0"`, `PROTOCOLO = 3`). Si el código y esta guía discrepan,
 > manda el código: verifique antes de afirmar.
 
 Todas las rutas son relativas a `rts/`, salvo que se indique otra cosa.
@@ -21,9 +21,9 @@ Todas las rutas son relativas a `rts/`, salvo que se indique otra cosa.
 | **Lenguaje** | Python 3.11 o más nuevo; la integración continua usa 3.12. |
 | **Dependencias** | El cliente usa `pygame-ce` 2.x y dibuja con la GPU (`pygame._sdl2.video.Renderer`). La simulación, el servidor y la IA usan **solo la biblioteca estándar**. |
 | **Dónde está** | Todo el juego vive en `rts/`. La raíz del repositorio guarda además **otro proyecto sin relación**: un *shooter* en JavaScript, el «Motor Atenea» (`index.html`, `src/`, `content/`, `tools/`, y los `tests/` y `docs/` de la raíz). Esta guía no lo cubre. |
-| **Tamaño** | Unas 20 300 líneas en `salitre/`: cliente 10 500, simulación 5 200, servidor 1 900, contenido 1 000, IA 900, red 560. Además, 2 100 líneas de pruebas y 1 900 de herramientas. |
+| **Tamaño** | Unas 21 200 líneas en `salitre/`: cliente 10 800, simulación 5 600, servidor 1 900, contenido 1 200, IA 1 000, red 580. Además, 2 500 líneas de pruebas y 2 000 de herramientas. |
 | **Cómo se arranca** | `python -m salitre` abre el juego (opciones: `--conectar HOST[:PUERTO]`, `--nombre`, `--version`). `python -m salitre --servidor` arranca el servidor dedicado, con las opciones `--host 0.0.0.0 --puerto 47800 --nombre … --sin-invitados --sin-lan --bd ruta --detallado`. |
-| **Pruebas** | `SDL_VIDEODRIVER=dummy SDL_AUDIODRIVER=dummy python -m pytest -q` corre 66 pruebas en unos 2,5 minutos. La revisión estática es `python -m pyflakes salitre herramientas instalador docker tests`. |
+| **Pruebas** | `SDL_VIDEODRIVER=dummy SDL_AUDIODRIVER=dummy python -m pytest -q` corre 77 pruebas en unos 2,7 minutos. La revisión estática es `python -m pyflakes salitre herramientas instalador docker tests`. |
 | **Integración continua** | `.github/workflows/rts.yml`, en la raíz del repositorio: pruebas en Linux, Windows y macOS; instalador de Windows (PyInstaller + Inno Setup); `.app` y `.dmg` universal2; versión portátil para Linux; imagen Docker del servidor. |
 | **Idioma** | Todo en **español**: identificadores, datos, textos, comentarios, documentación y mensajes de commit. Los identificadores van sin tildes ni eñe: `dueno`, `danio`, `tamano`, `campana` (= campaña). |
 
@@ -47,6 +47,13 @@ Todas las rutas son relativas a `rts/`, salvo que se indique otra cosa.
 - Hay **tres niveles de altura**. Desde abajo no se ve lo de arriba, y quien dispara cuesta arriba falla el 30 % de los tiros. Las **rampas** son los únicos accesos entre niveles.
 - La **niebla de guerra** la calcula el servidor.
 - **Guarniciones:** la infantería se guarece en trincheras, barracas y Cuartel General.
+- **Cobertura:** la infantería detenida junto a rocas, ruinas o tamarugos recibe un 30 % menos de daño de la fusilería y la metralla.
+- **Formaciones** de la infantería de fusil: línea, guerrilla y cuadro (tecla F).
+- **Artillería con dispersión:** las granadas de los cañones caen alrededor del blanco según su error circular probable (CEP), que crece con la distancia y cuesta arriba, se reduce con un observador (espía o baqueano) y se corre con el **viento**.
+
+**Agua y sed**
+- La infantería y la caballería gastan la **cantimplora** al marchar o combatir en la pampa y el salar. Sin agua marchan más lento y tardan el doble en disparar; al rato sufren el **golpe de calor**.
+- Beben junto al molino, al Cuartel General o a la **carreta de agua**, que acompaña a la tropa y rellena su pipa en molinos y cuarteles. A la sombra de un tamarugo la sed baja un 70 %.
 
 **Sanidad**
 - Con un hospital en pie, el infante o el jinete que cae por fusil, metralla o sable queda **herido** 40 s en el suelo.
@@ -92,6 +99,7 @@ Diseño completo en `docs/DISENO.md`. Cifras de unidades, edificios y mejoras en
    | Energía | en 1/256 de punto (`EFP`) |
    | Fracciones de vida (regeneración, curación) | en 1/64 de punto (`HFP`) |
    | Experiencia | en 1/16 de punto (`XPF`) |
+   | Agua de cantimploras y pipas | en 1/256 de punto (`AFP`) |
 
    - La vida misma es un entero en puntos.
    - Conversiones: `ticks(s)` de segundos a ticks, `sub(casillas)` de casillas a subunidades y `vel(casillas_por_segundo)` de velocidad a subunidades por tick.
@@ -149,7 +157,7 @@ rts/
 │   │   ├── nombres.py            nombre y cuerpo del veterano a partir de su semilla (igual en todos los equipos)
 │   │   └── textos.py             descripción legible de efectos (archivo histórico, tablas)
 │   ├── sim/                      simulación determinista (la usa el servidor)
-│   │   ├── constantes.py         TICKS, TILE, EFP, HFP, XPF, clases de entidad, capas TIERRA/AGUA
+│   │   ├── constantes.py         TICKS, TILE, EFP, HFP, XPF, AFP, clases de entidad, capas TIERRA/AGUA
 │   │   ├── azar.py               Azar (xorshift64*)
 │   │   ├── mundo.py              Mundo: entidades, jugadores, bucle paso(), creación, muerte, heridos,
 │   │   │                         obras, montaje/desmontaje, rutas, visión, victoria, retirada
@@ -160,18 +168,22 @@ rts/
 │   │   │                         construir, reparar, curar, embarcar, camilleros) y separación
 │   │   ├── edificios.py          edificios terminados: colas de producción e investigación, defensas,
 │   │   │                         guarniciones, molino, hospital (camilleros y pacientes), desmontaje
-│   │   ├── combate.py            alcance, blancos, daño, explosiones, proyectiles, ventaja de altura
+│   │   ├── combate.py            alcance, blancos, daño (formación y cobertura del blanco), explosiones,
+│   │   │                         proyectiles, ventaja de altura
+│   │   ├── balistica.py          dispersión de la artillería (CEP, Box-Muller en enteros), observador, viento
+│   │   ├── logistica.py          sed, fatiga y golpe de calor; abastecimiento (molinos, cuartel, carretas)
 │   │   ├── habilidades.py        habilidades activas (auras, curas, andanadas, minas, sabotaje,
 │   │   │                         demolición, golpe, revelar, emplazar, desmontar)
 │   │   ├── ruta.py               A* con presupuesto de nodos (Buscador), línea recta, suavizado
-│   │   ├── mapa.py               Mapa: terreno, niveles, rampas, paso, ocupación, regiones conexas
+│   │   ├── mapa.py               Mapa: terreno, niveles, rampas, paso, ocupación, regiones conexas,
+│   │   │                         cobertura (refugio y sombra) junto a rocas, ruinas y tamarugos
 │   │   ├── vision.py             niebla por nivel con operaciones de bits; detección
 │   │   ├── espacial.py           Rejilla (unidades) y RejillaEdificios para buscar vecinos
 │   │   ├── jugador.py            Jugador: dinero, agua, población, mejoras, sanidad, estadísticas
 │   │   ├── stats.py              Stats efectivas por tipo (catálogo + nación + mejoras + grado)
 │   │   └── veterania.py          experiencia, ascensos, hoja de servicio, instrucción, encuadramiento
 │   ├── ia/ia.py                  IA (fácil/normal/difícil): economía, obras, tropa, ataques,
-│   │                             desembarcos, habilidades, veteranos, ambulancias
+│   │                             desembarcos, habilidades, veteranos, ambulancias, carretas, formaciones
 │   ├── red/
 │   │   ├── protocolo.py          marco TCP (4 bytes de longitud + 1 de formato), JSON/zlib, límites
 │   │   ├── instantanea.py        Emisor por jugador: niebla + diferencias; registro() de cada entidad;
@@ -239,16 +251,17 @@ rts/
    4. Reconstruye la rejilla espacial.
    5. Procesa las rutas pendientes, con presupuesto.
    6. Llama a `edificios.actualizar(m, b)` para cada edificio vivo.
-   7. Llama a `comportamiento.actualizar(m, u)` para cada unidad viva que no esté `dentro` (embarcada, guarecida o en un molino).
+   7. Llama a `comportamiento.actualizar(m, u)` para cada unidad viva que no esté `dentro` (embarcada, guarecida o en un molino). Al final de cada una, `_fin_tick` le pone la cobertura de su casilla (si es infantería detenida) y le aplica la sed (`logistica.sed`).
    8. Reconstruye la rejilla y separa las unidades superpuestas (`comportamiento.separar`).
    9. Resuelve los impactos de los proyectiles.
    10. Activa las minas (cada 2 ticks).
-   11. Calcula las auras (cada 8 ticks).
-   12. Corre la instrucción de veteranía (una vez por segundo, en `tick % 16 == 8`).
-   13. Desangra a los heridos (cada 4 ticks).
-   14. Limpia los muertos con `_limpiar()`.
-   15. Actualiza la visión (cada 4 ticks).
-   16. Comprueba la victoria (cada 16 ticks) y vuelve a limpiar.
+   11. Calcula las auras y reparte el agua (`logistica.abastecer`), cada 8 ticks.
+   12. Cambia el viento cada `balistica.viento_cambio` ticks (45 s).
+   13. Corre la instrucción de veteranía (una vez por segundo, en `tick % 16 == 8`).
+   14. Desangra a los heridos (cada 4 ticks).
+   15. Limpia los muertos con `_limpiar()`.
+   16. Actualiza la visión (cada 4 ticks).
+   17. Comprueba la victoria (cada 16 ticks) y vuelve a limpiar.
 5. **Validación y orden.** `comandos.aplicar` busca el manejador en `MANEJADORES`. Cada `c_*` valida:
    - la propiedad de las unidades (`_propias`);
    - la visibilidad de los blancos (`_visible_para`);
@@ -299,6 +312,8 @@ rts/
 | `retirada` | Fichas de los veteranos del ejército vencido. |
 | `terminado`, `ganador` | Estado del final. |
 | `trucos` | Habilita el comando `truco`; solo lo encienden las pruebas. |
+| `calor` | `bytes` con el calor de cada casilla (% del consumo de agua: pampa 100, salar 150, el resto 0), calculado al crear el mundo. |
+| `viento` | `(rumbo, fuerza)`: rumbo de 0 a 15 hacia donde sopla (0 = este, 4 = sur) y fuerza de 0 a 100. |
 
 **Métodos clave**
 
@@ -336,6 +351,7 @@ rts/
 | Estado | `emplazada`, `emplazando`, `oculta`, `dentro` (embarcada, guarecida o en un molino), `cargamento` (lo que lleva un transporte), `carga`, `carga_tipo` (salitre o agua que lleva un trabajador) |
 | Veteranía | `xp`, `grado`, `nombre`, `ficha`, `batallas`, `abatidos` |
 | Sanidad | `paciente` y `paciente_hoja` (el herido en la camilla), `pacientes` (los convalecientes en el carro de la ambulancia), `base_id` (el hospital de un equipo de camilleros), `puesto` (su lugar de espera), `descarte` (herido que no se reintenta hasta un tick dado) |
+| Agua y táctica | `agua` (cantimplora, en 1/`AFP`), `fatiga` (centésimas de tick al sol sin agua), `calor_acum` (vida fraccional del golpe de calor, en 1/`HFP`), `estanque` (pipa de la carreta, en 1/`AFP`), `formacion` (una `Formacion` del catálogo o `None`), `cobertura` (bits `COB_REFUGIO` y `COB_SOMBRA` de su casilla) |
 
 **Edificio**
 - Generales: `tx, ty, w, h`, `construido`, `progreso`, `constructor`, `cola` (producción e investigación), `reunion`, `guarnicion`, `pozo`, `ocupante` (molino).
@@ -364,6 +380,7 @@ Formato (coordenadas en **píxeles**; `u` son ids de unidades, `e` de edificios;
 {"c":"reunion","e":[ids],"x","y","t":id|null}
 {"c":"habilidad","u":[ids],"h":habilidad,"x","y","t":id|null}    {"c":"emplazar","u":[...]}
 {"c":"descargar","u":[ids],"x","y"}   (en un edificio, "g": id saca a un solo soldado)
+{"c":"formacion","u":[ids],"f":"linea"|"guerrilla"|"cuadro"|"ninguna"}
 {"c":"senal","x","y"}   {"c":"rendirse"}   {"c":"truco",...} (solo con Mundo.trucos)
 ```
 
@@ -371,6 +388,8 @@ Formato (coordenadas en **píxeles**; `u` son ids de unidades, `e` de edificios;
 - `_mover_grupo` reparte destinos en formación (`_formacion`) y calcula **un** camino para la unidad más cercana al centro del grupo. Las demás lo reutilizan desde el punto más avanzado que ven en línea recta.
 - `puede_levantar(u, b)`: los trabajadores no levantan edificios con `desmonta_en` (el hospital de sangre); el constructor declarado sí.
 - Las unidades `autonomo` (los camilleros) no reciben órdenes: `_propias` las filtra.
+- `c_formacion` aplica la formación solo a los tipos con `forma_filas` (el resto de la selección la ignora) y responde con el evento `formacion` (código y cuántas formaron) o con `err` si nadie puede formar; un id de formación desconocido se ignora.
+- La cantinera y la carreta de agua no combaten (`_sanitaria`): una orden de ataque las pone a **seguir** (`SEGUIR`) a la unidad armada más cercana de la misma orden (`_acompanar`); si van solas, se quedan y reciben un `err`.
 
 ### 5.4 Comportamiento (`comportamiento.py`)
 
@@ -393,6 +412,8 @@ Formato (coordenadas en **píxeles**; `u` son ids de unidades, `e` de edificios;
 - Mar: `cargar` y `descargar`.
 - Curación: `curar_paso` y `_curar_en_marcha` (cantinera); `seguir`.
 - Separación: `separar` y `_empujar`.
+- `velocidad(u, t)` es la velocidad efectiva de la marcha: suma la formación y, sin agua, la penalización de la sed (`sed.velocidad_pct`).
+- En `atacar`, la carga de la caballería no multiplica el golpe contra una unidad en una formación con `inmune_carga` (el cuadro).
 
 ### 5.5 Edificios (`edificios.py`)
 
@@ -409,10 +430,12 @@ En cada tick:
 
 - **Daño:** `calcular_danio` = daño del arma × multiplicador (tipo de ataque contra clase de armadura, de `tablas.json`) × (100 + bonos %) / 100 − armadura, con mínimo 1.
   - Los multiplicadores en `0` (sable contra buques) no hacen daño.
-  - El «cuadro» de los Colorados reduce el daño de sable.
+  - El «cuadro» de los Colorados (pasiva) reduce siempre el daño de sable.
+  - Contra una unidad: la formación del blanco suma su `recibido[tipo_ataque]` y, a cubierto (`COB_REFUGIO`) y contra los ataques de `cobertura.ataques`, se resta `cobertura.reduccion_pct`, antes de la armadura.
   - `bonus_edificios` aumenta el daño contra obras.
-- **Altura:** desde un nivel más bajo se falla el 30 % (`fallo_por_altura`). Los grados altos reducen la falla (`veterania.fallo_altura`) y el efecto dinámico `ignora_altura` la anula.
-- **Disparos:** los instantáneos aplican el daño enseguida; los proyectiles lentos (`arma.proyectil`) viajan y pueden errar.
+  - `enfriamiento_unidad(u, t)`: la cadencia suma la formación; sin agua, el tiempo entre disparos crece `sed.enfriamiento_pct` (el doble). `danio_pct_unidad(u, t)` suma la formación al daño propio.
+- **Altura:** desde un nivel más bajo se falla el 30 % (`fallo_por_altura`). Los grados altos reducen la falla (`veterania.fallo_altura`) y el efecto dinámico `ignora_altura` la anula. Las armas con `cep` no tienen esa falla: dispersan más (§5.14).
+- **Disparos:** los instantáneos aplican el daño enseguida; los proyectiles lentos (`arma.proyectil`) viajan y pueden errar. Si el arma tiene `cep`, el punto de impacto sale de `balistica.punto_impacto`.
 - **Explosiones:** `explotar()` hace daño en área (`salpicadura`).
 - **Muerte:** `danar()` resta vida, da experiencia (`veterania.por_danio`), avisa del ataque y, si corresponde, llama a `matar`.
 - **Eventos:** `"dis"` (disparo), `"pro"` (proyectil) y `"exp"` (explosión).
@@ -529,6 +552,35 @@ El herido dura `segundos_herido` (40 s, más lo que sumen las mejoras).
 - `lanzar(m, c, h, x, y, obj)` aplica la habilidad. Antes, `error_lanzar(m, c, h)` comprueba la energía, el enfriamiento, el tope de minas y que no se esté desmontando ya. El alcance lo resuelve `orden_habilidad`, que acerca a la unidad antes de lanzar.
 - Las acciones con retardo usan `m.programar(...)` y se ejecutan en `ejecutar_programado`.
 
+### 5.13 Agua, sed y abastecimiento (`logistica.py`)
+
+**Quién tiene sed:** `tipo.sed` es la tabla `sed` del catálogo para las unidades biológicas de tierra que no son trabajadores, `autonomo` ni de una categoría excluida; para las demás es `None`.
+
+**`sed(m, u, t)`**, al final de cada tick de la unidad (`_fin_tick`):
+- toma el calor de la casilla (`m.calor`); a la sombra (`COB_SOMBRA`), solo `sombra_pct`;
+- con agua: si marcha (`u.moviendo`) o disparó hace menos de `combate` ticks, gasta `consumo × calor / 100`; al quedar en 0 avisa con el evento `sed`;
+- sin agua al calor: suma el calor a `fatiga` (hasta el doble del umbral) y, pasado `golpe_calor`, acumula `danio_calor` en `calor_acum` y quita vida (evento `calor`; respeta `inmortal`; si muere, `m.matar(u, 0, -1)`, así que con un hospital en pie queda herido);
+- con agua, la fatiga baja `recuperacion` por tick.
+
+**`abastecer(m)`**, cada 8 ticks:
+1. Los edificios terminados con `abastece` (molino, Cuartel General) dan de beber a la tropa aliada a `radio` de su rectángulo y a su propia guarnición, y llenan las pipas de las carretas.
+2. Cada carreta reparte su pipa a la tropa aliada con sed a `estanque_radio`, en orden `(agua, id)`, a `estanque_reparto` por soldado, y le alivia la fatiga (`alivio`).
+
+Los avisos `sed` y `calor` van solo al dueño, con un intervalo mínimo (`aviso`), y llevan la posición en píxeles.
+
+### 5.14 Dispersión de la artillería y viento (`balistica.py`)
+
+- `desvio(azar, cep)`: Box-Muller en enteros. `U1 = k/65536` con `k = azar.entero(65536) + 1`, `−log2(U1)` con `log2_q16` (cuadrados sucesivos, exacto), radio `cep · isqrt(−log2 U1)` y ángulo `azar.entero(256)` con la tabla de senos `_CUARTO` (un cuarto de vuelta en 1/16384). La mitad de los tiros cae dentro de `cep`.
+- `cep_efectivo(...)` = `arma.cep × dist / TILE`, × `(100 + altura_pct × fallo_altura / fallo_por_altura) / 100` si tira cuesta arriba (sin `ignora_altura`), × `observador_pct / 100` si `observado(...)` encuentra un observador aliado (`tipo.observador`: espía y baqueano) cerca del blanco.
+- `nuevo_viento(m)`: al crear el mundo, rumbo y fuerza al azar; cada `viento_cambio` ticks, rola un rumbo y cambia hasta 15 de fuerza. `deriva(m, dist)` corre la granada `viento_max × fuerza × dist / (100 × TILE)` hacia el rumbo.
+- `punto_impacto(...)` suma desvío y deriva al blanco, acotado al mapa. Cada disparo de una pieza con CEP **sortea dos números de `m.azar`**: agregar sorteos en otro lugar cambia toda la partida que sigue (es determinista, pero distinta).
+
+### 5.15 Formaciones y cobertura
+
+- `Formacion` (catálogo): `id`, `codigo` (1, 2, 3: viaja en la instantánea), `nombre`, `atajo`, `cadencia_pct`, `velocidad_pct`, `danio_pct`, `recibido` (por tipo de ataque) e `inmune_carga`. `cat.formaciones_codigo[codigo]` la busca por código (el 0 es `None`).
+- `tipo.forma_filas` sale del filtro `formaciones.pueden` (infantería con fusil, sin héroes ni trabajadores). La guarnición (`dentro`) no aplica su formación.
+- `Mapa.calcular_cobertura(refugio, sombra)` marca al crear el mundo la casilla de cada roca, ruina o tamarugo y sus 8 vecinas. `tipo.cubre` (infantería de tierra que no es trabajador ni `autonomo`) toma esos bits solo detenida.
+
 ---
 
 ## 6. Contenido: los JSON de `datos/` y su validación
@@ -563,16 +615,17 @@ El herido dura `segundos_herido` (40 s, más lo que sumen las mejoras).
 | `aura` | `{radio, efectos}`. |
 | `trabajador` | Recolecta y construye. |
 | `monta` | Edificio que levanta y en el que se convierte (ambulancia). |
-| `arma` | También admite `alcance_min`, `salpicadura` y `proyectil` (velocidad). Su `objetivos` vale `tierra`, `agua` o `ambos`. |
+| `estanque` | Pipa de agua `{capacidad, radio, reparto}` (carreta de agua): capacidad en puntos, radio en casillas y reparto por soldado y por segundo. |
+| `arma` | También admite `alcance_min`, `salpicadura`, `proyectil` (velocidad) y `cep` (error circular probable por casilla de distancia; solo con `proyectil`). Su `objetivos` vale `tierra`, `agua` o `ambos`. |
 
-**Pasivas** (`pasivas`): `detector`, `camuflaje`, `camuflaje_quieto`, `cuadro`, `carga`, `bonus_edificios`, `no_adquiere` (no elige blancos sola), `autonomo` (camilleros) y `constructor: {edificios, velocidad}`.
+**Pasivas** (`pasivas`): `detector`, `camuflaje`, `camuflaje_quieto`, `cuadro` (la pasiva de los Colorados contra el sable; no es la formación), `carga`, `bonus_edificios`, `no_adquiere` (no elige blancos sola), `autonomo` (camilleros), `observador: {radio}` (espía y baqueano: la artillería propia que tira cerca de ellos dispersa la mitad) y `constructor: {edificios, velocidad}`.
 
 **Valores de referencia**
 - Clases de armadura: `infanteria`, `caballeria`, `artilleria`, `naval` y `edificio` (en `tablas.json → clases_armadura`).
 - Tipos de ataque: `fusil`, `sable`, `metralla`, `explosivo`, `dinamita` y `canon_naval`.
 
 **Ids actuales**
-- Unidades comunes: `trabajador`, `infante`, `cantinera`, `camilleros`, `ambulancia`, `ingeniero`, `granadero`, `cazador`, `artilleria_montana`, `canon_campana`, `gatling`, `espia`, `transporte`, `canonera`.
+- Unidades comunes: `trabajador`, `infante`, `cantinera`, `camilleros`, `ambulancia`, `carreta_agua`, `ingeniero`, `granadero`, `cazador`, `artilleria_montana`, `canon_campana`, `gatling`, `espia`, `transporte`, `canonera`.
 - Unidades propias de cada nación: `zapador`, `torpedista`, `montonero`, `colorado`, `baqueano`.
 - Héroes: `baquedano`, `san_martin`, `velasquez`, `irene_morales`, `prat`, `bolognesi`, `caceres`, `ugarte`, `grau`, `campero`, `abaroa`, `camacho`, `zeballos`, `roca`, `villegas`, `saenz_pena`, `piedrabuena`.
 
@@ -597,6 +650,7 @@ El herido dura `segundos_herido` (40 s, más lo que sumen las mejoras).
 | `regeneracion` | `{radio, ritmo}`. |
 | `camilleros` | `{equipos, recuperacion, reposicion, vida_al_volver}`. |
 | `desmonta_en` | Unidad en que se convierte al desmontarse. |
+| `abastece` | Aguada `{radio, tropa, pipa}` (molino y Cuartel General): radio en casillas; agua por segundo a cada soldado y a cada pipa. |
 | `energia` | Igual que en las unidades. |
 | `habilidades` | Habilidades del edificio. |
 
@@ -638,6 +692,10 @@ El herido dura `segundos_herido` (40 s, más lo que sumen las mejoras).
 - Economía: `poblacion_maxima`, `recursos_iniciales`, `trabajadores_iniciales`, cargas y tiempos de extracción.
 - Otros: `minas_maximas`, `segundos_herido`, `distancia_minima_recursos_cuartel`.
 - `veterania`: grados, umbrales, efectos, experiencia por curar e instrucción.
+- `sed`: cantimplora, consumo, calor por terreno, penalizaciones sin agua, golpe de calor, recuperación, alivio, sombra y categorías excluidas.
+- `formaciones`: `pueden` (filtro de quién forma) y cada formación (`nombre`, `atajo`, `descripcion`, `cadencia_pct`, `velocidad_pct`, `danio_pct`, `recibido_pct` por tipo de ataque, `inmune_carga`). El orden de las formaciones fija su `codigo` en la instantánea: no lo cambie sin subir `PROTOCOLO`.
+- `balistica`: `altura_pct`, `observador_pct`, `viento_max` (casillas por casilla de vuelo con fuerza 100) y `viento_cambio` (segundos).
+- `cobertura`: `terrenos` que dan refugio, `sombra`, `ataques` que reduce, `reduccion_pct` y `clases` que se ponen a cubierto.
 
 ### 6.5 Campañas y nombres (fuera de la huella)
 
@@ -659,6 +717,8 @@ El herido dura `segundos_herido` (40 s, más lo que sumen las mejoras).
 - Una habilidad de tipo `montar` exige `monta`; un edificio con `desmonta_en` exige la habilidad `desmontar`.
 - No puede haber ids repetidos entre unidades y edificios.
 - `Catalogo.hospitales` reúne los edificios con camilleros.
+- `cep` solo vale con `proyectil`; un `estanque` necesita capacidad y reparto positivos.
+- `sed.calor` solo admite nombres de terreno (de 0 a 255 %); `recibido_pct` y `cobertura.ataques`, tipos de ataque de los multiplicadores; `cobertura.terrenos`, nombres de terreno.
 
 ### 6.7 Mapas (`mapas/*.json`, `contenido/mapas.py`)
 
@@ -733,27 +793,27 @@ La tabla completa de mensajes está en `docs/ARQUITECTURA.md`.
 | `AGUA` | 8 | `DETECTADO` | 4096 |
 | `EMPLAZADA` | 16 | `CAMILLA` | 8192 |
 | `OCULTA` | 32 | `DESMONTA` | 16384 |
-| `OBRA` | 64 | | |
-| `PRODUCE` | 128 | | |
-| `SABOTAJE` | 256 | | |
+| `OBRA` | 64 | `DESHIDRATADA` | 32768 |
+| `PRODUCE` | 128 | `COBERTURA` | 65536 |
+| `SABOTAJE` | 256 | `SOMBRA` | 131072 |
 
 **Claves de `extra`**
 
 | Quién la ve | Claves |
 |---|---|
-| Todos | Veteranos: `v` (grado), `vm` (vida máxima), `n` (semilla del nombre). Guarnición: `g` (tipos guarecidos), `gf` (los que acaban de disparar). Obra: `o` (% de avance). Desmontaje: `dm` (%). |
-| Solo el dueño | Unidades: `x` (% hacia el grado siguiente), `en` (energía), `c` (cargamento), `k` (abatidos), `cd` (esperas de habilidades), `pc` (convalecientes en el carro). Edificios: `q` (cola), `r` (punto de reunión), `oc` (ocupante), `gv` y `gid` (vida e ids de la guarnición). Hospitales: `cm` (equipos), `ce` (equipos máximos), `cmc` (equipos en el campo), `pc` (pacientes). |
+| Todos | Veteranos: `v` (grado), `vm` (vida máxima), `n` (semilla del nombre). Guarnición: `g` (tipos guarecidos), `gf` (los que acaban de disparar). Obra: `o` (% de avance). Desmontaje: `dm` (%). Formación: `fo` (código). |
+| Solo el dueño | Unidades: `x` (% hacia el grado siguiente), `en` (energía), `c` (cargamento), `k` (abatidos), `cd` (esperas de habilidades), `pc` (convalecientes en el carro), `ag` (agua de la cantimplora, %; no va si está llena), `fa` (fatiga en % del umbral del golpe de calor, hasta 200; no va si es 0), `es` (pipa de la carreta, %). Los tres van de 5 en 5. Edificios: `q` (cola), `r` (punto de reunión), `oc` (ocupante), `gv` y `gid` (vida e ids de la guarnición). Hospitales: `cm` (equipos), `ce` (equipos máximos), `cmc` (equipos en el campo), `pc` (pacientes). |
 
 **Mensaje:**
 ```
 {"t": "inst", "k": tick, "e": [cambios], "q": [[id, "m"|"v"]], "ev": [[tick, tipo, ...]],
- "j": {d, a, p, pm, m, i, h, mi}, "completa": 1}
+ "j": {d, a, p, pm, m, i, h, mi, vi}, "completa": 1}
 ```
 - `e`, `q` y `ev` solo van si no están vacías.
 - `q` lista lo que sale: `"m"` si murió, `"v"` si salió de la vista.
-- `j` son los recursos del jugador: dinero, agua, población, población máxima, mejoras, investigaciones, héroes y minas. Solo se envía cuando cambia la tupla `est` de `Emisor.construir`: **un campo nuevo de `j` debe agregarse también a esa tupla**, o no llegará cuando solo cambie él.
+- `j` son los recursos del jugador: dinero, agua, población, población máxima, mejoras, investigaciones, héroes, minas y el viento (`vi`: `[rumbo, fuerza]`). Solo se envía cuando cambia la tupla `est` de `Emisor.construir`: **un campo nuevo de `j` debe agregarse también a esa tupla**, o no llegará cuando solo cambie él.
 - `completa` va en la primera instantánea y tras una reconexión.
-- Los espectadores reciben `js` (los recursos de todos los jugadores) en vez de `j`. Para ellos `registro()` recibe `propio=True`: lo que va bajo `if propio:` también lo ven los espectadores.
+- Los espectadores reciben `js` (los recursos de todos los jugadores) y `vi` (el viento) en vez de `j`. Para ellos `registro()` recibe `propio=True`: lo que va bajo `if propio:` también lo ven los espectadores.
 
 **Eventos de la simulación** (el segundo elemento de cada evento):
 - Combate: `dis`, `pro`, `exp`, `mue`, `ata`.
@@ -761,6 +821,7 @@ La tabla completa de mensajes está en `docs/ARQUITECTURA.md`.
 - Veteranía: `ascenso`.
 - Obras y producción: `obra`, `fin_obra`, `lista`, `investigado`, `repara`.
 - Economía: `venta`, `agotado`, `pozo_agotado`, `pob`.
+- Agua y táctica (solo al dueño): `sed` y `calor` (con la posición en píxeles), `formacion` (código y cuántas formaron).
 - Habilidades: `hab`, `cura`, `carga`, `carga_puesta`, `sabotaje`, `revela`, `mina`, `golpe`, `emplaza`.
 - Mar: `embarca`, `desembarca`.
 - Partida: `llegada`, `senal`, `derrota`, `fin`, `err`.
@@ -822,9 +883,16 @@ En los dos casos, el cliente se conecta a él igual que a uno remoto.
 9. `_militar`
 10. `_habilidades`
 
-**`_militar`** cuida a los veteranos (`_cuidar_veteranos` → comando `replegar`), ataca por oleadas que crecen con `incremento`, usa la ambulancia (`_ambulancias`) y desembarca por mar (`_operacion_naval`).
+**`_militar`** cuida a los veteranos (`_cuidar_veteranos` → comando `replegar`), ataca por oleadas que crecen con `incremento`, usa la ambulancia (`_ambulancias`), lleva las carretas de agua (`_carretas`), elige la formación de su infantería (`_formaciones`) y desembarca por mar (`_operacion_naval`).
 
-**`DIFICULTADES`** fija para cada nivel: trabajadores, umbral de ataque, barracas, si investiga, si se expande, cuántas obras, si usa habilidades y cuántas `ambulancias` lleva (0, 1 o 2).
+**`DIFICULTADES`** fija para cada nivel: trabajadores, umbral de ataque, barracas, si investiga, si se expande, cuántas obras, si usa habilidades, cuántas `ambulancias` lleva (0, 1 o 2), cuántas `carretas` de agua (1, 1 o 2) y si usa `formaciones` (no en fácil).
+
+**Carretas de agua** (`_carretas`)
+- Se forman en el depósito si al menos el 10 % de las casillas pisables del mapa es pampa o salar (`calor_mapa`, calculado en `_preparar`) y el ejército tiene seis o más.
+- Con la pipa por debajo del 25 % van a llenarla al molino o al Cuartel General más cercano, y no se van hasta tenerla al 95 % (`llenando`).
+- Si hay ataque, se ubican tres casillas detrás del frente (`_frente`, `_detras`); si no, en el punto de reunión.
+
+**Formaciones** (`_formaciones`): cuadro si hay caballería enemiga de carga **visible** a seis casillas o menos; línea si disparó en los últimos 3 s o tiene blanco; guerrilla si marcha o tiene orden; si no, ninguna. Agrupa los cambios en un comando `formacion` por formación.
 
 **Ambulancias** (`_ambulancias`)
 - Montan el hospital de sangre unas 9 casillas detrás del frente, hacia la base, cuando hay al menos 4 unidades atacando y el 25 % de ellas disparó en los últimos 3 s.
@@ -861,11 +929,12 @@ Ver §14.
 
 **`Vista`**
 - Dibuja por profundidad: terreno por bloques de 16×16, edificios (las casas fuertes en capas: obra, tiradores, frente), tropas, heridos, efectos, niebla, galones y barras.
-- `tarjeta(est, seleccion, submenu)` decide los botones (cuadrícula de 4×3) según la selección.
-- `HUD` dibuja la barra superior, el minimapa, la selección, la hoja de servicio y la tarjeta.
+- Marca con una gota vacía a la tropa sin agua (`F_DESHIDRATADA`, la ven los dos bandos) y, en la selección propia, dibuja bajo la vida una barra celeste con el agua de la cantimplora o la pipa de la carreta.
+- `tarjeta(est, seleccion, submenu)` decide los botones (cuadrícula de 4×3) según la selección. La infantería que forma tiene el botón «Formación» (F, lugar 6) con el submenú `"formacion"` (L, G, C, N y Volver); `Boton.marcado` resalta la formación vigente.
+- `HUD` dibuja la barra superior (con el viento: flecha hacia donde sopla y «Viento del O · 35», con su explicación al pasar el ratón), el minimapa, la selección, la hoja de servicio, el estado de la tropa (agua, fatiga, formación, cobertura y sombra; la pipa de la carreta) y la tarjeta.
 
 **Gráficos procedurales**
-- `Sprites.superficie(tipo, faccion, color, vista, frame, emplazada)` despacha según `tipo.sprite["forma"]` y `FORMA_TAM`: `pie`, `montado`, `artilleria`, `buque`, `camilla` o `carro`.
+- `Sprites.superficie(tipo, faccion, color, vista, frame, emplazada)` despacha según `tipo.sprite["forma"]` y `FORMA_TAM`: `pie`, `montado`, `artilleria`, `buque`, `camilla` o `carro` (la ambulancia y la carreta de agua tienen su propia función de dibujo).
 - Las figuras se pintan al triple de tamaño y se reducen con suavizado.
 - Para reemplazar un dibujo:
   - un PNG en `recursos/graficos/unidades/<id_unidad>.png` reemplaza a esa unidad;
@@ -875,7 +944,7 @@ Ver §14.
 **Sonido**
 - Los efectos se sintetizan al iniciar.
 - Las voces (`recursos/sonidos/voces/<clave>_<n>.ogg`) se cargan la primera vez que se dicen y tienen prioridades: selección < orden < aviso < alarma.
-- `grupo_voz(tipo)` elige el grupo de voces de cada unidad: `seleccion_<grupo>`, `mover_<grupo>`, etc. Al formarse, cada unidad dice `lista_<id>`.
+- `grupo_voz(tipo)` elige el grupo de voces de cada unidad: `seleccion_<grupo>`, `mover_<grupo>`, etc. (la carreta de agua tiene el grupo `carreta`). Al formarse, cada unidad dice `lista_<id>`. Los avisos `sed` y `calor` y las órdenes de formación (`formacion_<id>`) tienen sus voces.
 - La música son dos pistas `.ogg`: `marcha` y `campana`.
 
 **Datos del usuario** (en la carpeta de `rutas.dir_usuario()`)
@@ -937,7 +1006,7 @@ Ver §14.
 3. Para la Campaña del Salitre o las series, edite `datos/campanas.json` y `servidor/serie.py:ITINERARIO`.
 
 **Publicar una versión** (solo cuando el dueño del proyecto lo pida)
-1. Suba `VERSION` en `salitre/__init__.py`.
+1. Suba `VERSION` en `salitre/__init__.py` (y `PROTOCOLO` si cambió el formato de la red).
 2. Actualice el comentario de `instalador/salitre.iss`.
 3. Escriba las novedades y los enlaces en `descargas/LEEME.md`.
 4. La CI construye los instaladores y, con una etiqueta `v*`, los publica en una versión de GitHub.
@@ -954,14 +1023,14 @@ python -m pyflakes salitre herramientas instalador docker tests
 python -m pytest -q tests/test_simulacion.py -k camilleros   # una parte
 ```
 
-**Las 66 pruebas, por archivo**
+**Las 77 pruebas, por archivo**
 
 | Archivo | Qué cubre |
 |---|---|
-| `test_simulacion.py` | Economía, obras, combate, curación, auras, habilidades, minas, artillería, altura, transporte, trincheras, guarniciones, veteranía, heridos y camilleros (caminos por tramos, islas, puestos), ambulancia, instrucción, veteranos que llegan con el cuartel, retirada, llegada en tren o carreta, determinismo y repeticiones. |
+| `test_simulacion.py` | Economía, obras, combate, curación, auras, habilidades, minas, artillería, altura, transporte, trincheras, guarniciones, veteranía, heridos y camilleros (caminos por tramos, islas, puestos), ambulancia, instrucción, veteranos que llegan con el cuartel, retirada, llegada en tren o carreta, sed y golpe de calor, carreta de agua, guarnición que bebe en el cuartel, formaciones (y el cuadro contra la carga), dispersión de la artillería en enteros y su determinismo, cobertura, determinismo y repeticiones. |
 | `test_contenido.py` | Catálogo, reglas de población, héroes por nación, mapas oficiales y campaña. |
 | `test_red.py` | Protocolo, huella, cuentas, partida de dos jugadores por TCP con ELO, escaramuza y reconexión, veteranos de la campaña y serie de campaña en red. |
-| `test_cliente.py` | Todas las pantallas, escaramuza, ambulancia en el cliente, volumen, casas fuertes, campaña, multijugador completo, clics con la ventana agrandada (eventos nativos de SDL), uniformes, voces, cámara por el borde. |
+| `test_cliente.py` | Todas las pantallas, escaramuza, ambulancia en el cliente, formaciones, sed, carreta y viento en el cliente, volumen, casas fuertes, campaña, multijugador completo, clics con la ventana agrandada (eventos nativos de SDL), uniformes, voces, cámara por el borde. |
 | `test_empaquetado.py` | Ícono de macOS. |
 
 **Ayudas para escribir pruebas** (`tests/utilidades.py`)
@@ -1025,6 +1094,9 @@ def test_infante_abate_a_un_enemigo():
 11. **Windows y macOS:** las rutas se arman con `rutas.py`, sin construirlas a mano; la CI prueba en los tres sistemas.
 12. **Los yacimientos son las entidades 1 a N, en el orden del mapa.** `EstadoJuego.__init__` lo da por hecho para dibujarlos desde el comienzo, y se cumple porque `Mundo.__init__` crea los recursos antes que nada. Si crea otra entidad antes que ellos, el cliente se desordena.
 13. **La rejilla espacial se reconstruye solo dos veces por tick** (pasos 4 y 8 de `Mundo.paso()`). Entre medio, `m.rejilla.cerca(...)` puede devolver unidades que murieron o se embarcaron en ese tick, y no ve las recién creadas. Compruebe siempre `vivo` y `dentro` en los resultados.
+14. **El azar de la partida es uno solo.** Cada disparo de una pieza con CEP sortea dos números de `m.azar`, y el viento sortea al comenzar y cada 45 s. Un sorteo nuevo, o uno que cambie de lugar, cambia todo lo que sigue: la partida sigue siendo determinista (las pruebas pasan), pero es otra. Por la misma razón, un cambio de código de la simulación con los mismos datos deja la misma huella y, sin embargo, las repeticiones grabadas antes ya no se reproducen igual: suba `VERSION` (la escena de repeticiones avisa si difiere).
+15. **El agua, la fatiga y la pipa viajan redondeadas de 5 en 5 % y solo al dueño** (`ag`, `fa`, `es`): el cliente las muestra, pero no debe decidir nada con ellas.
+16. **`Mundo.calor` y `Mapa.cobertura` se calculan al crear el mundo.** Si alguna vez el terreno cambia durante la partida, habrá que recalcularlos.
 
 ---
 
@@ -1044,12 +1116,14 @@ Ordenadas por valor estimado. Cada una indica dónde atacar.
 2. **Equilibrio entre naciones.** En las partidas IA contra IA corridas durante el desarrollo, Chile ganó todas. Mida con más partidas (IA contra IA, todos los mapas y todas las combinaciones) y ajuste `datos/`.
    - Sirve un guion que corra `Mundo` + `IA` sin red, como `test_determinismo`.
    - La tabla `partida_jugadores` del servidor guarda victorias por nación.
+   - La 0.13.0 sumó la sed, las formaciones, la dispersión de la artillería y la cobertura, calibradas con pocas partidas IA contra IA (el consumo de agua se duplicó a 1 por segundo porque a 0,5 la sed casi no pesaba). Mida su efecto con más partidas y ajuste `tablas.json` (`sed`, `formaciones`, `balistica`, `cobertura`).
 3. **IA**
    - Que la IA no vea a través de la niebla (§9): que `_blanco_enemigo` (y con él el reconocimiento y los desembarcos) use solo lo explorado o los edificios recordados, y que `_expandir` descarte solo los yacimientos cercanos a obras enemigas ya vistas.
    - Exploración activa.
    - Adaptación a la composición del rival (contrapesos de la tabla de multiplicadores).
    - Mejor uso de la ambulancia y de los hospitales de sangre en `_cuidar_veteranos`, que hoy mira solo el `hospital_campana`.
    - Retirada táctica para conservar veteranos.
+   - Escoltar las carretas de agua (hoy van solas tras el frente), buscar la sombra y la cobertura al detenerse y llevar un observador (espía o baqueano) junto a la artillería.
 4. **Rendimiento**
    - `Emisor.construir()` recorre **todas** las entidades por jugador en cada instantánea: O(entidades × jugadores). Bastaría con marcas de cambio por entidad.
    - Caminos jerárquicos (HPA\*) o campos de flujo para los grupos grandes.
@@ -1068,6 +1142,8 @@ Ordenadas por valor estimado. Cada una indica dónde atacar.
    - Partidas «históricas» sin la Argentina.
    - Límite de héroes simultáneos.
 8. **Eventos que el cliente no muestra.** La simulación emite `mina`, `golpe`, `embarca`, `desembarca` y `fin`, que `Juego._evento` no atiende. Puede ser intencional; revise antes de agregar efectos.
+9. **Formaciones a la vista.** Hoy la formación solo se lee en la ficha (y en el submenú). Dibujarla sobre el terreno (las filas de la línea, el cuadro) ayudaría a leer la batalla. Archivos: `cliente/juego/vista.py` y `cliente/graficos/`.
+10. **Dispersión de los cañones navales y de la Gatling.** Solo los cañones de montaña y de campaña tienen `cep`. Los buques podrían dispersar con el balanceo; la Gatling, en ráfaga. Basta con el dato `cep` en el arma, si dispara proyectiles (`proyectil`).
 
 ---
 

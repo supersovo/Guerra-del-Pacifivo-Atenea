@@ -119,6 +119,30 @@
     "sprite": {"forma": "ambulancia"}
   },
 
+  "carreta_agua": {
+    "nombre": "Carreta de agua",
+    "descripcion": "Carreta de mulas con una pipa de agua: da de beber a la tropa que marcha o combate a su alrededor y le alivia la fatiga. Llena la pipa junto a un molino de agua o al Cuartel General y acompaña a la columna en los ataques. No combate.",
+    "historia": "En la campaña del desierto el agua decidía las marchas: los ejércitos acarreaban pipas en carretas y en los trenes salitreros, y las columnas que se quedaron sin ella, como la división chilena que marchó sobre Tarapacá en noviembre de 1879, llegaron al combate agotadas por la sed.",
+    "clase": "artilleria",
+    "categoria": "logistica",
+    "costo": {"dinero": 100, "agua": 50},
+    "poblacion": 2,
+    "tiempo": 20,
+    "vida": 180,
+    "armadura": 1,
+    "velocidad": 1.6,
+    "vision": 6,
+    "radio": 0.6,
+    "capa": "tierra",
+    "estanque": {"capacidad": 2000, "radio": 4, "reparto": 5},
+    "produce_en": "deposito",
+    "requisitos": ["molino_agua"],
+    "habilidades": [],
+    "pasivas": {"no_adquiere": {}},
+    "atajo": "C",
+    "sprite": {"forma": "carreta_agua"}
+  },
+
   "ingeniero": {
     "nombre": "Ingeniero dinamitero",
     "descripcion": "Lanza cartuchos de dinamita: daño en área, devastador contra edificios y piezas de artillería.",
@@ -204,7 +228,7 @@
     "vision": 10,
     "radio": 0.55,
     "capa": "tierra",
-    "arma": {"tipo": "explosivo", "danio": 45, "alcance": 8, "alcance_min": 1.5, "enfriamiento": 2.5, "objetivos": "ambos", "salpicadura": 1.25, "proyectil": 9},
+    "arma": {"tipo": "explosivo", "danio": 45, "alcance": 8, "alcance_min": 1.5, "enfriamiento": 2.5, "objetivos": "ambos", "salpicadura": 1.25, "proyectil": 9, "cep": 0.06},
     "produce_en": "parque_artilleria",
     "requisitos": [],
     "habilidades": [],
@@ -227,7 +251,7 @@
     "vision": 10,
     "radio": 0.6,
     "capa": "tierra",
-    "arma": {"tipo": "explosivo", "danio": 80, "alcance": 12, "alcance_min": 2.5, "enfriamiento": 3.5, "objetivos": "ambos", "salpicadura": 1.6, "proyectil": 10},
+    "arma": {"tipo": "explosivo", "danio": 80, "alcance": 12, "alcance_min": 2.5, "enfriamiento": 3.5, "objetivos": "ambos", "salpicadura": 1.6, "proyectil": 10, "cep": 0.05},
     "emplazar": {"tiempo": 2.0},
     "produce_en": "parque_artilleria",
     "requisitos": [],
@@ -261,7 +285,7 @@
 
   "espia": {
     "nombre": "Espía",
-    "descripcion": "Invisible para el enemigo salvo ante detectores. Gran visión; puede sabotear un edificio enemigo.",
+    "descripcion": "Invisible para el enemigo salvo ante detectores. Gran visión; puede sabotear un edificio enemigo. Observador adelantado: la artillería propia que tira cerca de él dispersa la mitad.",
     "historia": "Todos los bandos usaron informantes y espías: Quintín Quintana sirvió a Chile como guía e informante, y los telegrafistas de la Breña filtraban mensajes a Cáceres.",
     "clase": "infanteria",
     "categoria": "apoyo",
@@ -275,7 +299,7 @@
     "radio": 0.28,
     "capa": "tierra",
     "energia": {"max": 200, "inicial": 75, "regen": 0.625},
-    "pasivas": {"camuflaje": {}},
+    "pasivas": {"camuflaje": {}, "observador": {"radio": 6}},
     "produce_en": "estado_mayor",
     "requisitos": [],
     "habilidades": ["sabotaje"],
@@ -407,7 +431,7 @@
   "colorado": {
     "nombre": "Colorado de Bolivia",
     "faccion": "bolivia",
-    "descripcion": "Infantería de élite: más vida y daño; formada en cuadro recibe la mitad del daño de las armas blancas.",
+    "descripcion": "Infantería de élite: más vida y daño; curtida en el cuadro, recibe siempre la mitad del daño de las armas blancas, y en formación de cuadro la carga de la caballería no la arrolla.",
     "historia": "El batallón Colorados, guardia del presidente Daza, vestía casaca roja. En Tacna contraatacó con el Aroma y resistió en cuadro la carga de los Granaderos de Yávar.",
     "clase": "infanteria",
     "categoria": "infanteria",
@@ -432,7 +456,7 @@
   "baqueano": {
     "nombre": "Baqueano",
     "faccion": "argentina",
-    "descripcion": "Guía y rastreador a caballo: el explorador más veloz, con enorme visión; descubre espías y minas.",
+    "descripcion": "Guía y rastreador a caballo: el explorador más veloz, con enorme visión; descubre espías y minas. Observador adelantado: la artillería propia que tira cerca de él dispersa la mitad.",
     "historia": "Los baqueanos y rastreadores criollos guiaban a las columnas por la pampa y la Patagonia durante las campañas de Roca y Villegas (1879-1885).",
     "clase": "caballeria",
     "categoria": "apoyo",
@@ -446,7 +470,7 @@
     "radio": 0.45,
     "capa": "tierra",
     "arma": {"tipo": "fusil", "danio": 6, "alcance": 4, "enfriamiento": 1.0, "objetivos": "ambos"},
-    "pasivas": {"detector": {"radio": 9}},
+    "pasivas": {"detector": {"radio": 9}, "observador": {"radio": 6}},
     "produce_en": "caballeriza",
     "requisitos": [],
     "habilidades": [],

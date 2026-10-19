@@ -2,8 +2,9 @@
 
 La simulación usa solo enteros para que sea determinista en cualquier equipo:
 las posiciones se miden en subunidades (16 por píxel, 512 por casilla), el
-tiempo en ticks (16 por segundo), la energía en 1/256 de punto y la vida
-fraccional (regeneración, curación) en 1/64 de punto.
+tiempo en ticks (16 por segundo), la energía en 1/256 de punto, la vida
+fraccional (regeneración, curación) en 1/64 de punto y el agua de las
+cantimploras y de las pipas en 1/256 de punto.
 """
 
 TICKS = 16                 # ticks por segundo de juego
@@ -14,6 +15,7 @@ MEDIA = TILE // 2
 EFP = 256                  # energía interna por punto de energía
 HFP = 64                   # vida interna por punto de vida (fracciones)
 XPF = 16                   # experiencia interna por punto (un punto = 1 $ de valor de combate)
+AFP = 256                  # agua interna por punto (una cantimplora llena son 100 puntos)
 
 NEUTRAL = -1
 

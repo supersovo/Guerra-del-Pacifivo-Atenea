@@ -27,6 +27,11 @@ CODIGO_MAR = 8
 OCUPA_EDIFICIO = 1
 OCUPA_RECURSO = 2
 
+# cobertura natural de una casilla (bits): a cubierto (junto a rocas, ruinas o árboles) y a la sombra
+COB_REFUGIO = 1
+COB_SOMBRA = 2
+CODIGO_TERRENO = {v[1]: v[0] for v in TERRENOS.values()}
+
 VECINOS8 = ((1, 0), (-1, 0), (0, 1), (0, -1), (1, 1), (1, -1), (-1, 1), (-1, -1))
 
 
@@ -61,6 +66,26 @@ class Mapa:
         for k in range(3):
             self.mascaras_nivel.append(int.from_bytes(bytes(1 if v == k else 0 for v in self.nivel), "little"))
         self.region = [self._regiones(TIERRA), self._regiones(AGUA)]
+        self.cobertura = bytearray(n)      # COB_*: la calcula calcular_cobertura (lo hace el mundo)
+
+    def calcular_cobertura(self, refugio, sombra):
+        """Marca las casillas a cubierto: la propia casilla o una de sus ocho vecinas es de un
+        terreno de 'refugio' (roca, ruinas, tamarugo); si además es de 'sombra' (tamarugo), la
+        casilla queda a la sombra. 'refugio' y 'sombra' son nombres de terreno."""
+        cod_refugio = {CODIGO_TERRENO[n] for n in refugio}
+        cod_sombra = {CODIGO_TERRENO[n] for n in sombra}
+        w, h = self.w, self.h
+        cob = bytearray(self.n)
+        for i, c in enumerate(self.terreno):
+            bits = (COB_REFUGIO if c in cod_refugio else 0) | (COB_SOMBRA if c in cod_sombra else 0)
+            if not bits:
+                continue
+            y, x = divmod(i, w)
+            for yy in range(max(0, y - 1), min(h, y + 2)):
+                base = yy * w
+                for xx in range(max(0, x - 1), min(w, x + 2)):
+                    cob[base + xx] |= bits
+        self.cobertura = cob
 
     # -- geometría -------------------------------------------------------
     def dentro(self, tx, ty):

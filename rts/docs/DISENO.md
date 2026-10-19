@@ -145,6 +145,62 @@ problema como lo resolvieron los ejércitos de 1879: el hospital va con la tropa
   heridos; con ella, los recupera en el frente, pero expone un blanco valioso
   (los camilleros no son inmunes al fuego).
 
+### Agua, sed y carretas de agua
+
+En el desierto el agua decidía tanto como el fuego: la sed castigó a las
+columnas de la campaña de Tarapacá (1879) tanto como las balas. El juego lo
+lleva al combate sin convertirlo en una planilla:
+
+- Cada infante y cada jinete tiene una **cantimplora** de 100 que solo gasta al
+  **marchar o combatir** en una casilla de calor: 1 por segundo en la **pampa**
+  y 1,5 en el **salar** (calor extremo). La tropa quieta y la que anda por la
+  arena, los caminos o las rampas no gasta.
+- **Sin agua**: −25 % de velocidad y el doble de tiempo entre disparos. Tras
+  30 s al sol sin agua (20 en el salar) llega el **golpe de calor**: medio punto
+  de vida por segundo. Con agua, la fatiga baja sola (el doble de rápido de lo
+  que sube en la pampa).
+- **A la sombra de un tamarugo** el consumo y la fatiga bajan un 70 %.
+- **Beber**: junto al **molino** o al **Cuartel General** (3 casillas, 10 por
+  segundo; también su guarnición) o junto a la **carreta de agua** (depósito de intendencia con un
+  molino en pie, $ 100 y 50 de agua, 2 de población): una pipa de 2000 que
+  reparte 5 por segundo a cada soldado en 4 casillas, primero a los más
+  sedientos, y se rellena en molinos y cuarteles a 50 por segundo.
+- Es un **costo de la ofensiva lejana**, no de la defensa: quien se queda junto
+  a sus molinos no sufre, y quien lleva el ataque por la pampa necesita
+  carretas (y protegerlas). Trabajadores, camilleros, piezas y buques no
+  tienen sed.
+- La ficha muestra el agua y la fatiga a su dueño; los dos bandos ven la gota
+  vacía del que se quedó sin agua.
+
+### Formaciones
+
+La infantería de fusil (infante, zapador, torpedista, montonero, Colorados)
+puede formar (tecla F):
+
+| Formación | A favor | En contra |
+|-----------|---------|-----------|
+| Línea | +30 % de cadencia | −10 % de velocidad; +15 % del daño de la artillería, la dinamita y los cañones navales |
+| Guerrilla | −35 % del daño de la fusilería, la metralla y la artillería; +20 % de velocidad | −20 % de daño |
+| Cuadro | La carga de la caballería no duplica su daño | −60 % de velocidad |
+
+Es el triángulo de la época: la línea gana el duelo de fusilería pero sufre la
+artillería; la guerrilla resiste el fuego a distancia y marcha rápido, pero
+pega menos; el cuadro frena la carga y queda clavado ante los cañones. La
+guarnición de una trinchera o un edificio no forma (ya está a cubierto).
+
+### Artillería: dispersión y viento
+
+Las piezas con `cep` en su arma (cañón de montaña y de campaña) no ponen la
+granada en el blanco: la desvían con una normal bidimensional cuyo **error
+circular probable** (la mitad de los disparos cae dentro) es
+CEP = CEP base × distancia en casillas × (1 + penalización por tirar cuesta
+arriba). Un **observador adelantado** (espía o baqueano propio a 6 casillas o
+menos del blanco) lo reduce a la mitad, y el **viento** corre la granada hacia
+donde sopla, en proporción a la distancia. La explosión daña en área donde cae:
+contra un blanco suelto se falla más; contra una masa apretada (una línea), casi
+nunca. Estas piezas ya no fallan del todo cuesta arriba: en lugar de esa falla
+binaria (que conservan la fusilería y las demás armas), dispersan más.
+
 ### La cantinera
 
 La cantinera solo actúa sobre la tropa propia: si va seleccionada junto con la
@@ -229,6 +285,11 @@ en red pasa de una batalla a la siguiente.
 - Desde abajo **no se ve** lo de arriba (hace falta un explorador arriba o un
   reconocimiento) y quien dispara cuesta arriba **falla el 30 %**.
 - Tamarugales y roca bloquean el paso; las quebradas solo se cruzan por sus pasos.
+- **Cobertura**: la infantería detenida junto a rocas, ruinas o tamarugos recibe
+  un 30 % menos de daño de la fusilería y la metralla (no de la artillería); en
+  marcha la pierde. Junto a un tamarugo está además a la sombra.
+- **Calor**: la pampa y el salar gastan el agua de la tropa que marcha o combate
+  (ver *Agua, sed y carretas de agua*).
 - **Detectores**: reductos, zapadores, baqueanos y el reconocimiento telegráfico
   revelan espías, montoneros ocultos y minas.
 
@@ -302,10 +363,21 @@ el hospital de sangre unas nueve casillas detrás del frente cuando la tropa se
 traba en combate, lo sostienen al menos 30 segundos y lo desmontan cuando el
 frente sigue de largo y ya no quedan heridos que atender.
 
+En los mapas con pampa o salar (al menos un 10 % de las casillas) y con un
+ejército de seis o más, forma **carretas de agua** (una en Fácil y Normal, dos
+en Difícil): van tres casillas detrás del frente cuando ataca y vuelven a llenar
+la pipa al molino o al cuartel más cercano cuando les queda menos de un cuarto.
+En Normal y Difícil usa las **formaciones**: guerrilla en la marcha, línea en
+el combate y cuadro cuando la caballería enemiga de carga está a seis casillas
+o menos.
+
 ## Equilibrio: cómo ajustarlo
 
 1. Cambie los valores en `datos/` (por ejemplo `"danio"` de una unidad o
-   `"costo"` de un edificio).
+   `"costo"` de un edificio). La sed, las formaciones, la dispersión de la
+   artillería y la cobertura tienen sus secciones en `datos/tablas.json`
+   (`sed`, `formaciones`, `balistica` y `cobertura`), cada una con su
+   `_comentario`.
 2. `python -m pytest` comprueba que el contenido sigue siendo válido.
 3. Juegue una escaramuza o deje a la IA contra la IA y mire el parte de guerra.
 4. `python herramientas/generar_tablas.py` actualiza TABLAS.md.

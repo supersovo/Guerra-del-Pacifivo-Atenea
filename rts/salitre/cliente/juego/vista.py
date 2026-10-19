@@ -91,6 +91,7 @@ class Vista:
         self.t_salitre = [lz.textura(("n", "salitre", f), lambda f=f: N.salitre(f, 3)) for f in range(4)]
         self.t_arboles = [lz.textura(("n", "tamarugo", k), lambda k=k: N.tamarugo(k)) for k in range(3)]
         self.t_reunion = lz.textura(("n", "reunion"), N.bandera_reunion)
+        self.t_sin_agua = lz.textura(("n", "sin_agua"), N.sin_agua)
         self.t_aspas = self.edificios.aspas()
         self.arboles = []
         for y in range(m.h):
@@ -585,6 +586,9 @@ class Vista:
                 lz.linea((sx - 7 * z, sy - 20 * z), (sx + 7 * z, sy - 20 * z), (110, 80, 50))
         if e.fl & I.F_POTENCIADO and int(ahora * 4) % 2 == 0:
             lz.dibujar(self.t_anillo, sx - 9 * z, sy - 3 * z, 18 * z, 7 * z, alpha=150, color=(250, 220, 90))
+        if e.fl & I.F_DESHIDRATADA and int(ahora * 2 + e.id * 0.37) % 3:
+            # sin agua: una gota vacía sobre la cabeza, a la vista de los dos bandos
+            lz.dibujar(self.t_sin_agua, sx + 5 * z, sy - (fy + 12) * z, 9 * z, 11.5 * z, alpha=alpha)
 
     def _dibujar_agua_pozos(self, cam, seleccion):
         """Cuánta agua le queda a cada pozo explorado: una barra azul y la cantidad."""
@@ -672,3 +676,10 @@ class Vista:
                 fe = e.ex["en"] * 256 / max(1, est.stats_de(e.tipo).energia_max)
                 lz.rect((x0 - 1, by + 4, ancho + 2, 4), (20, 14, 10), 220)
                 lz.rect((x0, by + 5, ancho * min(1.0, fe), 2), (120, 160, 240))
+            elif sel and e.dueno == est.yo and not e.es_edificio and (e.tipo.sed is not None
+                                                                     or e.tipo.estanque_cap):
+                # la cantimplora de la tropa o la pipa de la carreta, en celeste
+                fa = (ex.get("es", 0) if e.tipo.estanque_cap else ex.get("ag", 100)) / 100
+                lz.rect((x0 - 1, by + 4, ancho + 2, 4), (20, 14, 10), 220)
+                lz.rect((x0, by + 5, ancho * max(0.0, min(1.0, fa)), 2),
+                        (90, 170, 240) if fa > 0.25 else (230, 140, 50))

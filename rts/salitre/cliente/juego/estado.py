@@ -71,6 +71,7 @@ class EstadoJuego:
         self.investigando = set()
         self.heroes = set()
         self.minas = 0
+        self.viento = None      # (rumbo 0..15 hacia donde sopla, 0 = este, 4 = sur; fuerza 0..100)
         self.todos = None
         n = self.mapa.n
         self.vis = bytearray(n)
@@ -201,8 +202,12 @@ class EstadoJuego:
             self.investigando = set(j.get("i", []))
             self.heroes = set(j.get("h", []))
             self.minas = j.get("mi", 0)
+            if "vi" in j:
+                self.viento = tuple(j["vi"])
         if "js" in msg:
             self.todos = msg["js"]
+        if "vi" in msg:
+            self.viento = tuple(msg["vi"])
         ev = msg.get("ev")
         if ev:
             self.eventos.extend(ev)

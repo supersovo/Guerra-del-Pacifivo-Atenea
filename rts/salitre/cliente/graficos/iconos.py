@@ -20,6 +20,19 @@ def _flecha(p, x0, y0, x1, y1, c, ancho=2.4):
         p.linea(x1, y1, x1 - math.cos(a + d * 0.2) * 8, y1 - math.sin(a + d * 0.2) * 8, c, ancho)
 
 
+def _tirador(p, x, y, bayoneta=None):
+    """Un soldadito visto de frente para los íconos de formación: kepí rojo, casaca y fusil.
+    'bayoneta' (dx, dy) apunta el fusil calado hacia afuera (el cuadro)."""
+    p.rect(x - 1.7, y - 3.2, 3.4, 6.4, TINTA, 1)
+    p.circ(x, y - 4.9, 1.7, (214, 178, 140))
+    p.rect(x - 1.7, y - 7.4, 3.4, 1.8, ROJO)
+    if bayoneta is None:
+        p.linea(x + 1.6, y + 1.6, x + 3.2, y - 7.6, MADERA, 1.0)
+    else:
+        dx, dy = bayoneta
+        p.linea(x, y - 1, x + dx * 6.4, y - 1 + dy * 6.4, ACERO, 0.9)
+
+
 def icono_orden(nombre):
     p = Pintor(40, 40)
     if nombre == "mover":
@@ -81,6 +94,41 @@ def icono_orden(nombre):
         p.rect(21, 12, 12, 4, ROJO)
         _flecha(p, 30, 32, 8, 32, TINTA, 2.6)
         p.linea(8, 32, 8, 22, TINTA, 2.6)
+    elif nombre == "formacion":
+        # el banderín del batallón y la tropa formada detrás
+        p.linea(7, 34, 7, 5, (70, 54, 40), 1.4)
+        p.poli([(7, 5), (17, 8), (7, 11)], ROJO)
+        for k in range(4):
+            _tirador(p, 14 + k * 6, 21)
+            _tirador(p, 14 + k * 6, 33)
+    elif nombre == "formacion_linea":
+        # dos filas de fusiles, hombro con hombro
+        for k in range(6):
+            _tirador(p, 5 + k * 6, 18)
+            _tirador(p, 5 + k * 6, 31)
+    elif nombre == "formacion_guerrilla":
+        # tiradores sueltos que aprovechan las matas y las piedras del terreno
+        for bx, by in ((10, 17), (27, 31)):
+            p.elipse(bx - 5, by - 2, 10, 5, (96, 120, 64))
+        for x, y in ((7, 14), (21, 9), (33, 17), (14, 28), (29, 28)):
+            _tirador(p, x, y)
+    elif nombre == "formacion_cuadro":
+        # cuatro caras con las bayonetas hacia afuera: la caballería no lo rompe
+        lado = (9, 16, 23, 30)
+        for v in lado:
+            _tirador(p, v, 9, (0, -1))
+            _tirador(p, v, 34, (0, 1))
+        for v in lado[1:3]:
+            _tirador(p, 7, v + 5, (-1, 0))
+            _tirador(p, 33, v + 5, (1, 0))
+        p.linea(20, 15, 20, 26, (70, 54, 40), 1.2)
+        p.poli([(20, 15), (27, 17), (20, 19)], DORADO)
+    elif nombre == "formacion_ninguna":
+        # rompan filas: la tropa suelta, sin formar
+        for x, y in ((9, 15), (19, 21), (29, 13), (13, 33), (27, 31)):
+            _tirador(p, x, y)
+        p.linea(26, 3, 37, 14, ROJO, 2.4)
+        p.linea(37, 3, 26, 14, ROJO, 2.4)
     else:
         p.circ(20, 20, 10, TINTA, borde=2)
     return p.resultado()

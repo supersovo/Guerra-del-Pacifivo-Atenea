@@ -40,6 +40,7 @@ class Jugador:
         }
         self.aviso_poblacion_t = -9999
         self.aviso_ataque_t = -9999
+        self.avisos = {}              # último tick de cada aviso de la logística ("sed", "calor")
 
     def tiene(self, edificio_id):
         return self.terminados.get(edificio_id, 0) > 0
