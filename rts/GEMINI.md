@@ -41,7 +41,7 @@ Todas las rutas son relativas a `rts/`, salvo que se indique otra cosa.
 
 **Tecnología y ejército**
 - Árbol de edificios: barracas → hospital, trinchera, barracón → caballeriza → telégrafos → estado mayor / parque de artillería; además maestranza → muelle.
-- Armas: infantería, cantineras (curan), ingenieros dinamiteros, caballería, cañones que se **emplazan**, ametralladoras Gatling, espías, buques, unidades propias de cada nación y **héroes** históricos. Cada héroe tiene un aura de mando y una habilidad (tecla Q).
+- Armas: infantería, cantineras (curan), ingenieros dinamiteros, caballería, cañones que se **emplazan**, ametralladoras Gatling, espías, buques, **carretas de agua**, unidades propias de cada nación y **héroes** históricos. Cada héroe tiene un aura de mando y una habilidad (tecla Q).
 
 **Terreno, combate y niebla**
 - Hay **tres niveles de altura**. Desde abajo no se ve lo de arriba, y quien dispara cuesta arriba falla el 30 % de los tiros. Las **rampas** son los únicos accesos entre niveles.
@@ -87,6 +87,7 @@ Diseño completo en `docs/DISENO.md`. Cifras de unidades, edificios y mejoras en
    - **Azar:** solo con `self.azar` (`sim/azar.py`, xorshift64\*, sembrado con la semilla de la partida). La IA tiene su propio `Azar`. Prohibido usar `random`, `time` o `hash()` de cadenas dentro de `sim/` e `ia/`. El cliente sí usa `random`, pero solo para efectos visuales.
    - **Orden de iteración:** los `dict` se recorren en orden de inserción, y las entidades se crean con ids crecientes. Las búsquedas espaciales (`espacial.py`) recorren en un orden fijo: `Rejilla.cerca` va celda por celda y, dentro de cada celda, en el orden de `Mundo.unidades`; `RejillaEdificios.cerca` ordena por id. Use `set` solo para preguntar pertenencia, nunca para iterar algo que afecte el resultado.
    - Ojo: `test_determinismo` corre dos partidas **en el mismo proceso**, así que no detecta dependencias del `PYTHONHASHSEED`. Sea estricto por su cuenta.
+   - Cada sorteo cuenta: la dispersión de la artillería sortea dos números por disparo y el viento sortea al comenzar y cada 45 s. Un sorteo nuevo o movido de lugar cambia todo lo que sigue (§13, trampa 14).
 
 3. **Unidades de medida** (`sim/constantes.py`):
 
@@ -414,6 +415,7 @@ Formato (coordenadas en **píxeles**; `u` son ids de unidades, `e` de edificios;
 - Separación: `separar` y `_empujar`.
 - `velocidad(u, t)` es la velocidad efectiva de la marcha: suma la formación y, sin agua, la penalización de la sed (`sed.velocidad_pct`).
 - En `atacar`, la carga de la caballería no multiplica el golpe contra una unidad en una formación con `inmune_carga` (el cuadro).
+- `_fin_tick(m, u, t)` cierra el tick de cada unidad: cuenta los ticks de marcha (para la carga) y de quietud (para el camuflaje), decide si está oculta, le pone la cobertura de su casilla (`tipo.cubre`, solo detenida) y le aplica la sed (`logistica.sed`).
 
 ### 5.5 Edificios (`edificios.py`)
 
@@ -468,6 +470,8 @@ En cada tick:
 
 **Capas de movimiento:** `TIERRA` y `AGUA`. En tierra solo se pasa entre casillas del mismo nivel o por una rampa (`Mapa.paso`, `puede_pasar`). `ocupar` y `liberar` marcan los edificios y los recursos.
 
+**Cobertura:** `Mapa.cobertura` (un `bytearray`, una celda por casilla) guarda los bits `COB_REFUGIO` y `COB_SOMBRA`; la llena `calcular_cobertura` al crear el mundo (§5.15). `CODIGO_TERRENO` traduce el nombre de un terreno a su código. El calor de cada casilla no está en el mapa sino en `Mundo.calor`.
+
 **Visión** (`vision.calcular`):
 - Cada observador marca un círculo por tramos de filas en una rejilla por nivel.
 - Desde abajo no se ve lo que está más arriba.
@@ -482,6 +486,7 @@ En cada tick:
 - También: `mejoras`, `investigando` y `terminados` (cuántos edificios terminados de cada tipo tiene en pie; de ahí salen `tiene()` y los requisitos).
 - `heroes`, `minas` y el diccionario de estadísticas `est` para el parte de guerra.
 - `sanidad`: `{"equipos", "segundos_herido", "vida_al_volver"}`, que suman las investigaciones del hospital.
+- Para no repetir los avisos seguidos: `aviso_poblacion_t`, `aviso_ataque_t` y `avisos` (el último tick de cada aviso de la logística: `"sed"` y `"calor"`).
 
 **Efectos y estadísticas**
 - Los **efectos estáticos** (nación, investigaciones y grado) se suman en `stats.calcular`. `stats.tabla(...)` arma la tabla de nación más investigaciones, y `Jugador.stats_de(tipo_id, grado)` agrega el grado y guarda en caché cada combinación de tipo y grado.
@@ -926,6 +931,7 @@ Ver §14.
 - Niebla propia, calculada con `sim.vision`.
 - «Fantasmas»: edificios enemigos que quedan recordados bajo la niebla.
 - Estadísticas locales (con `sim.stats`) para las fichas y los tooltips.
+- `viento`: `(rumbo, fuerza)`, que llega con `j.vi` (a los espectadores, con `vi`); el HUD lo dibuja en la barra superior (`HUD._viento`).
 
 **`Vista`**
 - Dibuja por profundidad: terreno por bloques de 16×16, edificios (las casas fuertes en capas: obra, tiradores, frente), tropas, heridos, efectos, niebla, galones y barras.
@@ -962,6 +968,13 @@ Ver §14.
 2. Corra `python -m pytest -q`.
 3. Corra `python herramientas/generar_tablas.py` para regenerar `docs/TABLAS.md`. Es un paso **manual**: ninguna prueba lo comprueba.
 4. Recuerde que el cambio altera la huella: servidor y jugadores deben actualizarse juntos.
+
+Dónde está cada perilla de la 0.13.0: la sed, las formaciones, la dispersión y la cobertura, en `tablas.json` (`sed`, `formaciones`, `balistica`, `cobertura`); el CEP de cada pieza, en su `arma.cep`; la pipa de la carreta, en su `estanque`; las aguadas, en el `abastece` de cada edificio; los observadores, en la pasiva `observador`. Para medir el efecto, deje a la IA contra la IA sin red (como en `test_determinismo`) y cuente el agua de la tropa, las formaciones y las bajas.
+
+**Agregar una formación**
+1. Agréguela **al final** de `tablas.json → formaciones` (el orden fija su `codigo` en la instantánea; §6.4), con `nombre`, `atajo`, `descripcion` y sus efectos. El submenú de la tarjeta (`tarjeta._formaciones`) la muestra sola.
+2. Su ícono va en `graficos/iconos.py:icono_orden("formacion_<id>")` y su voz en `herramientas/generar_voces.py` (`formacion_<id>`, que dice `Juego._evento` al recibir el evento `formacion`).
+3. Si la IA debe usarla, edite `IA._formaciones`. Escriba una prueba en `tests/test_simulacion.py`.
 
 **Agregar una unidad**
 1. Escriba la entrada en `datos/unidades.json`, sin reordenar las existentes (§2.5). Agréguela al `produce` de su edificio y a `facciones.json`: en `_comunes.unidades` si es común, o en las `unidades` de su nación si es propia.
@@ -1040,6 +1053,7 @@ python -m pytest -q tests/test_simulacion.py -k camilleros   # una parte
 - `avanzar(m, ticks)` avanza la simulación.
 - `de(m, p, tipo)` devuelve las entidades vivas de un tipo.
 - `px(sub)` convierte subunidades a píxeles.
+- En `test_simulacion.py`, `_unidad(m, p, tipo, tx, ty)` crea una unidad en el centro de una casilla y le suma su población, y `_de_terreno(caracter, marcas)` crea un mapa de un solo terreno (`","` pampa, `":"` salar…) con algunas casillas marcadas (rocas, tamarugos): sirve para las pruebas de sed y de cobertura.
 
 `conftest.py` importa `utilidades`, que pone los controladores ficticios de SDL y una carpeta temporal de usuario (`SALITRE_DATOS_USUARIO`).
 
