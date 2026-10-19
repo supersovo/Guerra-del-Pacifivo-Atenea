@@ -407,8 +407,9 @@ class HUD:
             f = cat.formaciones_codigo[fo]
             filas.append(("", None, P.TINTA, f"Formación: {f.nombre}"))
         if e.fl & I.F_COBERTURA:
+            ataques = " y ".join(cat.nombres_ataque.get(a, a).lower() for a in cat.cobertura.ataques)
             filas.append(("", None, (60, 100, 50),
-                          f"A cubierto: -{cat.cobertura.reduccion_pct} % del daño de la fusilería"))
+                          f"A cubierto: -{cat.cobertura.reduccion_pct} % del daño de {ataques}"))
         if e.fl & I.F_SOMBRA and sed is not None:
             filas.append(("", None, (60, 100, 50), f"A la sombra: -{100 - sed.sombra_pct} % de sed y fatiga"))
         y = r.y + 34

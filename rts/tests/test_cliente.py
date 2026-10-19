@@ -322,6 +322,13 @@ def test_formaciones_sed_carreta_y_viento_en_el_cliente(app, monkeypatch):
     assert [b.clave for b in juego.botones if b is not None and b.marcado] == ["formacion_linea"]
     juego.manejar(pygame.event.Event(pygame.KEYDOWN, key=pygame.K_ESCAPE, mod=0))
     assert juego.submenu is None
+    # junto a un trabajador, «Formación» no tapa «Entregar carga»
+    trabajador = next(e for e in est.ents.values() if e.dueno == est.yo and e.tipo is not None
+                      and getattr(e.tipo, "trabajador", False))
+    juego.seleccionar(creada["inf"] + [trabajador.id])
+    cuadros(app)
+    assert juego.botones[6].clave == "regresar"
+    assert any(b is not None and b.clave == "menu_formacion" and b.atajo == "F" for b in juego.botones)
     # el soldado sin agua: su marca a la vista de los dos bandos y su ficha
     sediento = creada["inf"][0]
     hasta(app, lambda: est.ents[sediento].fl & I.F_DESHIDRATADA, 5)

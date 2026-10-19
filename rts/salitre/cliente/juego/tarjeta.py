@@ -138,9 +138,13 @@ def tarjeta(est, seleccion, submenu=None):
             slots[9] = Boton("menu_avanzado", "Construcción avanzada", "V", ("orden", "avanzado"), "menu",
                              "avanzado", descripcion="Barracón, caballeriza, telégrafos, parque, Estado Mayor, muelle.")
         if cat.formaciones and any(t.forma_filas for t in tipos.values()):
-            slots[6] = Boton("menu_formacion", "Formación", "F", ("orden", "formacion"), "menu", "formacion",
-                             descripcion="Línea, guerrilla o cuadro: cómo forma la infantería de fusil para "
-                                         "marchar y combatir.")
+            formacion = Boton("menu_formacion", "Formación", "F", ("orden", "formacion"), "menu", "formacion",
+                              descripcion="Línea, guerrilla o cuadro: cómo forma la infantería de fusil para "
+                                          "marchar y combatir.")
+            if trabajadores:
+                _poner(slots, 10, formacion)     # junto a los trabajadores, el lugar 6 es «Entregar carga»
+            else:
+                slots[6] = formacion
         if not trabajadores and any(t.biologica and t.capa == 0 for t in tipos.values()):
             hospital = any(terminados.get(h) for h in cat.hospitales)
             slots[7] = Boton("replegar", "Replegar heridos", "J", ("orden", "replegar"), "orden", {"c": "replegar"},
