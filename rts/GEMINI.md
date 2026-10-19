@@ -23,8 +23,8 @@ Todas las rutas son relativas a `rts/`, salvo que se indique otra cosa.
 | **Dónde está** | Todo el juego vive en `rts/`. La raíz del repositorio guarda además **otro proyecto sin relación**: un *shooter* en JavaScript, el «Motor Atenea» (`index.html`, `src/`, `content/`, `tools/`, y los `tests/` y `docs/` de la raíz). Esta guía no lo cubre. |
 | **Tamaño** | Unas 21 200 líneas en `salitre/`: cliente 10 800, simulación 5 600, servidor 1 900, contenido 1 200, IA 1 000, red 580. Además, 2 500 líneas de pruebas y 2 000 de herramientas. |
 | **Cómo se arranca** | `python -m salitre` abre el juego (opciones: `--conectar HOST[:PUERTO]`, `--nombre`, `--version`). `python -m salitre --servidor` arranca el servidor dedicado, con las opciones `--host 0.0.0.0 --puerto 47800 --nombre … --sin-invitados --sin-lan --bd ruta --detallado`; con `--local --padre PID` es el servidor privado del cliente 3D. |
-| **Cliente 3D** | `rts/godot/`: un segundo cliente en **Godot 4.7** (GDScript, unas 6 000 líneas), en construcción por fases (§10.1). Usa el mismo servidor, protocolo y datos; se abre con `godot --path godot`. |
-| **Pruebas** | `SDL_VIDEODRIVER=dummy SDL_AUDIODRIVER=dummy python -m pytest -q` corre 83 pruebas en unos 2,7 minutos (3 de ellas necesitan Godot y se omiten sin `SALITRE_GODOT`). La revisión estática es `python -m pyflakes salitre herramientas instalador docker tests`. |
+| **Cliente 3D** | `rts/godot/`: un segundo cliente en **Godot 4.7** (GDScript, unas 7 000 líneas), en construcción por fases (§10.1). Usa el mismo servidor, protocolo y datos; se abre con `godot --path godot`. |
+| **Pruebas** | `SDL_VIDEODRIVER=dummy SDL_AUDIODRIVER=dummy python -m pytest -q` corre 84 pruebas en unos 2,7 minutos (4 de ellas necesitan Godot y se omiten sin `SALITRE_GODOT`). La revisión estática es `python -m pyflakes salitre herramientas instalador docker tests`. |
 | **Integración continua** | `.github/workflows/rts.yml`, en la raíz del repositorio: pruebas en Linux, Windows y macOS; instalador de Windows (PyInstaller + Inno Setup); `.app` y `.dmg` universal2; versión portátil para Linux; imagen Docker del servidor. |
 | **Idioma** | Todo en **español**: identificadores, datos, textos, comentarios, documentación y mensajes de commit. Los identificadores van sin tildes ni eñe: `dueno`, `danio`, `tamano`, `campana` (= campaña). |
 
@@ -975,7 +975,7 @@ Ver §14.
 
 ### 10.1 Cliente 3D (`rts/godot`)
 
-Proyecto de Godot 4.7 en GDScript que reemplaza solo la parte gráfica. Fases: 1) cabeza de puente: red, diorama, tropas, selección, órdenes, tarjeta, obras y escaramuza (**hecha**); 2) modelos más ricos, animaciones, efectos, niebla y minimapa; 3) toda la tarjeta, menús, campaña, multijugador, archivo y sonido; 4) ejecutables con el servidor adentro. El cliente de pygame sigue siendo el oficial hasta la paridad: **todo cambio de reglas va en Python**, y el cliente 3D solo lo dibuja.
+Proyecto de Godot 4.7 en GDScript que reemplaza solo la parte gráfica. Fases: 1) cabeza de puente: red, diorama, tropas, selección, órdenes, tarjeta, obras y escaramuza (**hecha**); 2) figuras agrupadas y animadas, guarnición a la vista, marcas de estado, efectos, niebla suave y minimapa (**hecha**); 3) toda la interfaz: menús, campaña, multijugador, archivo y sonido; 4) ejecutables con el servidor adentro. El cliente de pygame sigue siendo el oficial hasta la paridad: **todo cambio de reglas va en Python**, y el cliente 3D solo lo dibuja.
 
 **Arranque.** `Juego` (autocarga, `codigo/juego.gd`) carga `datos/catalogo.json`, las fuentes de `rts/recursos/fuentes/` y el tema. `escenas/menu.tscn` arma el diorama de fondo y la escaramuza; al comenzar, `ServidorLocal.iniciar` lanza el servidor privado (`SALITRE_SERVIDOR` o el `ServidorSalitre` empaquetado; si no, `python -m salitre` con `PYTHONPATH=rts/` y el intérprete de `SALITRE_PYTHON`, `python3`/`python` o, en Windows, `python`/`py -3`), reintenta la conexión, saluda (`hola` con la huella del catálogo), pide `partida_rapida` (o `ver_repeticion`) y con `inicio` pasa a `escenas/batalla.tscn`. Argumentos (después de `--`): `--prueba-humo`, `--mapa=`, `--repeticion=`, `--captura=`, `--captura-en=`.
 
@@ -985,9 +985,10 @@ Proyecto de Godot 4.7 en GDScript que reemplaza solo la parte gráfica. Fases: 1
 
 **Piezas**
 - `Terreno`: alturas por esquina (rampas alisadas, lomas de roca, quebradas hundidas, mar bajo `NIVEL_AGUA`), paredes entre casillas desparejas, base y marco del diorama, decorados con `MultiMesh`, `altura_en(x, z)` e `interseccion(origen, dir)` (el rayo del ratón).
-- `Modelos`: `Constructor` arma mallas con caras planas y color en los vértices; `unidad()`, `edificio()`, `andamio()`, `salitre()`, `pozo()`, `convoy()`, `caido()`… en caché por forma, nación y color. Un solo `ShaderMaterial` (`modelo.gdshader`) para todos. `escala(tipo)` agranda la tropa (×1,45) dentro del radio de la simulación.
-- `Tropas`: una `MeshInstance3D` por entidad; la vuelve a vestir cuando cambia `_clave(e)` (tipo, dueño, obra, camilla, lo que queda de un yacimiento); el paso de la marcha, el retroceso del disparo, el anillo de selección, `radio()`, `alto()` y `punto()`.
-- `Efectos`: pólvora negra, granadas en vuelo, explosiones, polvo, bajas, sangre, marcas de las órdenes y letreros; a lo sumo 900 vivos.
+- `Modelos`: `Constructor` arma mallas con caras planas, color en los vértices y, en `CUSTOM0`, la parte animada y su pivote (`animar(P_..., pivote)`; constantes `P_PIERNA_I` … `P_SABLE`, las mismas que usa `modelo.gdshader`); `_copiar` lleva los pivotes al lugar nuevo. `unidad()` (con `extra` «herido» o «sin_peana»), `edificio()`, `andamio()`, `salitre()`, `pozo()`, `convoy()`, `caido()`, `anillo_seleccion(color, figura)`, `marca_formacion()`, `galones()`, `gota()` y `puestos_guarnicion(forma)`, en caché por forma, nación y color. Un solo `ShaderMaterial` (`modelo.gdshader`) para todos. `escala(tipo)` agranda la tropa (×1,45) dentro del radio de la simulación.
+- `Tropas`: las tropas y los convoyes, en grupos de `MultiMesh` (`Grupo`: uno por malla, se vuelve a llenar en cada cuadro con 20 números por figura: transformación, color blanco y `INSTANCE_CUSTOM` = fase de la marcha, paso, acción, resaltado); las obras, yacimientos, minas y heridos, como nodos sueltos que se vuelven a vestir cuando cambia `_clave(e)`; la guarnición en sus puestos, los anillos según la formación, las marcas de la infantería formada, los galones y la gota; `radio()`, `alto()` y `punto()`.
+- `Efectos`: pólvora negra (nubes de bordes suaves que miran a la cámara), granadas en vuelo, explosiones, piques en el agua, polvo, bajas que caen, sangre, marcas de las órdenes, letreros y los de ambiente (chimeneas, obras dañadas, polvo de la marcha, estelas, remolinos), llevados por el viento; a lo sumo 900 vivos.
+- `Minimapa` (`ui/minimapa.gd`): terreno, niebla, obras, tropas, la vista de la cámara y los avisos; señales `centrar` y `orden`.
 - `CamaraRTS`: deslizar, acercar (más cerca, más rasante), girar (Ctrl+rueda, Ctrl+flechas; Inicio vuelve al norte), `rayo(pantalla)` y `a_pantalla(punto)`.
 - `Hud` (`CanvasLayer`): franja superior, parte de la selección, tarjeta de 4×3 con su ayuda, avisos, lienzo (barras de vida, recuadro, punto de reunión) y carteles (fin, menú).
 
@@ -1075,7 +1076,7 @@ python -m pyflakes salitre herramientas instalador docker tests
 python -m pytest -q tests/test_simulacion.py -k camilleros   # una parte
 ```
 
-**Las 83 pruebas, por archivo**
+**Las 84 pruebas, por archivo**
 
 | Archivo | Qué cubre |
 |---|---|
@@ -1084,7 +1085,7 @@ python -m pytest -q tests/test_simulacion.py -k camilleros   # una parte
 | `test_red.py` | Protocolo, huella, cuentas, partida de dos jugadores por TCP con ELO, escaramuza y reconexión, veteranos de la campaña y serie de campaña en red. |
 | `test_cliente.py` | Todas las pantallas, escaramuza, ambulancia en el cliente, formaciones, sed, carreta y viento en el cliente, volumen, casas fuertes, campaña, multijugador completo, clics con la ventana agrandada (eventos nativos de SDL), uniformes, voces, cámara por el borde. |
 | `test_empaquetado.py` | Ícono de macOS. |
-| `test_godot.py` | Cliente 3D: el catálogo de Godot al día y en el orden de la red, el servidor privado que se cierra con el juego; con `SALITRE_GODOT`, las 211 comprobaciones de `godot/pruebas/correr.gd`, la niebla de Godot comparada casilla por casilla con `sim/vision.py`, y la prueba de humo de punta a punta (menú, servidor privado, escaramuza, marcha, formar y cancelar, depósito en obra). |
+| `test_godot.py` | Cliente 3D: el catálogo de Godot al día y en el orden de la red, el servidor privado que se cierra con el juego; con `SALITRE_GODOT`, las 241 comprobaciones de `godot/pruebas/correr.gd`, la niebla de Godot comparada casilla por casilla con `sim/vision.py`, una batalla IA contra IA (`herramientas/duelo_ia.py`) vista como espectador sin errores de guion, y la prueba de humo de punta a punta (menú, servidor privado, escaramuza, marcha, minimapa, formar y cancelar, depósito en obra). |
 
 **Ayudas para escribir pruebas** (`tests/utilidades.py`)
 - `cat()` carga el catálogo.
@@ -1167,6 +1168,8 @@ Un error de sintaxis o de tipos de GDScript aparece recién al cargar el guion (
 21. **El JSON llega a GDScript con todos los números como `float`.** Convierta con `int()` los ids, los índices de tipo y las banderas antes de compararlos o de usarlos como claves.
 22. **Los radios de la niebla se redondean como en Python** (los empates van al par): `Vision.redondear_par` en el cliente 3D. Con el `round()` de GDScript, un radio de 3,25 marcaría un círculo distinto del del servidor.
 23. **No use `class_name` en el cliente 3D.** Los guiones se cargan con `preload` en constantes, así el proyecto corre sin pasar por el editor (la CI solo hace `--import`).
+24. **`MultiMesh` con datos propios necesita también el color de la instancia.** En el dibujo de compatibilidad (OpenGL), `use_custom_data` sin `use_colors` pisa el color de los vértices (las figuras salen verdes). `Tropas.Grupo` activa los dos y manda el color en blanco: el búfer lleva 12 + 4 + 4 números por figura.
+25. **Sin pantalla (`--headless`) el servidor de dibujo no guarda nada:** `MultiMesh.get_instance_transform` y compañía devuelven ceros. Las pruebas leen lo que se subió (`Grupo.ultimo`).
 
 ---
 
@@ -1213,7 +1216,7 @@ Ordenadas por valor estimado. Cada una indica dónde atacar.
    - Límite de héroes simultáneos.
 8. **Eventos que el cliente no muestra.** La simulación emite `mina`, `golpe`, `embarca`, `desembarca` y `fin`, que `Juego._evento` no atiende. Puede ser intencional; revise antes de agregar efectos.
 9. **Formaciones a la vista.** Hoy la formación solo se lee en la ficha (y en el submenú). Dibujarla sobre el terreno (las filas de la línea, el cuadro) ayudaría a leer la batalla; lo mismo la cobertura y la sombra, que el cliente tendría que calcular (§13, trampa 16). Archivos: `cliente/juego/vista.py` y `cliente/graficos/`.
-10. **Cliente 3D, fases 2 a 4** (§10.1). Para la fase 2: dibujar todas las figuras de un mismo modelo con `MultiMesh` (hoy cada entidad es un nodo; con dibujo por software se cae a 3 cuadros por segundo con 180 figuras), animaciones de marcha y de fuego, la guarnición a la vista, la formación sobre el terreno, el minimapa y la niebla con bordes más suaves.
+10. **Cliente 3D, fases 3 y 4** (§10.1): toda la interfaz (menús, campaña, multijugador, archivo, opciones y sonido) y los ejecutables con el servidor adentro. Rendimiento: con dibujo por software (llvmpipe) la batalla anda a 3 cuadros por segundo con 180 figuras aunque las figuras ya van agrupadas: lo que pesa es la sombra del sol (mapa de 4096×4096) y el sombreador del terreno a 1280×720; con tarjeta de video no pesa. Una opción de calidad (sombras, desenfoque de la niebla, texturas del suelo) ayudaría en equipos modestos.
 11. **Dispersión de los cañones navales y de la Gatling.** Solo los cañones de montaña y de campaña tienen `cep`. Los buques podrían dispersar con el balanceo: como sus cañones tienen `proyectil`, basta con agregarles `cep`. La Gatling dispara al instante (metralla, sin `proyectil`): solo con `cep`, el catálogo no carga; habría que darle `proyectil`, que cambia su fuego, o dispersar los tiros instantáneos en `combate.disparar`.
 
 ---

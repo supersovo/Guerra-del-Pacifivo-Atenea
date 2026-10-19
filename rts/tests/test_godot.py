@@ -155,6 +155,21 @@ def test_niebla_de_godot_igual_a_la_del_servidor(importado, tmp_path):
 
 
 @con_godot
+def test_repeticion_de_una_batalla_sin_errores(importado, tmp_path):
+    """Una batalla IA contra IA (fuego, granadas, bajas, heridos, obras) vista en el cliente 3D
+    como espectador, a toda velocidad, sin un solo error de guion."""
+    import duelo_ia
+    duelo_ia.duelo("quebrada_de_tarapaca", minutos=6, dificultad="dificil", nombre="prueba",
+                   carpeta=tmp_path / "repeticiones")
+    r = _godot(["--", "--repeticion=prueba", f"--captura={tmp_path / 'x.png'}", "--captura-en=200"],
+               {"SALITRE_PYTHON": sys.executable, "SALITRE_DATOS_USUARIO": str(tmp_path)}, timeout=300)
+    salida = r.stdout + r.stderr
+    assert "SCRIPT ERROR" not in salida, salida[-6000:]
+    assert r.returncode == 0, salida[-6000:]
+    assert salida.count("Repetición: minuto") >= 3, salida[-6000:]
+
+
+@con_godot
 def test_prueba_de_humo_del_cliente_de_godot(importado, tmp_path):
     """Menú, servidor privado, partida rápida contra la IA, órdenes, formar, cancelar y construir."""
     r = _godot(["--", "--prueba-humo", "--mapa=pampa_del_tamarugal"],
@@ -162,7 +177,8 @@ def test_prueba_de_humo_del_cliente_de_godot(importado, tmp_path):
     salida = r.stdout + r.stderr
     assert "PRUEBA_HUMO: OK" in salida, salida[-6000:]
     assert r.returncode == 0, salida[-6000:]
-    for paso in ("trabajadores marcharon", "el cuartel forma un trabajador", "formación cancelada", "la obra comenzó"):
+    for paso in ("trabajadores marcharon", "el minimapa lleva la cámara", "el cuartel forma un trabajador",
+                 "formación cancelada", "la obra comenzó"):
         assert paso in salida, paso
     # al salir del juego no queda el servidor privado corriendo
     assert "servidor privado en el puerto" in salida

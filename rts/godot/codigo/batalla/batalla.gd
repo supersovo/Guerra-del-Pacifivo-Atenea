@@ -54,6 +54,9 @@ var casillas_obra: MeshInstance3D
 var _mat_casillas: StandardMaterial3D
 var _prueba := {"fase": "esperar", "t": 0.0}
 var velocidad_rep := 1.0
+var _t_ambiente := 0.0
+var _t_remolino := 6.0
+var _ultima_venta := {}           # id del cuartel -> momento del último $ (uno cada tanto)
 var _combate: Array = []          # [punto, momento] de los disparos y explosiones recientes
 var _demo := {"fase": "", "t": 0.0}
 
@@ -79,6 +82,17 @@ func _ready() -> void:
 	add_child(hud)
 	hud.boton_pulsado.connect(func(i: int) -> void: activar_boton(i, Input.is_key_pressed(KEY_SHIFT)))
 	hud.menu_pedido.connect(abrir_menu)
+	hud.minimapa.preparar(est, cat.colores_terreno)
+	hud.minimapa.centrar.connect(func(p: Vector3) -> void:
+		if modo != null and modo[0] == "objetivo":
+			_orden_objetivo(p, null, Input.is_key_pressed(KEY_SHIFT))
+			if not Input.is_key_pressed(KEY_SHIFT):
+				modo = null
+		else:
+			camara.centrar(p))
+	hud.minimapa.orden.connect(func(p: Vector3) -> void:
+		modo = null
+		orden_derecha(p, null, Input.is_key_pressed(KEY_SHIFT)))
 	_preparar_obra()
 	hud.mensaje("Mapa: %s" % mapa.get("nombre", ""), Tema.BRONCE_CLARO)
 	if est.espectador:
@@ -130,6 +144,8 @@ func _process(delta: float) -> void:
 	est.interpolar()
 	if est.actualizar_vision():
 		ter.actualizar_niebla(est.vis, est.explorado)
+		hud.minimapa.actualizar_niebla()
+	ter.avanzar_niebla(delta)
 	if not centrado and not est.ents.is_empty():
 		_centrar_inicio()
 	for ev in est.tomar_eventos():
@@ -152,7 +168,10 @@ func _process(delta: float) -> void:
 	var conjunto := {}
 	for i in seleccion:
 		conjunto[i] = true
-	tropas.actualizar(delta, conjunto)
+	_resaltar()
+	tropas.actualizar(delta, conjunto, camara.giro)
+	_ambiente(delta)
+	_vista_en_el_minimapa(conjunto)
 	_actualizar_obra()
 	hud.actualizar(est, seleccion, slots, modo)
 	if Juego.prueba_humo:
@@ -198,6 +217,95 @@ func _centrar_inicio() -> void:
 			centrado = true
 			camara.centrar(Vector3(float(e.ex["d"][0]) / 32.0, 0, float(e.ex["d"][1]) / 32.0), true)
 			return
+
+
+## Efectos de ambiente cerca de lo que mira la cámara: humo de las chimeneas y de las obras
+## dañadas, polvo de los jinetes y los carros, estela de los buques, vapor del tren y algún
+## remolino de polvo en la pampa.
+func _ambiente(delta: float) -> void:
+	var fuerza := float(est.viento[1]) / 100.0
+	var rumbo := float(est.viento[0]) * TAU / 16.0
+	efx.viento = Vector3(cos(rumbo), 0, sin(rumbo)) * fuerza * 0.5
+	_t_ambiente += delta
+	if _t_ambiente < 0.25:
+		return
+	_t_ambiente = 0.0
+	var foco: Vector3 = camara.objetivo
+	var polvos := 0
+	for e in est.ents.values():
+		if e.fantasma:
+			continue
+		var p: Vector3 = tropas.punto(e)
+		if Vector2(p.x - foco.x, p.z - foco.z).length() > 26.0:
+			continue
+		if e.t == cat.especiales["convoy"]:
+			if e.x0 != e.x1 or e.y0 != e.y1:
+				var a: Dictionary = tropas.anim.get(e.id, {})
+				var adelante := Vector3(cos(a.get("rumbo", 0.0)), 0, -sin(a.get("rumbo", 0.0)))
+				if typeof(e.ex) == TYPE_DICTIONARY and e.ex.get("m") == "tren":
+					efx.humo_chimenea(p + adelante * 0.72 + Vector3(0, 0.78, 0), true)
+				else:
+					efx.polvo_marcha(p - adelante * 0.4)
+			continue
+		if e.tipo == null:
+			continue
+		if e.es_edificio():
+			if e.fl & cat.bandera("OBRA"):
+				continue
+			if e.tipo.get("forma", "") == "maestranza":
+				efx.humo_chimenea(p + Vector3(0.75, 2.05, -0.65))
+			var f := float(e.vida) / maxf(1.0, float(e.tipo["vida"]))
+			if f < 0.5 and randf() < 0.7:
+				var hw := float(e.tipo["ancho"]) / 3.0
+				var hh := float(e.tipo["alto"]) / 3.0
+				efx.humo_dano(p + Vector3(randf_range(-hw, hw), 0.8, randf_range(-hh, hh)), f < 0.25)
+		elif e.es_unidad() and e.fl & cat.bandera("MOVIENDO"):
+			var a: Dictionary = tropas.anim.get(e.id, {})
+			var atras := -Vector3(cos(a.get("rumbo", 0.0)), 0, -sin(a.get("rumbo", 0.0)))
+			if int(e.tipo["capa"]) == 1:
+				efx.estela(Vector3(p.x, Terreno.NIVEL_AGUA + 0.01, p.z) + atras * 0.9)
+			elif polvos < 12 and e.tipo["forma"] in ["jinete_sable", "jinete_carabina", "baqueano", "heroe_montado",
+					"canon_montana", "canon_campana", "gatling", "ambulancia", "carreta_agua"]:
+				efx.polvo_marcha(p + atras * 0.35)
+				polvos += 1
+	# de vez en cuando, un remolino de polvo en la pampa, el salar o la arena a la vista
+	_t_remolino -= 0.25
+	if _t_remolino <= 0.0:
+		_t_remolino = randf_range(9.0, 18.0)
+		for _intento in 6:
+			var p := foco + Vector3(randf_range(-14.0, 14.0), 0, randf_range(-10.0, 10.0))
+			if p.x < 1 or p.z < 1 or p.x > est.w - 1 or p.z > est.h - 1:
+				continue
+			var i: int = est.idx(int(p.x), int(p.z))
+			if est.terreno[i] in [Terreno.ARENA, Terreno.PAMPA, Terreno.SALAR] and est.vis[i]:
+				p.y = ter.altura_en(p.x, p.z)
+				efx.remolino(p)
+				break
+
+
+## Lo que abarca la cámara (las cuatro esquinas del campo a la vista, entre los paneles).
+func _vista_en_el_minimapa(conjunto: Dictionary) -> void:
+	var r := get_viewport().get_visible_rect()
+	var esquinas := [Vector2(0, hud.ALTO_SUP), Vector2(r.size.x, hud.ALTO_SUP), Vector2(r.size.x, r.size.y - hud.ALTO_INF),
+			Vector2(0, r.size.y - hud.ALTO_INF)]
+	var vista: Array = []
+	for q in esquinas:
+		var p: Variant = camara.rayo(q)
+		if p == null:
+			return
+		vista.append(p)
+	hud.minimapa.vista = vista
+	hud.minimapa.seleccion = conjunto
+
+
+## La figura bajo el ratón se resalta (si el ratón está sobre el campo y no arrastra).
+func _resaltar() -> void:
+	var pos := get_viewport().get_mouse_position()
+	if arrastre != null or paneo != null or hud.contiene(pos) or hud.hay_cartel():
+		tropas.resaltado = -1
+		return
+	var e = entidad_en(pos)
+	tropas.resaltado = e.id if e != null else -1
 
 
 func _desplazar(delta: float) -> void:
@@ -297,7 +405,11 @@ func _evento(ev: Array) -> void:
 				a.ultimo_disparo = est.reloj()
 		"exp":
 			var p := _px(float(ev[2]), float(ev[3]))
-			efx.explosion(p, maxf(16.0, float(ev[4])) / 32.0 * 1.4, str(ev[5]))
+			var r := maxf(16.0, float(ev[4])) / 32.0 * 1.4
+			if est.terreno[est.idx(int(ev[2]) / 32, int(ev[3]) / 32)] == Terreno.MAR:
+				efx.pique(Vector3(p.x, Terreno.NIVEL_AGUA, p.z), r)
+			else:
+				efx.explosion(p, r, str(ev[5]))
 			_combate.append([p, est.reloj()])
 		"mue":
 			var idx := int(ev[3])
@@ -325,9 +437,14 @@ func _evento(ev: Array) -> void:
 			if int(tipo["capa"]) == 1:
 				efx.explosion(p, 1.2)
 				return
-			var malla: Mesh = Modelos.caido(tipo, cat.uniforme_base(fac), cat.uniforme_propio(fac, tipo["forma"]),
-					est.color(dueno), fac)
-			efx.caido(malla, p, randf() * TAU, tipo["biologica"])
+			# cae donde estaba, con el rumbo que llevaba
+			var a: Dictionary = tropas.anim.get(int(ev[2]), {})
+			var rumbo: float = a.get("rumbo", randf() * TAU)
+			if a.has("pos"):
+				p = a["pos"]
+			var malla: Mesh = Modelos.unidad(tipo, cat.uniforme_base(fac), cat.uniforme_propio(fac, tipo["forma"]),
+					est.color(dueno), fac, "sin_peana")
+			efx.caido(malla, p, rumbo, Modelos.escala(tipo), tipo["biologica"])
 		"herido":
 			var p := _px(float(ev[6]), float(ev[7]))
 			if efx.sangre:
@@ -379,8 +496,10 @@ func _evento(ev: Array) -> void:
 		"venta":
 			# el cuartel general compra el salitre: sale un $ dorado sobre el techo
 			var o = est.ents.get(int(ev[2]))
-			if o != null:
-				efx.letrero(tropas.punto(o) + Vector3(0, 2.0, 0), "$", Color8(240, 206, 90), 96)
+			var ahora: float = est.reloj()
+			if o != null and ahora - float(_ultima_venta.get(o.id, -10.0)) > 0.7:
+				_ultima_venta[o.id] = ahora
+				efx.letrero(tropas.punto(o) + Vector3(0, 2.6, 0), "$", Color8(240, 206, 90), 96)
 		"fin_obra":
 			var t: Variant = cat.tipo(int(ev[3]))
 			if t != null and t.get("desmonta_en"):
@@ -398,6 +517,7 @@ func _evento(ev: Array) -> void:
 			hud.mensaje("Hace falta otro Depósito de Intendencia para mantener más tropa.", NARANJA)
 		"ata":
 			ultimo_aviso = Vector3(float(ev[2]) / 32.0, 0, float(ev[3]) / 32.0)
+			hud.minimapa.aviso(ultimo_aviso, ROJO_AVISO)
 			var txt := "¡Atacan a nuestros trabajadores!" if ev[4] else "¡Nuestras tropas están bajo ataque!"
 			hud.mensaje(txt + " (Espacio para ir)", ROJO_AVISO)
 		"err":
@@ -431,6 +551,7 @@ func _evento(ev: Array) -> void:
 			var pj := int(ev[2])
 			var col: Color = est.color(pj)
 			efx.marca(_px(float(ev[3]), float(ev[4])), col)
+			hud.minimapa.aviso(_px(float(ev[3]), float(ev[4])), col, 5.0)
 			hud.mensaje("%s marcó un punto en el mapa." % est.jugadores[pj]["nombre"], col, 4.0)
 		"derrota":
 			var pj := int(ev[2])
@@ -439,6 +560,7 @@ func _evento(ev: Array) -> void:
 			hud.mensaje("Un pozo se agotó: el molino rendirá muy poca agua.", NARANJA)
 		"sed", "calor":
 			ultimo_aviso = Vector3(float(ev[2]) / 32.0, 0, float(ev[3]) / 32.0)
+			hud.minimapa.aviso(ultimo_aviso, Color8(240, 150, 60))
 			var txt := ("¡La tropa se quedó sin agua! Marcha más lento y tarda el doble en recargar: "
 					+ "llévele una carreta de agua o vuelva a un molino.") if k == "sed" else \
 					"¡Golpe de calor! La tropa sin agua pierde vida al sol de la pampa."
@@ -463,7 +585,7 @@ func _captura_repeticion(delta: float) -> void:
 	_demo["aviso"] = float(_demo.get("aviso", 0.0)) + delta
 	if _demo["aviso"] >= 5.0:
 		_demo["aviso"] = 0.0
-		print("Repetición: minuto %.1f, %d figuras, %.0f cuadros por segundo" % [est.tick / 960.0, tropas.nodos.size(),
+		print("Repetición: minuto %.1f, %d figuras, %.0f cuadros por segundo" % [est.tick / 960.0, tropas.cuantas(),
 				Engine.get_frames_per_second()])
 	match _demo["fase"]:
 		"adelantar":
@@ -1243,6 +1365,13 @@ func _prueba_humo(delta: float) -> void:
 					movidos += 1
 			if movidos > 0 and t > 2.0:
 				print("PRUEBA_HUMO: %d trabajadores marcharon" % movidos)
+				var antes: Vector3 = camara.objetivo
+				hud.minimapa.centrar.emit(Vector3(est.w * 0.5, 0, est.h * 0.5))
+				if camara.objetivo.distance_to(antes) < 1.0:
+					_terminar_prueba(false, "el minimapa no mueve la cámara")
+					return
+				print("PRUEBA_HUMO: el minimapa lleva la cámara; %d figuras en %d grupos" % [tropas.cuantas(),
+						tropas.grupos.size()])
 				var cgs := _propios(func(e) -> bool: return e.es_edificio() and e.tipo["id"] == "cuartel_general")
 				if cgs.is_empty():
 					return

@@ -8,11 +8,12 @@ const Modelos = preload("res://codigo/mundo/modelos.gd")
 const MAX_EFECTOS := 900
 
 var sangre := true
+var viento := Vector3.ZERO       # hacia dónde corre el humo (unidades por segundo)
 var _vivos: Array = []          # [nodo, edad, vida, tipo, datos]
 var _esfera: SphereMesh
 var _cuadro: QuadMesh
 var _mat := {}
-const NUBES := ["humo", "humo_oscuro", "polvo", "fuego", "fogonazo"]
+const NUBES := ["humo", "humo_oscuro", "humo_gris", "polvo", "fuego", "fogonazo", "espuma", "llama"]
 
 
 func _ready() -> void:
@@ -37,6 +38,9 @@ func _ready() -> void:
 	nube.width = 64
 	nube.height = 64
 	_mat["humo"] = _material_nube(nube, Color(0.93, 0.92, 0.89, 0.8), false)
+	_mat["humo_gris"] = _material_nube(nube, Color(0.6, 0.58, 0.56, 0.7), false)
+	_mat["espuma"] = _material_nube(nube, Color(0.9, 0.95, 0.97, 0.85), false)
+	_mat["llama"] = _material_nube(nube, Color(1.0, 0.55, 0.15, 1.0), true)
 	_mat["humo_oscuro"] = _material_nube(nube, Color(0.32, 0.29, 0.26, 0.75), false)
 	_mat["polvo"] = _material_nube(nube, Color(0.77, 0.67, 0.5, 0.7), false)
 	_mat["fuego"] = _material_nube(nube, Color(1.0, 0.72, 0.32, 1.0), true)
@@ -143,14 +147,18 @@ func polvo(pos: Vector3, n := 3) -> void:
 		_agregar(_bola("polvo", p, randf_range(0.08, 0.14)), randf_range(0.8, 1.4), "humo", {"crece": 0.35, "sube": 0.12})
 
 
-## Baja: la figura queda tendida en el campo y se hunde en la tierra al cabo de un rato.
-func caido(malla: Mesh, pos: Vector3, rumbo: float, con_sangre: bool) -> void:
+## Baja: la figura (de pie, sin peana) cae de espaldas, queda tendida en el campo y se
+## hunde en la tierra al cabo de un rato.
+func caido(malla: Mesh, pos: Vector3, rumbo: float, escala: float, con_sangre: bool) -> void:
+	var raiz := Node3D.new()
+	raiz.position = pos
+	raiz.rotation.y = rumbo
+	add_child(raiz)
 	var mi := MeshInstance3D.new()
 	mi.mesh = malla
-	mi.position = pos
-	mi.rotation.y = rumbo
-	add_child(mi)
-	_agregar(mi, 40.0, "caido")
+	mi.scale = Vector3.ONE * escala
+	raiz.add_child(mi)
+	_agregar(raiz, 40.0, "caido", {"figura": mi, "lado": 1.0 if randf() < 0.75 else -1.0})
 	if con_sangre and sangre:
 		mancha_sangre(pos, 0.2)
 
@@ -180,6 +188,64 @@ func letrero(pos: Vector3, texto: String, color: Color, tam := 64) -> void:
 	l.position = pos
 	add_child(l)
 	_agregar(l, 1.6, "letrero")
+
+
+## Humo de una chimenea (la maestranza, la locomotora): sube despacio y se lo lleva el viento.
+func humo_chimenea(pos: Vector3, oscuro := false) -> void:
+	var r := randf_range(0.07, 0.11)
+	_agregar(_bola("humo_gris" if oscuro else "humo", pos + Vector3(randf_range(-0.03, 0.03), 0, randf_range(-0.03, 0.03)), r),
+			randf_range(2.5, 3.5), "humo", {"crece": 0.35, "sube": 0.35, "viento": 1.0})
+
+
+## Humo negro (y llamas, si la obra está muy dañada) de un edificio herido.
+func humo_dano(pos: Vector3, llamas: bool) -> void:
+	_agregar(_bola("humo_oscuro", pos, randf_range(0.12, 0.2)), randf_range(2.4, 3.6), "humo",
+			{"crece": 0.5, "sube": 0.45, "viento": 1.0})
+	if llamas:
+		_agregar(_bola("llama", pos + Vector3(randf_range(-0.15, 0.15), -0.05, randf_range(-0.15, 0.15)), randf_range(0.09, 0.16)),
+				randf_range(0.35, 0.6), "llama")
+
+
+## Polvo que levantan los cascos y las ruedas.
+func polvo_marcha(pos: Vector3) -> void:
+	_agregar(_bola("polvo", pos + Vector3(randf_range(-0.1, 0.1), 0.06, randf_range(-0.1, 0.1)), randf_range(0.06, 0.1)),
+			randf_range(0.9, 1.4), "humo", {"crece": 0.22, "sube": 0.06, "viento": 0.6})
+
+
+## Espuma de la estela de un buque.
+func estela(pos: Vector3) -> void:
+	var m := MeshInstance3D.new()
+	m.mesh = Modelos.mancha(Color(0.92, 0.96, 0.98, 0.6))
+	m.position = pos
+	m.scale = Vector3(0.12, 1, 0.12)
+	m.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	add_child(m)
+	_agregar(m, 2.2, "estela")
+
+
+## Pique de una granada en el agua: una columna de espuma que sube y cae.
+func pique(pos: Vector3, radio: float) -> void:
+	var r := clampf(radio, 0.3, 2.0)
+	for k in 7:
+		var p := pos + Vector3(randf_range(-0.12, 0.12), 0.05, randf_range(-0.12, 0.12)) * r
+		_agregar(_bola("espuma", p, r * randf_range(0.1, 0.16)), randf_range(0.8, 1.3), "chispa",
+				{"vel": Vector3(randf_range(-0.4, 0.4), randf_range(2.2, 3.4), randf_range(-0.4, 0.4)) * r})
+	estela(pos)
+
+
+## Remolino de polvo de la pampa: una columna que gira y anda con el viento.
+func remolino(pos: Vector3) -> void:
+	var raiz := Node3D.new()
+	raiz.position = pos
+	add_child(raiz)
+	for k in 9:
+		var mi := MeshInstance3D.new()
+		mi.mesh = _cuadro
+		mi.material_override = _mat["polvo"]
+		mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		mi.scale = Vector3.ONE * (0.12 + 0.05 * k)
+		raiz.add_child(mi)
+	_agregar(raiz, randf_range(7.0, 11.0), "remolino", {"giro": randf() * TAU})
 
 
 ## Marca de una orden en el suelo: un anillo que se abre y se apaga.
@@ -223,6 +289,7 @@ func _process(delta: float) -> void:
 				nodo.position.y += float(datos.get("sube", 0.1)) * delta
 				if datos.has("deriva"):
 					nodo.position += (datos["deriva"] as Vector3) * delta * (1.0 - f)
+				nodo.position += viento * float(datos.get("viento", 0.5)) * delta
 				(nodo as GeometryInstance3D).transparency = 0.15 + 0.85 * f
 			"vuelo":
 				var a: Vector3 = datos["desde"]
@@ -235,7 +302,16 @@ func _process(delta: float) -> void:
 				vel.y -= 9.0 * delta
 				datos["vel"] = vel
 				nodo.position += vel * delta
+				(nodo as GeometryInstance3D).transparency = f * f
 			"caido":
+				# cae en 0,45 s, con un golpe al dar contra el suelo
+				var cae := clampf(edad / 0.45, 0.0, 1.0)
+				var giro := cae * cae * PI / 2.0
+				if cae >= 1.0:
+					giro = PI / 2.0 - 0.05 * sin(clampf((edad - 0.45) / 0.15, 0.0, 1.0) * PI)
+				var figura: Node3D = datos["figura"]
+				figura.rotation.z = giro * float(datos["lado"])
+				figura.position.y = 0.04 * sin(cae * PI / 2.0)
 				if f > 0.85:
 					nodo.position.y -= delta * 0.08
 			"mancha":
@@ -245,6 +321,28 @@ func _process(delta: float) -> void:
 				var r := 0.15 + 0.45 * (1.0 - f)
 				nodo.scale = Vector3(r, 1, r)
 				(nodo as GeometryInstance3D).transparency = f
+			"llama":
+				var r := (0.6 + 0.4 * sin(edad * 40.0 + nodo.position.x * 9.0)) * (1.0 - f * 0.5)
+				nodo.scale = Vector3(1, 1.5, 1) * 0.13 * r
+				nodo.position.y += delta * 0.25
+				(nodo as GeometryInstance3D).transparency = f * f
+			"estela":
+				var r := 0.12 + 0.35 * f
+				nodo.scale = Vector3(r, 1, r)
+				(nodo as GeometryInstance3D).transparency = 0.3 + 0.7 * f
+			"remolino":
+				# las nubecitas giran alrededor de un eje que sube, y el remolino anda con el viento
+				datos["giro"] = float(datos["giro"]) + delta * 5.0
+				var fuerza := sin(f * PI)
+				var hijos := nodo.get_children()
+				for k in hijos.size():
+					var h: GeometryInstance3D = hijos[k]
+					var a := float(datos["giro"]) + k * 1.7
+					var alto := 0.1 + k * 0.17
+					var rad := 0.08 + k * 0.035
+					h.position = Vector3(cos(a) * rad, alto, sin(a) * rad)
+					h.transparency = 1.0 - fuerza * (0.75 - k * 0.05)
+				nodo.position += (viento * 1.6 + Vector3(sin(edad * 0.7), 0, cos(edad * 0.5)) * 0.15) * delta
 			"letrero":
 				nodo.position.y += delta * 0.5
 				(nodo as Label3D).modulate.a = 1.0 - f * f

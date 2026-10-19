@@ -78,10 +78,14 @@ python -m salitre --servidor      # el servidor dedicado (no necesita pygame)
 **Cliente 3D (en desarrollo).** En `rts/godot/` está el nuevo cliente con
 gráficos 3D hecho con [Godot 4](https://godotengine.org): el campo de batalla es
 un diorama sobre la mesa de guerra, con relieve, luz del sol y sombras, y las
-tropas y las obras modeladas en 3D con los uniformes de cada nación. Usa el
-mismo servidor, la misma simulación, la misma IA y los mismos datos que el
-juego de siempre, que sigue disponible hasta que el nuevo cliente lo iguale.
-Por ahora ofrece la escaramuza contra la IA y ver repeticiones. Para probarlo
+tropas y las obras modeladas en 3D con los uniformes de cada nación. Las tropas
+marchan, apuntan y hacen fuego, los jinetes galopan, las ruedas giran, las
+banderas ondean, las bajas caen; la guarnición se ve en la trinchera y en las
+azoteas, hay minimapa, la niebla de guerra tiene bordes suaves y lo explorado
+queda en sepia, como un mapa viejo. Usa el mismo servidor, la misma
+simulación, la misma IA y los mismos datos que el juego de siempre, que sigue
+disponible hasta que el nuevo cliente lo iguale. Por ahora ofrece la
+escaramuza contra la IA y ver repeticiones. Para probarlo
 desde el código fuente hacen falta Godot 4.7 (o más nuevo) y Python 3.11:
 
 ```sh

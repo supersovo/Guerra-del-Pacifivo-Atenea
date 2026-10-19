@@ -44,6 +44,23 @@ const PIEDRA := Color8(150, 136, 118)
 # infantes de línea, con correaje cruzado y mochila
 const DE_LINEA := ["infante", "colorado", "zapador"]
 
+# Partes animadas: cada vértice lleva en CUSTOM0 (parte, pivote x, y, z) y el sombreador
+# de los modelos las mueve según los datos de la instancia (marcha, disparo).
+const P_FIJA := 0
+const P_PIERNA_I := 1        # pierna izquierda (y su bota)
+const P_PIERNA_D := 2
+const P_BRAZO_ARMA := 3      # brazo derecho con el fusil: apunta al hacer fuego
+const P_PATA_DI := 4         # patas del caballo: delantera izquierda...
+const P_PATA_DD := 5
+const P_PATA_TI := 6
+const P_PATA_TD := 7
+const P_RUEDA := 8           # gira con el camino recorrido
+const P_CANON := 9           # caño de la pieza: retrocede al disparar
+const P_BANDERA := 10        # ondea con el viento
+const P_ASPAS := 11          # aspas del molino: giran siempre
+const P_BRAZO_I := 12        # brazo izquierdo: bracea al marchar
+const P_SABLE := 13          # brazo del sable: tajo al atacar
+
 static var _cache := {}
 static var _material: ShaderMaterial
 static var _material_plano: StandardMaterial3D
@@ -55,7 +72,15 @@ class Constructor:
 	var v := PackedVector3Array()
 	var n := PackedVector3Array()
 	var c := PackedColorArray()
+	var pc := PackedFloat32Array()      # CUSTOM0 de cada vértice: parte y pivote
 	var xf := Transform3D.IDENTITY
+	var parte := 0
+	var pivote := Vector3.ZERO
+
+	## Lo que se agregue de aquí en adelante pertenece a la parte animada p, que gira en torno a piv.
+	func animar(p: int, piv := Vector3.ZERO) -> void:
+		parte = p
+		pivote = piv
 
 	## Polígono convexo (vértices en orden alrededor), orientado hacia afuera de 'dentro'.
 	func cara(pts: Array, col: Color, dentro: Vector3) -> void:
@@ -76,6 +101,7 @@ class Constructor:
 			q.reverse()
 			nn = -nn
 		nn = nn.normalized()
+		var piv: Vector3 = xf * pivote
 		# Godot toma como cara visible la de vértices en sentido horario
 		for k in range(1, q.size() - 1):
 			v.append(q[0])
@@ -84,6 +110,7 @@ class Constructor:
 			for _i in 3:
 				n.append(nn)
 				c.append(col)
+				pc.append_array([parte, piv.x, piv.y, piv.z])
 
 	func caja(centro: Vector3, tam: Vector3, col: Color, col_arriba: Variant = null) -> void:
 		var h := tam / 2.0
@@ -243,9 +270,11 @@ static func _terminar(k: Constructor, mat: Material = null) -> ArrayMesh:
 	arr[Mesh.ARRAY_VERTEX] = k.v
 	arr[Mesh.ARRAY_NORMAL] = k.n
 	arr[Mesh.ARRAY_COLOR] = k.c
+	arr[Mesh.ARRAY_CUSTOM0] = k.pc
 	var m := ArrayMesh.new()
 	if not k.v.is_empty():
-		m.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arr)
+		m.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arr, [], {},
+				Mesh.ARRAY_CUSTOM_RGBA_FLOAT << Mesh.ARRAY_FORMAT_CUSTOM0_SHIFT)
 		m.surface_set_material(0, mat if mat != null else material())
 	return m
 
@@ -319,72 +348,99 @@ static func _a_pie(k: Constructor, r: Dictionary, forma: String, insignia: Varia
 	var casaca: Color = r["casaca"]
 	var pantalon: Color = r["pantalon"]
 	var falda := forma == "cantinera" or forma == "heroina"
-	# piernas, botas o falda
+	# piernas y botas (cada pierna se mueve al marchar), o la falda
 	if falda:
 		k.cilindro(Vector3(0, 0.025, 0), 0.105, 0.25, pantalon, 8, 0.07)
 		k.caja(Vector3(0.012, 0.035, 0), Vector3(0.08, 0.03, 0.09), BOTAS)
 	else:
 		for lado in [-1.0, 1.0]:
+			k.animar(P_PIERNA_I if lado < 0.0 else P_PIERNA_D, Vector3(0, 0.27, 0.042 * lado))
 			k.caja(Vector3(0.0, 0.17, 0.042 * lado), Vector3(0.068, 0.2, 0.062), pantalon)
 			k.caja(Vector3(0.012, 0.05, 0.042 * lado), Vector3(0.09, 0.055, 0.068), BOTAS)
+		k.animar(P_FIJA)
 	# torso, poncho o blusa
 	var poncho := forma == "espia" or forma == "montonero"
 	if poncho:
 		k.cilindro(Vector3(0, 0.24, 0), 0.125, 0.23, casaca, 8, 0.05)
 	else:
 		k.caja(Vector3(0, 0.365, 0), Vector3(0.12, 0.2, 0.155), casaca)
+		k.caja(Vector3(0.061, 0.39, 0), Vector3(0.004, 0.11, 0.012), r["detalle"])       # botonadura
 		k.caja(Vector3(0, 0.28, 0), Vector3(0.126, 0.026, 0.161), r["correaje"] if forma in DE_LINEA else CUERO)
 		if forma in DE_LINEA:
-			# correaje cruzado sobre el pecho y mochila con la manta enrollada
+			# correaje cruzado, mochila con la manta enrollada, cartuchera y cantimplora
 			k.caja(Vector3(0.062, 0.37, 0.0), Vector3(0.006, 0.17, 0.02), r["correaje"])
 			k.caja(Vector3(-0.085, 0.38, 0), Vector3(0.05, 0.13, 0.12), CUERO)
 			k.barra(Vector3(-0.085, 0.46, -0.07), Vector3(-0.085, 0.46, 0.07), 0.028, Color8(120, 110, 96), 6)
+			k.caja(Vector3(-0.066, 0.285, 0.045), Vector3(0.03, 0.045, 0.06), CUERO.darkened(0.2))
+		if forma != "trabajador":
+			k.barra(Vector3(0.0, 0.3, -0.083), Vector3(0.0, 0.3, -0.105), 0.032, Color8(176, 168, 150), 8)
 		if forma == "zapador" or forma == "ingeniero":
 			k.caja(Vector3(0.064, 0.3, 0), Vector3(0.008, 0.16, 0.12), MANDIL if forma == "zapador" else BRIN.darkened(0.1))
 		if r.has("cinta"):
 			k.caja(Vector3(0.0, 0.43, 0), Vector3(0.124, 0.02, 0.159), r["cinta"])
-	# brazos y manos
+	# brazos: el izquierdo bracea al marchar; el derecho lleva el arma y apunta al hacer fuego
+	var quietos := forma in ["camillero", "conductor", "artillero"]
+	var parte_der := P_FIJA
+	if arma:
+		match forma:
+			"heroe_a_pie", "heroina":
+				parte_der = P_FIJA if insignia == "cantinera" else P_SABLE
+			"cantinera", "espia", "torpedista":
+				parte_der = P_FIJA
+			_:
+				parte_der = P_BRAZO_ARMA
 	for lado in [-1.0, 1.0]:
+		if lado < 0.0:
+			k.animar(P_FIJA if quietos else P_BRAZO_I, Vector3(0, 0.45, -0.097))
+		else:
+			k.animar(parte_der, Vector3(0, 0.45, 0.097))
 		k.caja(Vector3(0.0, 0.37, 0.097 * lado), Vector3(0.052, 0.17, 0.048), casaca)
 		k.caja(Vector3(0.012, 0.272, 0.097 * lado), Vector3(0.044, 0.04, 0.044), piel)
+		if lado > 0.0 and arma:
+			_en_la_mano(k, forma, insignia)
+		k.animar(P_FIJA)
 	if forma == "heroe_a_pie" or forma == "heroina":
 		for lado in [-1.0, 1.0]:
 			k.caja(Vector3(0.0, 0.458, 0.085 * lado), Vector3(0.07, 0.018, 0.05), ORO)
 	# cabeza
 	k.esfera(Vector3(0.005, 0.505, 0), Vector3(0.048, 0.054, 0.048), piel)
+	k.caja(Vector3(0.05, 0.5, 0), Vector3(0.012, 0.012, 0.03), piel.darkened(0.1))    # nariz
 	if r.get("barba", false):
 		k.caja(Vector3(0.035, 0.48, 0), Vector3(0.03, 0.04, 0.07), BARBA)
 	_sombrero(k, r, forma, Vector3(0, 0.535, 0))
 	if not arma:
 		return
-	# lo que lleva en las manos
+	# lo que va a la espalda o en la otra mano
+	match forma:
+		"torpedista":
+			_fusil(k, Vector3(-0.02, 0.27, -0.12))
+		"zapador":
+			k.barra(Vector3(-0.11, 0.25, -0.05), Vector3(-0.11, 0.62, -0.05), 0.01, MADERA_FUSIL)
+			k.caja(Vector3(-0.11, 0.65, -0.05), Vector3(0.012, 0.07, 0.05), HIERRO)
+		"cantinera":
+			k.barra(Vector3(-0.03, 0.27, 0.12), Vector3(-0.03, 0.27, 0.17), 0.045, TABLA, 8)
+		"heroe_a_pie", "heroina":
+			if insignia == "cantinera":
+				k.barra(Vector3(-0.03, 0.27, 0.12), Vector3(-0.03, 0.27, 0.17), 0.045, TABLA, 8)
+
+
+## Lo que lleva en la mano derecha (se mueve con el brazo).
+static func _en_la_mano(k: Constructor, forma: String, insignia: Variant) -> void:
 	match forma:
 		"trabajador":
 			k.barra(Vector3(0.03, 0.2, 0.12), Vector3(0.0, 0.62, 0.12), 0.011, MADERA_FUSIL)
 			k.barra(Vector3(-0.04, 0.62, 0.12), Vector3(0.05, 0.6, 0.12), 0.012, HIERRO, 4)
-		"cantinera":
-			k.barra(Vector3(-0.03, 0.27, 0.12), Vector3(-0.03, 0.27, 0.17), 0.045, TABLA, 8)
-		"camillero":
-			pass
-		"espia":
-			pass
+		"cantinera", "espia", "torpedista":
+			if forma == "torpedista":
+				k.barra(Vector3(0.05, 0.3, 0.13), Vector3(0.05, 0.3, 0.2), 0.035, Color8(40, 38, 36), 8)
 		"montonero":
 			k.barra(Vector3(0.04, 0.05, 0.12), Vector3(0.0, 0.95, 0.12), 0.01, MADERA_FUSIL)
 			k.barra(Vector3(0.0, 0.95, 0.12), Vector3(-0.003, 1.03, 0.12), 0.014, ACERO, 4, 0.0)
 		"heroe_a_pie", "heroina":
-			if insignia == "cantinera":
-				k.barra(Vector3(-0.03, 0.27, 0.12), Vector3(-0.03, 0.27, 0.17), 0.045, TABLA, 8)
-			else:
+			if insignia != "cantinera":
 				# sable en alto
 				k.barra(Vector3(0.03, 0.3, 0.12), Vector3(0.22, 0.64, 0.12), 0.007, ACERO, 4)
 				k.caja(Vector3(0.035, 0.31, 0.12), Vector3(0.03, 0.012, 0.04), ORO)
-		"torpedista":
-			k.barra(Vector3(0.05, 0.3, 0.13), Vector3(0.05, 0.3, 0.2), 0.035, Color8(40, 38, 36), 8)
-			_fusil(k, Vector3(-0.02, 0.27, -0.12))
-		"zapador":
-			_fusil(k, Vector3(0.02, 0.27, 0.12))
-			k.barra(Vector3(-0.11, 0.25, -0.05), Vector3(-0.11, 0.62, -0.05), 0.01, MADERA_FUSIL)
-			k.caja(Vector3(-0.11, 0.65, -0.05), Vector3(0.012, 0.07, 0.05), HIERRO)
 		_:
 			_fusil(k, Vector3(0.02, 0.27, 0.12))
 
@@ -432,16 +488,27 @@ static func _sombrero(k: Constructor, r: Dictionary, forma: String, base: Vector
 
 static func _caballo(k: Constructor, col: Color, r: Dictionary) -> void:
 	var crin := col.darkened(0.45)
-	k.caja(Vector3(0, 0.33, 0), Vector3(0.36, 0.15, 0.14), col)
-	k.barra(Vector3(0.13, 0.36, 0), Vector3(0.23, 0.52, 0), 0.052, col, 6, 0.04)
-	k.barra(Vector3(0.22, 0.56, 0), Vector3(0.34, 0.5, 0), 0.036, col, 6, 0.028)
-	k.barra(Vector3(0.17, 0.5, 0), Vector3(0.24, 0.6, 0), 0.02, crin, 4)
+	# cuerpo redondeado: pecho, barril y ancas
+	k.esfera(Vector3(0.0, 0.335, 0), Vector3(0.2, 0.085, 0.075), col, 4, 8)
+	k.esfera(Vector3(0.12, 0.35, 0), Vector3(0.085, 0.085, 0.072), col, 3, 8)
+	k.esfera(Vector3(-0.13, 0.35, 0), Vector3(0.085, 0.09, 0.075), col, 3, 8)
+	# cuello, cabeza, orejas, crin y cola
+	k.barra(Vector3(0.14, 0.38, 0), Vector3(0.23, 0.53, 0), 0.05, col, 6, 0.036)
+	k.barra(Vector3(0.22, 0.56, 0), Vector3(0.345, 0.495, 0), 0.036, col, 6, 0.024)
+	k.caja(Vector3(0.345, 0.49, 0), Vector3(0.022, 0.03, 0.036), col.darkened(0.3))
+	k.barra(Vector3(0.15, 0.45, 0), Vector3(0.235, 0.6, 0), 0.018, crin, 4)
 	for lado in [-1.0, 1.0]:
-		k.barra(Vector3(0.235, 0.58, 0.018 * lado), Vector3(0.225, 0.63, 0.02 * lado), 0.012, col, 4, 0.0)
-		for x in [0.13, -0.13]:
-			k.barra(Vector3(x, 0.28, 0.045 * lado), Vector3(x + 0.01, 0.05, 0.045 * lado), 0.022, col, 5)
-			k.caja(Vector3(x + 0.012, 0.03, 0.045 * lado), Vector3(0.04, 0.035, 0.035), BOTAS)
-	k.barra(Vector3(-0.18, 0.37, 0), Vector3(-0.25, 0.2, 0), 0.022, crin, 5, 0.01)
+		k.barra(Vector3(0.235, 0.58, 0.018 * lado), Vector3(0.225, 0.635, 0.022 * lado), 0.012, col, 4, 0.0)
+	k.barra(Vector3(-0.2, 0.39, 0), Vector3(-0.26, 0.2, 0), 0.024, crin, 5, 0.01)
+	# patas: cada una se mueve al trote o al galope
+	for pata in [[0.13, -1.0, P_PATA_DI], [0.13, 1.0, P_PATA_DD], [-0.13, -1.0, P_PATA_TI], [-0.13, 1.0, P_PATA_TD]]:
+		var x: float = pata[0]
+		var z: float = 0.045 * float(pata[1])
+		k.animar(int(pata[2]), Vector3(x, 0.3, z))
+		k.barra(Vector3(x, 0.31, z), Vector3(x + 0.008, 0.16, z), 0.026, col, 5, 0.019)
+		k.barra(Vector3(x + 0.008, 0.16, z), Vector3(x + 0.012, 0.045, z), 0.016, col, 5)
+		k.caja(Vector3(x + 0.016, 0.025, z), Vector3(0.04, 0.035, 0.034), BOTAS)
+		k.animar(P_FIJA)
 	if r.has("chabraque"):
 		k.caja(Vector3(-0.01, 0.41, 0), Vector3(0.16, 0.022, 0.17), r["chabraque"])
 		k.caja(Vector3(-0.01, 0.4, 0), Vector3(0.165, 0.012, 0.175), r.get("galon", r["detalle"]))
@@ -464,8 +531,16 @@ static func _jinete(k: Constructor, r: Dictionary, forma: String, insignia: Vari
 		if r.has("alamares"):
 			for j in 3:
 				k.caja(Vector3(0.05, 0.5 + j * 0.04, 0), Vector3(0.006, 0.012, 0.1), r["alamares"])
+	var sable: bool = forma == "jinete_sable" or (forma == "heroe_montado" and insignia != "artillero")
 	for lado in [-1.0, 1.0]:
+		if lado > 0.0 and sable:
+			k.animar(P_SABLE, Vector3(0.0, 0.6, 0.09))
 		k.caja(Vector3(0.0, 0.53, 0.09 * lado), Vector3(0.048, 0.16, 0.045), casaca)
+		if lado > 0.0 and sable:
+			# sable en alto: da el tajo al atacar
+			k.barra(Vector3(0.04, 0.47, 0.1), Vector3(0.22, 0.8, 0.12), 0.007, ACERO, 4)
+			k.caja(Vector3(0.045, 0.48, 0.1), Vector3(0.03, 0.012, 0.04), ORO)
+		k.animar(P_FIJA)
 	if forma == "heroe_montado":
 		for lado in [-1.0, 1.0]:
 			k.caja(Vector3(-0.01, 0.62, 0.08 * lado), Vector3(0.07, 0.018, 0.05), ORO)
@@ -474,11 +549,7 @@ static func _jinete(k: Constructor, r: Dictionary, forma: String, insignia: Vari
 		_sombrero(k, r, "infante_oficial", Vector3(0, 0.7, 0))
 	else:
 		_sombrero(k, r, forma, Vector3(0, 0.7, 0))
-	if forma == "jinete_sable" or (forma == "heroe_montado" and insignia != "artillero"):
-		# sable en alto
-		k.barra(Vector3(0.04, 0.47, 0.1), Vector3(0.22, 0.8, 0.12), 0.007, ACERO, 4)
-		k.caja(Vector3(0.045, 0.48, 0.1), Vector3(0.03, 0.012, 0.04), ORO)
-	elif forma == "jinete_carabina":
+	if forma == "jinete_carabina":
 		k.barra(Vector3(-0.08, 0.45, -0.08), Vector3(0.05, 0.7, -0.08), 0.011, MADERA_FUSIL, 4)
 	elif forma == "baqueano":
 		k.barra(Vector3(0.05, 0.3, 0.1), Vector3(0.0, 1.0, 0.1), 0.009, MADERA_FUSIL)
@@ -488,9 +559,20 @@ static func _jinete(k: Constructor, r: Dictionary, forma: String, insignia: Vari
 # ----------------------------------------------------------------------
 # Artillería, carros y camillas
 
+## Rueda de rayos (parte animada: gira con el camino recorrido).
 static func _rueda(k: Constructor, centro: Vector3, radio: float, ancho: float, col: Color) -> void:
-	k.barra(centro - Vector3(0, 0, ancho / 2), centro + Vector3(0, 0, ancho / 2), radio, col, 10)
-	k.barra(centro - Vector3(0, 0, ancho / 2 + 0.008), centro + Vector3(0, 0, ancho / 2 + 0.008), radio * 0.3, col.darkened(0.3), 6)
+	var antes := k.parte
+	var piv_antes := k.pivote
+	k.animar(P_RUEDA, centro)
+	k.barra(centro - Vector3(0, 0, ancho / 2), centro + Vector3(0, 0, ancho / 2), radio, col.darkened(0.25), 12)
+	k.barra(centro - Vector3(0, 0, ancho / 2 + 0.008), centro + Vector3(0, 0, ancho / 2 + 0.008), radio * 0.28, col.darkened(0.4), 6)
+	for cara in [-1.0, 1.0]:
+		var c := Vector3(centro.x, centro.y, centro.z + cara * (ancho / 2 + 0.004))
+		for j in 3:
+			var a := PI * j / 3.0
+			var d := Vector3(cos(a), sin(a), 0) * radio * 0.92
+			k.barra(c - d, c + d, 0.008, col.lightened(0.15), 4)
+	k.animar(antes, piv_antes)
 
 
 static func _pieza(k: Constructor, r: Dictionary, forma: String) -> void:
@@ -502,6 +584,7 @@ static func _pieza(k: Constructor, r: Dictionary, forma: String) -> void:
 	k.barra(Vector3(-0.05, 0.16, 0), Vector3(-0.42, 0.03, 0), 0.032, madera, 5)
 	if forma == "gatling":
 		var eje_y := 0.27
+		k.animar(P_CANON, Vector3(-0.06, eje_y, 0))
 		for j in 6:
 			var a := TAU * j / 6
 			var off := Vector3(0, sin(a) * 0.028, cos(a) * 0.028)
@@ -510,12 +593,15 @@ static func _pieza(k: Constructor, r: Dictionary, forma: String) -> void:
 		k.barra(Vector3(0.22, eje_y, 0), Vector3(0.24, eje_y, 0), 0.042, BRONCE, 8)
 		k.caja(Vector3(-0.05, eje_y, 0.07), Vector3(0.03, 0.03, 0.03), HIERRO)
 		k.cilindro(Vector3(-0.02, eje_y + 0.045, 0), 0.02, 0.06, BRONCE, 6)
+		k.animar(P_FIJA)
 	else:
 		var largo := 0.4 if forma == "canon_campana" else 0.3
 		var col: Color = HIERRO if forma == "canon_campana" else BRONCE
+		k.animar(P_CANON, Vector3(-0.1, 0.22, 0))
 		k.barra(Vector3(-0.1, 0.22, 0), Vector3(-0.1 + largo, 0.22, 0), 0.048, col, 8, 0.034)
 		k.barra(Vector3(-0.12, 0.22, 0), Vector3(-0.1, 0.22, 0), 0.03, col.darkened(0.2), 6)
 		k.barra(Vector3(-0.1 + largo - 0.02, 0.22, 0), Vector3(-0.1 + largo + 0.005, 0.22, 0), 0.04, col.lightened(0.1), 8)
+		k.animar(P_FIJA)
 	# un sirviente de la pieza, con el escobillón
 	var sirviente := Constructor.new()
 	_a_pie(sirviente, r, "artillero", null, false)
@@ -525,13 +611,16 @@ static func _pieza(k: Constructor, r: Dictionary, forma: String) -> void:
 	k.recto()
 
 
-## Agrega a k las caras ya armadas de otro constructor (con la transformación actual de k).
+## Agrega a k las caras ya armadas de otro constructor (con la transformación actual de k);
+## las partes animadas conservan su parte y su pivote, llevado al lugar nuevo.
 static func _copiar(k: Constructor, otro: Constructor) -> void:
 	var b := k.xf.basis
 	for i in otro.v.size():
 		k.v.append(k.xf * otro.v[i])
 		k.n.append((b * otro.n[i]).normalized())
 		k.c.append(otro.c[i])
+		var piv: Vector3 = k.xf * Vector3(otro.pc[i * 4 + 1], otro.pc[i * 4 + 2], otro.pc[i * 4 + 3])
+		k.pc.append_array([otro.pc[i * 4], piv.x, piv.y, piv.z])
 
 
 static func _carro(k: Constructor, r: Dictionary, forma: String) -> void:
@@ -665,9 +754,11 @@ static func _buque(k: Constructor, forma: String, color: Color, insignia: Varian
 	# pabellón del jugador en la popa
 	var popa := -1.0 if forma != "corbeta" else -1.05
 	k.barra(Vector3(popa, 0.12, 0), Vector3(popa, 0.55, 0), 0.008, Color8(80, 60, 44), 4)
+	k.animar(P_BANDERA, Vector3(popa, 0.5, 0))
 	k.caja(Vector3(popa - 0.09, 0.5, 0), Vector3(0.17, 0.11, 0.008), color)
 	if insignia == "heroe":
 		k.caja(Vector3(popa - 0.09, 0.5, 0.006), Vector3(0.05, 0.05, 0.004), ORO)
+	k.animar(P_FIJA)
 
 
 # ----------------------------------------------------------------------
@@ -679,6 +770,7 @@ static func unidad(tipo: Dictionary, base: Dictionary, propio: Dictionary, color
 	var forma: String = tipo.get("forma", "infante")
 	var insignia: Variant = tipo.get("insignia")
 	var clave := "u|%s|%s|%s|%s|%s" % [forma, faccion, color.to_html(false), str(insignia), extra]
+	var peana := not "sin_peana" in extra
 	return _de_cache(clave, func() -> ArrayMesh:
 		var k := Constructor.new()
 		var r := ropa(base, propio, forma, color)
@@ -687,19 +779,24 @@ static func unidad(tipo: Dictionary, base: Dictionary, propio: Dictionary, color
 				_buque(k, forma, color, insignia)
 				return _terminar(k)
 			"canon_montana", "canon_campana", "gatling":
-				_peana(k, color, 0.3)
+				if peana:
+					_peana(k, color, 0.3)
 				_pieza(k, r, forma)
 			"ambulancia", "carreta_agua":
-				_peana(k, color, 0.3)
+				if peana:
+					_peana(k, color, 0.3)
 				_carro(k, r, forma)
 			"camilleros":
-				_peana(k, color, 0.26)
-				_camilleros(k, r, extra == "herido")
+				if peana:
+					_peana(k, color, 0.26)
+				_camilleros(k, r, "herido" in extra)
 			"jinete_sable", "jinete_carabina", "baqueano", "heroe_montado":
-				_peana(k, color, 0.2)
+				if peana:
+					_peana(k, color, 0.2)
 				_jinete(k, r, forma, insignia)
 			_:
-				_peana(k, color, 0.13)
+				if peana:
+					_peana(k, color, 0.13)
 				_a_pie(k, r, forma, insignia)
 		return _terminar(k))
 
@@ -744,8 +841,13 @@ static func caido(tipo: Dictionary, base: Dictionary, propio: Dictionary, color:
 static func _bandera(k: Constructor, pie: Vector3, alto: float, color: Color) -> void:
 	k.barra(pie, pie + Vector3(0, alto, 0), 0.018, Color8(90, 70, 50), 5)
 	k.esfera(pie + Vector3(0, alto + 0.02, 0), Vector3(0.025, 0.025, 0.025), ORO, 3, 6)
-	k.caja(pie + Vector3(0.2, alto - 0.13, 0), Vector3(0.38, 0.24, 0.012), color)
+	# el paño ondea (parte animada, desde el asta)
+	k.animar(P_BANDERA, pie + Vector3(0, alto - 0.13, 0))
+	for j in 4:
+		var x := 0.05 + j * 0.095
+		k.caja(pie + Vector3(x, alto - 0.13, 0), Vector3(0.096, 0.24, 0.012), color)
 	k.caja(pie + Vector3(0.2, alto - 0.13, 0), Vector3(0.39, 0.03, 0.016), color.lightened(0.35))
+	k.animar(P_FIJA)
 
 
 static func _ventanas(k: Constructor, x0: float, x1: float, y: float, z: float, n: int, col := VIDRIO,
@@ -754,6 +856,45 @@ static func _ventanas(k: Constructor, x0: float, x1: float, y: float, z: float, 
 		var x := lerpf(x0, x1, (j + 0.5) / n)
 		k.caja(Vector3(x, y, z), Vector3(0.14, alto, 0.02), col)
 		k.caja(Vector3(x, y - alto / 2 - 0.015, z + 0.01), Vector3(0.18, 0.025, 0.03), CAL)
+
+
+## Parapeto almenado alrededor de una azotea de largo x ancho (base: centro, al ras de la azotea).
+static func _almenas(k: Constructor, base: Vector3, largo: float, ancho: float, col: Color, alto := 0.13) -> void:
+	var hx := largo / 2.0
+	var hz := ancho / 2.0
+	var g := 0.07
+	var y := alto * 0.35
+	k.caja(base + Vector3(0, y, hz - g / 2), Vector3(largo, alto * 0.7, g), col)
+	k.caja(base + Vector3(0, y, -hz + g / 2), Vector3(largo, alto * 0.7, g), col)
+	k.caja(base + Vector3(hx - g / 2, y, 0), Vector3(g, alto * 0.7, ancho), col)
+	k.caja(base + Vector3(-hx + g / 2, y, 0), Vector3(g, alto * 0.7, ancho), col)
+	var n := maxi(2, int(largo / 0.26))
+	for j in n:
+		var x := -hx + (j + 0.5) * largo / n
+		for z in [hz - g / 2, -hz + g / 2]:
+			k.caja(base + Vector3(x, alto, z), Vector3(largo / n * 0.5, alto * 0.6, g), col)
+	n = maxi(2, int(ancho / 0.26))
+	for j in n:
+		var z := -hz + (j + 0.5) * ancho / n
+		for x in [hx - g / 2, -hx + g / 2]:
+			k.caja(base + Vector3(x, alto, z), Vector3(g, alto * 0.6, ancho / n * 0.5), col)
+
+
+## Puestos de la guarnición (los pies de cada tirador, en la planta del edificio):
+## en la azotea y el torreón de las casas fuertes, y tras los sacos de la trinchera.
+static func puestos_guarnicion(forma: String) -> Array[Vector3]:
+	match forma:
+		"cuartel_general":
+			return [Vector3(-1.45, 0.89, 0.72), Vector3(-0.75, 0.89, 0.72), Vector3(0.0, 0.89, 0.72),
+					Vector3(0.7, 0.89, 0.72), Vector3(-1.1, 1.64, 0.17), Vector3(-0.45, 1.64, 0.17),
+					Vector3(0.2, 1.64, 0.17), Vector3(1.05, 2.37, -0.8)]
+		"barracas":
+			return [Vector3(-1.0, 0.775, 0.22), Vector3(-0.35, 0.775, 0.22), Vector3(0.3, 0.775, 0.22),
+					Vector3(0.95, 0.775, 0.22), Vector3(-0.6, 0.775, -0.92), Vector3(0.45, 0.775, -0.92)]
+		"trinchera":
+			return [Vector3(-1.05, 0.02, 0.42), Vector3(-0.35, 0.02, 0.42), Vector3(0.35, 0.02, 0.42),
+					Vector3(1.05, 0.02, 0.42)]
+	return []
 
 
 static func _carpa(k: Constructor, centro: Vector3, largo: float, ancho: float, alto: float, col: Color) -> void:
@@ -802,19 +943,40 @@ static func _obra(k: Constructor, forma: String, w: float, h: float, color: Colo
 	var hh := h / 2.0
 	match forma:
 		"cuartel_general":
+			# casa fuerte de dos pisos con azoteas almenadas y torreón (los tiradores, arriba)
 			k.caja(Vector3(0, 0.02, 0), Vector3(w - 0.1, 0.04, h - 0.1), ADOBE_OSCURO)
-			k.caja(Vector3(-0.2, 0.55, -0.25), Vector3(2.9, 1.0, 1.7), CAL)
-			k.techo(Vector3(-0.2, 1.05, -0.25), 2.9, 1.7, 0.6, TEJA, CAL.darkened(0.05))
-			# corredor con pilares
-			k.caja(Vector3(-0.2, 0.9, 0.85), Vector3(3.0, 0.05, 0.5), TEJA.darkened(0.1))
-			for j in 5:
-				k.barra(Vector3(-1.6 + j * 0.7, 0.04, 1.05), Vector3(-1.6 + j * 0.7, 0.88, 1.05), 0.035, TABLA, 5)
-			k.caja(Vector3(-0.2, 0.32, 0.61), Vector3(0.32, 0.58, 0.02), TABLA_OSCURA)
-			_ventanas(k, -1.6, 1.2, 0.55, 0.61, 4)
-			k.cilindro(Vector3(0.95, 1.1, -0.6), 0.08, 0.5, ADOBE_OSCURO, 6)
-			_bandera(k, Vector3(1.6, 0.04, 1.1), 1.9, color)
-			_cajon(k, Vector3(1.55, 0.04, 0.2))
-			_cajon(k, Vector3(1.6, 0.2, 0.25), 0.13)
+			k.caja(Vector3(-0.2, 0.06, -0.15), Vector3(3.06, 0.12, 2.06), PIEDRA)
+			k.caja(Vector3(-0.2, 0.43, -0.15), Vector3(3.0, 0.86, 2.0), CAL)
+			k.caja(Vector3(-0.2, 0.87, -0.15), Vector3(3.06, 0.04, 2.06), ADOBE_OSCURO)
+			_almenas(k, Vector3(-0.2, 0.89, -0.15), 3.0, 2.0, CAL)
+			k.caja(Vector3(-0.45, 1.25, -0.35), Vector3(1.9, 0.72, 1.3), CAL.darkened(0.04))
+			k.caja(Vector3(-0.45, 1.62, -0.35), Vector3(1.96, 0.04, 1.36), ADOBE_OSCURO)
+			_almenas(k, Vector3(-0.45, 1.64, -0.35), 1.9, 1.3, CAL)
+			k.caja(Vector3(1.05, 1.17, -0.8), Vector3(0.6, 2.34, 0.6), CAL)
+			k.caja(Vector3(1.05, 2.35, -0.8), Vector3(0.66, 0.04, 0.66), ADOBE_OSCURO)
+			_almenas(k, Vector3(1.05, 2.37, -0.8), 0.6, 0.6, CAL)
+			k.caja(Vector3(-0.2, 0.34, 0.86), Vector3(0.36, 0.62, 0.02), TABLA_OSCURA)
+			k.caja(Vector3(-0.2, 0.68, 0.865), Vector3(0.46, 0.06, 0.03), PIEDRA)
+			_ventanas(k, -1.6, 1.2, 0.5, 0.855, 4)
+			_ventanas(k, -1.3, 0.4, 1.28, 0.305, 3)
+			_ventanas(k, 0.85, 1.25, 1.6, -0.495, 1)
+			_bandera(k, Vector3(1.05, 2.37, -0.8), 1.0, color)
+			_cajon(k, Vector3(1.55, 0.04, 1.0))
+			_cajon(k, Vector3(1.62, 0.2, 1.05), 0.13)
+			_sacos(k, Vector3(-1.75, 0.04, 1.1), Vector3(-1.2, 0.04, 1.1))
+		"barracas":
+			# cuartel de tropa de azotea almenada, con su galpón
+			k.caja(Vector3(0, 0.05, -0.35), Vector3(2.76, 0.1, 1.46), PIEDRA)
+			k.caja(Vector3(0, 0.37, -0.35), Vector3(2.7, 0.74, 1.4), ADOBE)
+			k.caja(Vector3(0, 0.755, -0.35), Vector3(2.76, 0.04, 1.46), ADOBE_OSCURO)
+			_almenas(k, Vector3(0, 0.775, -0.35), 2.7, 1.4, ADOBE)
+			k.caja(Vector3(0.45, 0.25, 0.85), Vector3(1.6, 0.5, 0.6), ADOBE_OSCURO)
+			k.caja(Vector3(0.45, 0.515, 0.85), Vector3(1.66, 0.03, 0.66), TABLA_OSCURA)
+			for j in 3:
+				k.caja(Vector3(-0.1 + j * 0.55, 0.2, 1.155), Vector3(0.2, 0.36, 0.02), TABLA_OSCURA)
+			_ventanas(k, -1.25, 1.25, 0.47, 0.355, 5, VIDRIO, 0.14)
+			k.caja(Vector3(-1.0, 0.27, 0.36), Vector3(0.28, 0.5, 0.02), TABLA_OSCURA)
+			_bandera(k, Vector3(-1.2, 0.775, -0.9), 1.2, color)
 		"deposito":
 			k.caja(Vector3(0, 0.42, -0.1), Vector3(1.6, 0.8, 1.4), TABLA)
 			for j in 9:
@@ -845,12 +1007,14 @@ static func _obra(k: Constructor, forma: String, w: float, h: float, color: Colo
 				k.caja(Vector3(-0.5, y, -0.5), Vector3(0.7 * s + 0.04, 0.025, 0.7 * s + 0.04), TABLA_OSCURA)
 			var cubo := top + Vector3(0, 0.05, 0.12)
 			k.caja(top + Vector3(0, 0.05, 0), Vector3(0.12, 0.12, 0.2), HIERRO)
+			k.animar(P_ASPAS, cubo)
 			for j in 10:
 				var a := TAU * j / 10.0
 				var punta := cubo + Vector3(cos(a) * 0.55, sin(a) * 0.55, 0.0)
 				k.barra(cubo, punta, 0.012, CALAMINA, 3)
 				var medio := cubo.lerp(punta, 0.7)
 				k.caja(medio, Vector3(0.14, 0.14, 0.01), CAL.darkened(0.08))
+			k.animar(P_FIJA)
 			k.barra(top + Vector3(0, 0.05, 0), top + Vector3(0, 0.05, -0.55), 0.015, HIERRO, 4)
 			k.caja(top + Vector3(0, 0.1, -0.6), Vector3(0.02, 0.25, 0.3), color)
 		"barracas":
@@ -1188,11 +1352,78 @@ static func malla_caja(tam: Vector3, color: Color) -> ArrayMesh:
 		return _terminar(k))
 
 
-## Anillo de selección (sin luz), de radio 1: se escala con la unidad.
-static func anillo_seleccion(color: Color) -> ArrayMesh:
-	return _de_cache("anillo|%s" % color.to_html(), func() -> ArrayMesh:
+## Anillo de selección (sin luz), de radio 1: se escala con la unidad. Su figura dice la
+## formación de la infantería: círculo (sin formación), barra (línea), cuadrado (cuadro) o
+## círculo cortado (guerrilla).
+static func anillo_seleccion(color: Color, figura := "") -> ArrayMesh:
+	return _de_cache("anillo|%s|%s" % [color.to_html(), figura], func() -> ArrayMesh:
 		var k := Constructor.new()
-		k.anillo(Vector3(0, 0, 0), 0.86, 1.0, color, 32)
+		match figura:
+			"linea":
+				# una barra a lo ancho del frente (el eje z de la figura)
+				for z in [-1.0, 1.0]:
+					k.cara([Vector3(-0.35, 0, z * 1.35), Vector3(0.35, 0, z * 1.35), Vector3(0.35, 0, z * 1.15),
+							Vector3(-0.35, 0, z * 1.15)], color, Vector3(0, -1, z * 1.25))
+				k.cara([Vector3(-0.35, 0, -1.35), Vector3(-0.2, 0, -1.35), Vector3(-0.2, 0, 1.35), Vector3(-0.35, 0, 1.35)],
+						color, Vector3(-0.3, -1, 0))
+				k.cara([Vector3(0.2, 0, -1.35), Vector3(0.35, 0, -1.35), Vector3(0.35, 0, 1.35), Vector3(0.2, 0, 1.35)],
+						color, Vector3(0.3, -1, 0))
+			"cuadro":
+				for lado in 4:
+					var g := Basis(Vector3.UP, PI / 2.0 * lado)
+					k.cara([g * Vector3(-1.0, 0, -1.0), g * Vector3(1.0, 0, -1.0), g * Vector3(0.84, 0, -0.84),
+							g * Vector3(-0.84, 0, -0.84)], color, Vector3(0, -1, 0))
+			"guerrilla":
+				for j in 8:
+					var a0 := TAU * j / 8.0
+					var a1 := a0 + TAU / 16.0
+					for m in 3:
+						var b0 := lerpf(a0, a1, m / 3.0)
+						var b1 := lerpf(a0, a1, (m + 1) / 3.0)
+						var d0 := Vector3(cos(b0), 0, sin(b0))
+						var d1 := Vector3(cos(b1), 0, sin(b1))
+						k.cara([d0 * 0.84, d0, d1, d1 * 0.84], color, Vector3(0, -1, 0))
+			_:
+				k.anillo(Vector3(0, 0, 0), 0.86, 1.0, color, 32)
+		return _terminar(k, material_plano()))
+
+
+## Marca en el suelo de la infantería formada, para leer la batalla de un vistazo: un trazo
+## del frente (línea) o un cuadradito (cuadro), del color del jugador. Radio 1.
+static func marca_formacion(codigo: int, color: Color) -> ArrayMesh:
+	var c := Color(color, 0.55)
+	return _de_cache("marca|%d|%s" % [codigo, c.to_html()], func() -> ArrayMesh:
+		var k := Constructor.new()
+		if codigo == 1:
+			k.cara([Vector3(-0.12, 0, -1.0), Vector3(0.12, 0, -1.0), Vector3(0.12, 0, 1.0), Vector3(-0.12, 0, 1.0)], c,
+					Vector3(0, -1, 0))
+		elif codigo == 3:
+			for lado in 4:
+				var g := Basis(Vector3.UP, PI / 2.0 * lado)
+				k.cara([g * Vector3(-0.7, 0, -0.7), g * Vector3(0.7, 0, -0.7), g * Vector3(0.52, 0, -0.52),
+						g * Vector3(-0.52, 0, -0.52)], c, Vector3(0, -1, 0))
+		return _terminar(k, material_plano()))
+
+
+## Galones dorados de un veterano (1 a 3), de frente a la cámara; alto ~0.12.
+static func galones(grado: int) -> ArrayMesh:
+	var n := clampi(grado, 1, 3)
+	return _de_cache("galones|%d" % n, func() -> ArrayMesh:
+		var k := Constructor.new()
+		for j in n:
+			var y := j * 0.045
+			for lado in [-1.0, 1.0]:
+				k.cara([Vector3(0, y, 0), Vector3(0.0, y + 0.025, 0), Vector3(0.06 * lado, y + 0.055, 0),
+						Vector3(0.06 * lado, y + 0.03, 0)], ORO, Vector3(0, y + 0.03, -0.1 if lado > 0 else 0.1))
+		return _terminar(k, material_plano()))
+
+
+## Gota de agua vacía sobre la tropa sedienta.
+static func gota() -> ArrayMesh:
+	return _de_cache("gota", func() -> ArrayMesh:
+		var k := Constructor.new()
+		k.esfera(Vector3(0, 0, 0), Vector3(0.05, 0.05, 0.05), Color8(150, 200, 240), 3, 8)
+		k.cilindro(Vector3(0, 0.02, 0), 0.042, 0.07, Color8(150, 200, 240), 8, 0.0)
 		return _terminar(k, material_plano()))
 
 

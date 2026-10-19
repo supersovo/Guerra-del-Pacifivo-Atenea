@@ -6,6 +6,8 @@ uniform vec4 color_alto : source_color = vec4(0.10, 0.27, 0.38, 1.0);
 uniform vec4 color_bajo : source_color = vec4(0.22, 0.47, 0.52, 1.0);
 uniform vec2 tam_mapa = vec2(64.0, 64.0);
 uniform sampler2D niebla : filter_linear, repeat_disable;
+uniform sampler2D niebla_vieja : filter_linear, repeat_disable;
+uniform float mezcla_niebla = 1.0;
 
 varying vec3 pos_mundo;
 
@@ -29,7 +31,7 @@ void fragment() {
 	float h2z = ola((p + vec2(0.0, e)) * 3.7, TIME * 1.6);
 	vec3 n = normalize(vec3(-(hx - h0) * 0.6 - (h2x - h2) * 0.25, 1.0, -(hz - h0) * 0.6 - (h2z - h2) * 0.25));
 	NORMAL = normalize((VIEW_MATRIX * vec4(n, 0.0)).xyz);
-	float f = texture(niebla, p / tam_mapa).r;
+	float f = mix(texture(niebla_vieja, p / tam_mapa).r, texture(niebla, p / tam_mapa).r, mezcla_niebla);
 	float luz = mix(0.0, 0.42, smoothstep(0.0, 0.43, f)) + mix(0.0, 0.58, smoothstep(0.43, 0.98, f));
 	vec3 col = mix(color_bajo.rgb, color_alto.rgb, 0.55 + 0.45 * h2 * 0.5);
 	ALBEDO = col * max(luz, 0.04);

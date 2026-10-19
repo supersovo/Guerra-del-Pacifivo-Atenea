@@ -37,6 +37,11 @@ var alto := PackedFloat32Array()         # altura base de cada casilla
 var esquinas := PackedFloat32Array()     # 4 por casilla: NO, NE, SE, SO
 var nodo := Node3D.new()
 var material: ShaderMaterial
+var tex_niebla: ImageTexture
+var tex_niebla_vieja: ImageTexture
+var mezcla_niebla := 1.0              # 0 → 1: de la niebla anterior a la nueva
+var _img_niebla: Image
+var _materiales_niebla: Array[ShaderMaterial] = []
 var tren := false
 var semilla := 7
 
@@ -217,12 +222,11 @@ func construir() -> Node3D:
 	material = ShaderMaterial.new()
 	material.shader = load("res://sombreadores/terreno.gdshader")
 	material.set_shader_parameter("tam_mapa", Vector2(w, h))
-	var tex_niebla := ImageTexture.create_from_image(Image.create(w, h, false, Image.FORMAT_L8))
-	material.set_shader_parameter("niebla", tex_niebla)
-	# los modelos (tropas, obras, decorados) comparten la niebla del terreno
-	var mat_modelos: ShaderMaterial = Modelos.material()
-	mat_modelos.set_shader_parameter("tam_mapa", Vector2(w, h))
-	mat_modelos.set_shader_parameter("niebla", tex_niebla)
+	tex_niebla = ImageTexture.create_from_image(Image.create(w, h, false, Image.FORMAT_L8))
+	tex_niebla_vieja = ImageTexture.create_from_image(Image.create(w, h, false, Image.FORMAT_L8))
+	# el terreno, el mar y los modelos (tropas, obras, decorados) comparten la niebla
+	_compartir_niebla(material)
+	_compartir_niebla(Modelos.material())
 	var colores_esquina := _colores_esquina()
 	var pesos_esquina := _pesos_esquina()
 	for by in range(0, h, TROZO):
@@ -447,8 +451,7 @@ func _agua() -> MeshInstance3D:
 	mi.position = Vector3(w / 2.0, NIVEL_AGUA, h / 2.0)
 	var mat := ShaderMaterial.new()
 	mat.shader = load("res://sombreadores/agua.gdshader")
-	mat.set_shader_parameter("tam_mapa", Vector2(w, h))
-	mat.set_shader_parameter("niebla", material.get_shader_parameter("niebla"))
+	_compartir_niebla(mat)
 	mi.material_override = mat
 	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	return mi
@@ -522,12 +525,36 @@ func _multimalla(nombre: String, malla: Mesh, transformadas: Array[Transform3D])
 	nodo.add_child(mmi)
 
 
-## Actualiza la niebla de guerra: 255 visible, 110 explorado, 0 desconocido.
+func _compartir_niebla(mat: ShaderMaterial) -> void:
+	mat.set_shader_parameter("tam_mapa", Vector2(w, h))
+	mat.set_shader_parameter("niebla", tex_niebla)
+	mat.set_shader_parameter("niebla_vieja", tex_niebla_vieja)
+	mat.set_shader_parameter("mezcla_niebla", 1.0)
+	if not mat in _materiales_niebla:
+		_materiales_niebla.append(mat)
+
+
+## Actualiza la niebla de guerra (255 visible, 110 explorado, 0 desconocido). La anterior
+## queda en la otra textura y se funde con la nueva en un instante (avanzar_niebla).
 func actualizar_niebla(vis: PackedByteArray, explorado: PackedByteArray) -> void:
 	var datos := PackedByteArray()
 	datos.resize(w * h)
 	for i in w * h:
 		datos[i] = 255 if vis[i] else (110 if explorado[i] else 0)
 	var img := Image.create_from_data(w, h, false, Image.FORMAT_L8, datos)
-	var tex: ImageTexture = material.get_shader_parameter("niebla")
-	tex.update(img)
+	tex_niebla_vieja.update(_img_niebla if _img_niebla != null else img)
+	tex_niebla.update(img)
+	_img_niebla = img
+	mezcla_niebla = 0.0
+	_fijar_mezcla()
+
+
+func avanzar_niebla(delta: float) -> void:
+	if mezcla_niebla < 1.0:
+		mezcla_niebla = minf(1.0, mezcla_niebla + delta / 0.2)
+		_fijar_mezcla()
+
+
+func _fijar_mezcla() -> void:
+	for m in _materiales_niebla:
+		m.set_shader_parameter("mezcla_niebla", mezcla_niebla)

@@ -5,6 +5,7 @@ extends CanvasLayer
 
 const Tema = preload("res://codigo/ui/tema.gd")
 const Tarjeta = preload("res://codigo/ui/tarjeta.gd")
+const Minimapa = preload("res://codigo/ui/minimapa.gd")
 
 const ALTO_SUP := 40
 const ALTO_INF := 190
@@ -22,6 +23,7 @@ var lbl_pob: Label
 var lbl_reloj: Label
 var lbl_viento: Label
 var inferior: PanelContainer
+var minimapa: Control
 var lbl_nombre: Label
 var lbl_parte: RichTextLabel
 var rejilla: GridContainer
@@ -90,6 +92,9 @@ func _ready() -> void:
 	var abajo := HBoxContainer.new()
 	abajo.add_theme_constant_override("separation", 14)
 	inferior.add_child(abajo)
+	minimapa = Minimapa.new()
+	minimapa.custom_minimum_size = Vector2(170, 170)
+	abajo.add_child(minimapa)
 	var parte := VBoxContainer.new()
 	parte.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	abajo.add_child(parte)
@@ -245,6 +250,7 @@ func actualizar(est, seleccion: Array, slots: Array, modo: Variant) -> void:
 			quedan.append(m)
 	_mensajes = quedan
 	lienzo.queue_redraw()
+	minimapa.queue_redraw()
 
 
 func _parte(est, seleccion: Array) -> void:

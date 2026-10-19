@@ -14,6 +14,8 @@ const Catalogo = preload("res://codigo/datos/catalogo.gd")
 const Terreno = preload("res://codigo/mundo/terreno.gd")
 const Modelos = preload("res://codigo/mundo/modelos.gd")
 const Tarjeta = preload("res://codigo/ui/tarjeta.gd")
+const Tropas = preload("res://codigo/mundo/tropas.gd")
+const Minimapa = preload("res://codigo/ui/minimapa.gd")
 
 var fallas := 0
 var pruebas := 0
@@ -34,7 +36,8 @@ func _initialize() -> void:
 		return
 	cat = Catalogo.new()
 	_ok(cat.cargar(), "se carga el catálogo")
-	for prueba in ["protocolo", "lector_por_trozos", "vision", "estado", "terreno", "tarjeta", "modelos", "lugar_costo"]:
+	for prueba in ["protocolo", "lector_por_trozos", "vision", "estado", "terreno", "tarjeta", "modelos", "lugar_costo",
+			"partes_animadas", "grupos", "guarnicion", "minimapa", "niebla_fundida"]:
 		call("_prueba_" + prueba)
 	print("%d comprobaciones, %d fallas" % [pruebas, fallas])
 	quit(mini(fallas, 100))
@@ -231,6 +234,96 @@ func _prueba_lugar_costo() -> void:
 	_ok(chile[0] < int(base[0]), "la cañonera chilena es más barata")
 	_igual(cat.costo("peru", "infante"), [int(cat.tipos_por_id["infante"]["costo"][0]), int(cat.tipos_por_id["infante"]["costo"][1])],
 			"sin ventajas, el costo del catálogo")
+
+
+## Las partes de una malla (CUSTOM0: parte, pivote): {parte: pivote del primer vértice}.
+func _partes(m: ArrayMesh) -> Dictionary:
+	var arr := m.surface_get_arrays(0)
+	var pc: PackedFloat32Array = arr[Mesh.ARRAY_CUSTOM0]
+	var out := {}
+	for i in range(0, pc.size(), 4):
+		var p := int(pc[i])
+		if not out.has(p):
+			out[p] = Vector3(pc[i + 1], pc[i + 2], pc[i + 3])
+	return out
+
+
+func _prueba_partes_animadas() -> void:
+	var base := cat.uniforme_base("chile")
+	var infante: Dictionary = cat.tipos_por_id["infante"]
+	var p := _partes(Modelos.unidad(infante, base, {}, Color.RED, "chile"))
+	_ok(p.has(Modelos.P_PIERNA_I) and p.has(Modelos.P_PIERNA_D), "el infante tiene piernas que marchan")
+	_ok(p.has(Modelos.P_BRAZO_ARMA) and p.has(Modelos.P_BRAZO_I), "y brazos: el del fusil y el que bracea")
+	_ok(absf(p[Modelos.P_PIERNA_I].y - 0.27) < 0.001, "las piernas giran en la cadera")
+	var granadero: Dictionary = cat.tipos_por_id["granadero"]
+	var pj := _partes(Modelos.unidad(granadero, base, cat.uniforme_propio("chile", granadero["forma"]), Color.RED, "chile"))
+	for parte in [Modelos.P_PATA_DI, Modelos.P_PATA_DD, Modelos.P_PATA_TI, Modelos.P_PATA_TD, Modelos.P_SABLE]:
+		_ok(pj.has(parte), "el granadero tiene la parte %d" % parte)
+	var pieza := _partes(Modelos.unidad(cat.tipos_por_id["canon_campana"], base, {}, Color.RED, "chile"))
+	_ok(pieza.has(Modelos.P_RUEDA) and pieza.has(Modelos.P_CANON), "la pieza tiene ruedas y caño")
+	var cg := _partes(Modelos.edificio(cat.tipos_por_id["cuartel_general"], Color.RED, "chile"))
+	_ok(cg.has(Modelos.P_BANDERA), "el cuartel general tiene su bandera al viento")
+	var molino := _partes(Modelos.edificio(cat.tipos_por_id["molino_agua"], Color.RED, "chile"))
+	_ok(molino.has(Modelos.P_ASPAS), "el molino tiene aspas")
+	# la copia de un modelo (el caballo de tiro) lleva sus pivotes al lugar nuevo
+	var carro := _partes(Modelos.unidad(cat.tipos_por_id["carreta_agua"], base, {}, Color.RED, "chile"))
+	_ok(carro.has(Modelos.P_PATA_DI) and carro[Modelos.P_PATA_DI].x > 0.4, "el caballo de tiro va delante del carro")
+	var sin_peana := Modelos.unidad(infante, base, {}, Color.RED, "chile", "sin_peana")
+	var con_peana := Modelos.unidad(infante, base, {}, Color.RED, "chile")
+	_ok(sin_peana.surface_get_array_len(0) < con_peana.surface_get_array_len(0), "la figura sin peana (las bajas)")
+
+
+func _prueba_grupos() -> void:
+	var raiz := Node3D.new()
+	var g := Tropas.Grupo.new(Modelos.mina(), raiz)
+	for k in 3:
+		g.agregar(Transform3D(Basis(), Vector3(k, 0, 0)), Vector4(k, 1, 0, 0))
+	g.cerrar()
+	var mm := g.mmi.multimesh
+	_igual(mm.visible_instance_count, 3, "se dibujan las tres figuras")
+	_ok(mm.instance_count >= 3, "con lugar para ellas")
+	var b := g.ultimo
+	_igual(b.size(), mm.instance_count * 20, "transformación, color y datos propios: 20 números por figura")
+	_igual(b[2 * 20 + 3], 2.0, "la tercera, en su lugar")
+	_igual(Array(b.slice(12, 20)), [1.0, 1.0, 1.0, 1.0, 0.0, 1.0, 0.0, 0.0], "el color en blanco y los datos de la primera")
+	_igual(b[1 * 20 + 16], 1.0, "la fase de la segunda")
+	g.cerrar()
+	_ok(not g.mmi.visible, "un grupo vacío no se dibuja")
+	raiz.free()
+
+
+func _prueba_guarnicion() -> void:
+	for id in ["cuartel_general", "barracas", "trinchera"]:
+		var t: Dictionary = cat.tipos_por_id[id]
+		_igual(Modelos.puestos_guarnicion(t["forma"]).size(), int(t["guarnicion"]),
+				"un puesto por plaza de la guarnición en %s" % id)
+
+
+func _prueba_minimapa() -> void:
+	var est := Estado.new(cat, _inicio_falso())
+	var m := Minimapa.new()
+	m.size = Vector2(170, 170)
+	m.preparar(est, cat.colores_terreno)
+	var p := m.a_mapa(m.a_mini(3.5, 9.25))
+	_ok(absf(p.x - 3.5) < 0.01 and absf(p.z - 9.25) < 0.01, "del minimapa al mapa y de vuelta")
+	_ok(m.a_mapa(Vector2(-50, -50)) == Vector3(0, 0, 0), "fuera del minimapa, el borde del mapa")
+	m.free()
+
+
+func _prueba_niebla_fundida() -> void:
+	var est := Estado.new(cat, _inicio_falso())
+	var ter := Terreno.new(est.terreno, est.niveles, est.w, est.h, cat.colores_terreno)
+	var nodo := ter.construir()
+	var todo := PackedByteArray()
+	todo.resize(est.w * est.h)
+	todo.fill(1)
+	ter.actualizar_niebla(todo, todo)
+	_igual(ter.mezcla_niebla, 0.0, "la niebla nueva empieza fundida con la anterior")
+	ter.avanzar_niebla(0.1)
+	_ok(ter.mezcla_niebla > 0.4 and ter.mezcla_niebla < 0.6, "y pasa a la nueva en un instante")
+	ter.avanzar_niebla(1.0)
+	_igual(ter.mezcla_niebla, 1.0, "hasta quedar la nueva")
+	nodo.free()
 
 
 # ----------------------------------------------------------------------

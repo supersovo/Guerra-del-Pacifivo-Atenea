@@ -7,6 +7,8 @@ render_mode diffuse_lambert, specular_disabled;
 
 uniform vec2 tam_mapa = vec2(64.0, 64.0);
 uniform sampler2D niebla : filter_linear, repeat_disable;
+uniform sampler2D niebla_vieja : filter_linear, repeat_disable;
+uniform float mezcla_niebla = 1.0;
 
 varying vec3 pos_mundo;
 varying vec3 normal_mundo;
@@ -45,6 +47,16 @@ float grietas(vec2 p) {
 	return smoothstep(0.0, 0.05, sqrt(d2) - sqrt(d1));
 }
 
+// niebla con los bordes desenfocados, fundida con la anterior mientras cambia
+float niebla_en(vec2 p) {
+	vec2 uv = p / tam_mapa;
+	vec2 px = 0.6 / tam_mapa;
+	float nueva = (texture(niebla, uv) * 0.4 + texture(niebla, uv + vec2(px.x, 0.0)) * 0.15 + texture(niebla, uv - vec2(px.x, 0.0)) * 0.15
+			+ texture(niebla, uv + vec2(0.0, px.y)) * 0.15 + texture(niebla, uv - vec2(0.0, px.y)) * 0.15).r;
+	float vieja = texture(niebla_vieja, uv).r;
+	return mix(vieja, nueva, mezcla_niebla);
+}
+
 void vertex() {
 	pos_mundo = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
 	normal_mundo = normalize((MODEL_MATRIX * vec4(NORMAL, 0.0)).xyz);
@@ -61,9 +73,13 @@ void fragment() {
 	// salar (costra blanca partida en placas) y pampa (matas secas), fundidos entre casillas
 	float salar = smoothstep(0.2, 0.8, pesos.x);
 	float pampa = smoothstep(0.2, 0.8, pesos.y);
-	vec3 costra = col * (0.9 + 0.1 * ruido(p * 0.9)) * vec3(1.0, 0.985, 0.96);
-	col = mix(col, mix(costra * 0.93, costra, grietas(p * 1.4)), salar);
-	col = mix(col, col * vec3(0.88, 0.9, 0.76), smoothstep(0.6, 0.78, ruido(p * 8.5)) * 0.45 * pampa);
+	if (salar > 0.001) {
+		vec3 costra = col * (0.9 + 0.1 * ruido(p * 0.9)) * vec3(1.0, 0.985, 0.96);
+		col = mix(col, mix(costra * 0.93, costra, grietas(p * 1.4)), salar);
+	}
+	if (pampa > 0.001) {
+		col = mix(col, col * vec3(0.88, 0.9, 0.76), smoothstep(0.6, 0.78, ruido(p * 8.5)) * 0.45 * pampa);
+	}
 	// arena: ondulaciones del viento
 	float arena = clamp(1.0 - salar - pampa, 0.0, 1.0);
 	col *= 1.0 + 0.04 * arena * sin(p.x * 5.0 + p.y * 2.0 + ruido(p * 1.3) * 6.0);
@@ -78,9 +94,13 @@ void fragment() {
 	col *= 1.0 + grano;
 	// paredes de acantilado: estratos
 	col *= 1.0 - vertical * (0.10 + 0.08 * sin(pos_mundo.y * 22.0));
-	float f = texture(niebla, p / tam_mapa).r;
+	float f = niebla_en(p);
 	float luz = mix(0.0, 0.42, smoothstep(0.0, 0.43, f)) + mix(0.0, 0.58, smoothstep(0.43, 0.98, f));
-	vec3 oscuro = vec3(0.07, 0.06, 0.055);
-	ALBEDO = mix(a_lineal(oscuro), a_lineal(clamp(col * 0.9, 0.0, 1.0)), luz);
+	vec3 lineal = a_lineal(clamp(col * 0.9, 0.0, 1.0));
+	// lo explorado que no se ve, en sepia (como un mapa viejo); lo desconocido, en sombra
+	float gris = dot(lineal, vec3(0.3, 0.59, 0.11));
+	lineal = mix(vec3(gris) * vec3(1.06, 0.97, 0.84), lineal, smoothstep(0.45, 0.9, f));
+	vec3 oscuro = a_lineal(vec3(0.07, 0.06, 0.055));
+	ALBEDO = mix(oscuro, lineal, luz);
 	ROUGHNESS = 0.96;
 }

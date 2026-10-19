@@ -328,9 +328,10 @@ montoneros quietos, minas) solo se ven con un **detector** cerca.
 la parte gráfica: la simulación, el servidor, la IA y los datos siguen siendo
 los de Python, y el cliente de pygame se mantiene hasta que el nuevo lo iguale.
 El plan va por fases: 1) cabeza de puente (red, diorama, tropas, selección,
-órdenes y escaramuza: hecha); 2) modelos más ricos, animaciones, efectos,
-niebla y minimapa; 3) toda la tarjeta, menús, campaña, multijugador, archivo y
-sonido; 4) ejecutables para Windows, macOS y Linux con el servidor adentro.
+órdenes y escaramuza: hecha); 2) figuras animadas y agrupadas, guarnición a la
+vista, efectos, niebla suave y minimapa (hecha); 3) toda la interfaz: menús,
+campaña, multijugador, archivo y sonido; 4) ejecutables para Windows, macOS y
+Linux con el servidor adentro.
 
 ```
 godot/
@@ -372,6 +373,26 @@ godot/
   32×32 casillas, con el color de cada esquina fundido entre vecinas y los
   pesos del salar y la pampa para que sus texturas (grietas de la costra,
   matas secas) no tengan bordes de casilla.
+- **Figuras agrupadas y animadas.** Cada vértice de un modelo lleva en
+  `CUSTOM0` la parte a la que pertenece (pierna, brazo con el arma, pata,
+  rueda, caño, bandera, aspas, sable) y el pivote sobre el que gira. Las tropas
+  se dibujan en `MultiMesh`, una llamada de dibujo por modelo (`Tropas.Grupo`,
+  que se vuelve a llenar en cada cuadro con `MultiMesh.buffer`), y cada figura
+  lleva en `INSTANCE_CUSTOM` la fase de la marcha (según el camino recorrido),
+  el paso, la acción (fusil apuntado, tajo, retroceso de la pieza, faena del
+  trabajador) y el resaltado bajo el ratón: el sombreador `modelo.gdshader`
+  mueve las partes sin costo para el procesador. Las banderas y las aspas del
+  molino se mueven con el tiempo, también en las obras. Con datos propios el
+  `MultiMesh` lleva además el color de la instancia en blanco: sin él, el
+  dibujo de compatibilidad (OpenGL) pisa el color de los vértices.
+- **Guarnición, marcas y bajas.** Los soldados guarecidos se dibujan en los
+  puestos de su obra (`Modelos.puestos_guarnicion`: las azoteas almenadas del
+  cuartel general y las barracas, los sacos de la trinchera), mirando al
+  enemigo más cercano y apuntando los que disparan. El anillo de selección
+  dibuja la formación (barra la línea, cuadrado el cuadro, círculo cortado la
+  guerrilla) y la infantería formada deja una marca en el suelo que ven los dos
+  bandos; los veteranos llevan galones y la tropa sin agua, una gota. Las bajas
+  caen de espaldas antes de quedar tendidas.
 - **Modelos por código.** `modelos.gd` arma cada figura con piezas simples
   (cajas, cilindros, esferas bajas, techos) con caras planas y el color en los
   vértices, como soldaditos de plomo pintados, sobre una peana del color del
@@ -384,18 +405,27 @@ godot/
 - **Niebla.** El cliente calcula la visibilidad con las mismas reglas que el
   servidor (incluido el redondeo de Python en los radios) y la sube a una
   textura de una casilla por píxel (visible, explorada, desconocida) que leen
-  los sombreadores del terreno, del agua y de los modelos: lo recordado bajo
-  la niebla se ve en penumbra. Una prueba compara casilla por casilla la
-  niebla de Godot con la de `sim/vision.py`.
+  los sombreadores del terreno, del agua y de los modelos con un desenfoque de
+  cinco muestras; la textura anterior se funde con la nueva en 0,2 s, y lo
+  recordado bajo la niebla se ve en penumbra y en sepia. Una prueba compara
+  casilla por casilla la niebla de Godot con la de `sim/vision.py`.
+- **Minimapa** (`ui/minimapa.gd`): el terreno, la niebla, las obras y las
+  tropas del color de cada ejército, lo que abarca la cámara (los rayos de las
+  esquinas de la vista) y los avisos que parpadean; clic o arrastre llevan la
+  cámara, clic derecho da la orden allí.
 - **Selección y órdenes.** Un rayo desde la cámara recorre el relieve
   (`Terreno.interseccion`) para saber qué punto del suelo hay bajo el ratón;
   las tropas se eligen en la pantalla por su proyección, y los edificios y
   yacimientos por su planta. Las órdenes son los mismos comandos del cliente de
   Python (`inteligente`, `mover`, `atacar`, `construir`…), con las posiciones
   en píxeles del juego; el lugar de las obras se valida como en `_lugar_obra`.
-- **Efectos**: fogonazos y nubes de pólvora negra, granadas en vuelo con su
-  parábola, explosiones con cráter, polvo, bajas que quedan tendidas y se
-  hunden, sangre, curaciones y letreros (el $ de la venta, los galones).
+- **Efectos**: fogonazos y nubes de pólvora negra (nubes de bordes suaves que
+  miran a la cámara), granadas en vuelo con su parábola, explosiones con
+  cráter, piques en el agua, polvo, bajas, sangre, curaciones y letreros (el $
+  de la venta, los ascensos). Cerca de lo que mira la cámara: humo de la
+  chimenea de la maestranza y de las obras dañadas (con llamas bajo el 25 %),
+  polvo de los jinetes y los carros, estela de los buques, vapor del tren y
+  remolinos de polvo en la pampa, todo llevado por el viento de la partida.
 
 ## Rendimiento medido
 
@@ -436,10 +466,13 @@ ficticio de SDL):
   orden de la red, y el servidor privado que se cierra con el juego; con
   `SALITRE_GODOT`, además, las pruebas del propio cliente
   (`godot/pruebas/correr.gd`: protocolo y zlib de Python, lector por trozos,
-  niebla, espejo, terreno, tarjeta, modelos y costos), la niebla de Godot
-  comparada con la del servidor y la **prueba de humo** de punta a punta: menú,
-  servidor privado, partida rápida contra la IA, trabajadores que marchan, el
-  cuartel que forma un trabajador y lo cancela, y un depósito en obra.
+  niebla, espejo, terreno, tarjeta, modelos, costos, partes animadas, grupos,
+  puestos de la guarnición, minimapa y niebla fundida), la niebla de Godot
+  comparada con la del servidor, una **batalla IA contra IA** vista entera
+  como espectador sin un error de guion y la **prueba de humo** de punta a
+  punta: menú, servidor privado, partida rápida contra la IA, trabajadores que
+  marchan, el minimapa que lleva la cámara, el cuartel que forma un
+  trabajador y lo cancela, y un depósito en obra.
 
 La integración continua (`.github/workflows/rts.yml`) corre las pruebas en Linux,
 Windows y macOS, prueba el cliente 3D con Godot 4.7.2 (y guarda una captura de
