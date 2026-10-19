@@ -204,7 +204,7 @@ func color_casilla(i: int) -> Color:
 	if terreno[i] == TAMARUGO:
 		c = colores.get(PAMPA, c)
 	if terreno[i] == QUEBRADA:
-		c = c.lightened(0.3)
+		c = c.lightened(0.12).lerp(Color8(132, 100, 70), 0.45)
 	if terreno[i] != MAR:
 		c = c.lightened(0.05 * niveles[i])
 	return c

@@ -38,6 +38,9 @@ func _ready() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
 	_armar_fondo()
 	_armar_panel()
+	if Juego.repeticion != "":
+		call_deferred("_comenzar", {"t": "ver_repeticion", "nombre": Juego.repeticion})
+		return
 	if Juego.prueba_humo:
 		print("PRUEBA_HUMO: menú listo, %d mapas" % mapas.size())
 		for i in mapas.size():
@@ -166,7 +169,7 @@ func _armar_panel() -> void:
 	panel.add_theme_stylebox_override("panel", Tema.caja(Color(Tema.PERGAMINO, 0.95), Tema.BRONCE, 3, 6, 20))
 	add_child(panel)
 	var caja := VBoxContainer.new()
-	caja.add_theme_constant_override("separation", 8)
+	caja.add_theme_constant_override("separation", 6)
 	panel.add_child(caja)
 	var cab := Tema.etiqueta("Escaramuza", f["titulo"], 34, Tema.TINTA)
 	caja.add_child(cab)
@@ -221,9 +224,16 @@ func _armar_panel() -> void:
 	salir.custom_minimum_size = Vector2(0, 38)
 	salir.pressed.connect(func() -> void: Juego.salir(0))
 	caja.add_child(salir)
-	var ver := Tema.etiqueta("Versión %s · cliente 3D (Godot %s)" % [cat.version, Engine.get_version_info()["string"]],
-			f["cuerpo"], 14, Tema.TINTA_SUAVE)
-	caja.add_child(ver)
+	var ver := Tema.etiqueta("Versión %s · cliente 3D en desarrollo (Godot %s)" % [cat.version,
+			Engine.get_version_info()["string"]], f["cuerpo"], 15, Tema.CREMA)
+	ver.anchor_top = 1.0
+	ver.anchor_bottom = 1.0
+	ver.offset_left = 52
+	ver.offset_top = -40
+	ver.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.85))
+	ver.add_theme_constant_override("shadow_offset_x", 1)
+	ver.add_theme_constant_override("shadow_offset_y", 1)
+	add_child(ver)
 	for i in mapas.size():
 		if mapas[i]["id"] == "pampa_del_tamarugal":
 			sel_mapa.select(i)
@@ -247,14 +257,16 @@ func _mostrar_mapa() -> void:
 # ----------------------------------------------------------------------
 # Comienzo: servidor privado, conexión, saludo y partida rápida
 
-func _comenzar() -> void:
+## Pide la partida al servidor privado: la escaramuza elegida o lo que se indique (por
+## ejemplo, ver una repetición).
+func _comenzar(pedido: Dictionary = {}) -> void:
 	if _fase != "" or mapas.is_empty():
 		return
 	var cat = Juego.catalogo
 	var nombre := txt_nombre.text.strip_edges()
 	Juego.nombre_jugador = nombre if nombre.length() >= 3 else "Comandante"
 	var difs: Array = cat.datos["dificultades"].keys()
-	_pedido = {"t": "partida_rapida", "mapa": mapas[sel_mapa.selected]["id"],
+	_pedido = pedido if not pedido.is_empty() else {"t": "partida_rapida", "mapa": mapas[sel_mapa.selected]["id"],
 			"faccion": NACIONES[sel_nacion.selected],
 			"rivales": [{"faccion": NACIONES[sel_rival.selected], "dificultad": difs[sel_dificultad.selected], "equipo": 2}],
 			"velocidad": cat.datos["velocidades"][sel_velocidad.selected]}
@@ -289,6 +301,14 @@ func _falla(motivo: String) -> void:
 func _process(delta: float) -> void:
 	_giro += delta * 0.05
 	_colocar_camara()
+	# --captura sin prueba ni repetición: una imagen del menú y salir
+	if Juego.captura != "" and not Juego.prueba_humo and Juego.repeticion == "":
+		_t += delta
+		if _t > 3.0 and DisplayServer.get_name() != "headless":
+			get_viewport().get_texture().get_image().save_png(Juego.captura)
+			print("Captura en ", Juego.captura)
+			Juego.salir(0)
+		return
 	if _fase == "":
 		return
 	_t += delta

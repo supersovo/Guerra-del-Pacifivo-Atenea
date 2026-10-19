@@ -19,6 +19,10 @@ En una escaramuza contra la IA el servidor corre en un hilo del propio juego y
 escucha solo en `127.0.0.1`; con «Crear servidor en este equipo» escucha en la
 red; el servidor dedicado es el mismo código sin la parte gráfica.
 
+Hay un segundo cliente en construcción, el **cliente 3D en Godot 4**
+(`rts/godot/`, sección [Cliente 3D](#cliente-3d-godot)): habla el mismo
+protocolo con el mismo servidor y solo reemplaza el dibujo y los controles.
+
 ## Paquetes
 
 | Paquete | Qué hace | Depende de |
@@ -318,6 +322,81 @@ montoneros quietos, minas) solo se ven con un **detector** cerca.
   nombre y el cuerpo de cada veterano se derivan de su semilla, la nación, el
   tipo de unidad y el grado, igual en el servidor y en el cliente.
 
+## Cliente 3D (Godot)
+
+`rts/godot/` es un proyecto de Godot 4.7 escrito en GDScript que reemplaza solo
+la parte gráfica: la simulación, el servidor, la IA y los datos siguen siendo
+los de Python, y el cliente de pygame se mantiene hasta que el nuevo lo iguale.
+El plan va por fases: 1) cabeza de puente (red, diorama, tropas, selección,
+órdenes y escaramuza: hecha); 2) modelos más ricos, animaciones, efectos,
+niebla y minimapa; 3) toda la tarjeta, menús, campaña, multijugador, archivo y
+sonido; 4) ejecutables para Windows, macOS y Linux con el servidor adentro.
+
+```
+godot/
+├── project.godot          escena inicial, autocarga «Juego», ventana, sombras
+├── datos/catalogo.json    catálogo en el orden de la red (lo genera herramientas/exportar_godot.py)
+├── codigo/
+│   ├── juego.gd           autocarga: catálogo, carpetas, fuentes, tema, conexión y servidor privado
+│   ├── red/               protocolo.gd (largo + formato + JSON/zlib), conexion.gd (TCP sin bloquear),
+│   │                      servidor_local.gd (lanza «python -m salitre --servidor --local --padre PID»)
+│   ├── datos/catalogo.gd  tipos por índice de red, banderas, uniformes, costos con las ventajas de cada nación
+│   ├── batalla/           estado.gd (espejo con interpolación y fantasmas), vision.gd (niebla, igual a
+│   │                      sim/vision.py), batalla.gd (la escena: eventos, órdenes, selección, obras)
+│   ├── mundo/             terreno.gd, modelos.gd, tropas.gd, efectos.gd, camara_rts.gd, ambiente.gd
+│   └── ui/                tema.gd, hud.gd (panel de mando), tarjeta.gd (puerto de cliente/juego/tarjeta.py), menu.gd
+├── escenas/               menu.tscn y batalla.tscn (un nodo con su guion)
+├── sombreadores/          terreno, agua y modelos (colores en los vértices y niebla de guerra)
+└── pruebas/               correr.gd (pruebas sin pantalla) y vitrina.gd (capturas de los modelos)
+```
+
+- **Mismo catálogo, misma huella.** El servidor manda los tipos por su índice;
+  `herramientas/exportar_godot.py` vuelca para Godot los tipos en ese orden
+  (con armas, formas, uniformes, costos y requisitos), la huella, las banderas
+  de la instantánea, los colores y los textos. `tests/test_godot.py` exige que
+  `godot/datos/catalogo.json` esté al día.
+- **Servidor privado.** `python -m salitre --servidor --local --puerto N
+  --padre PID` escucha solo en `127.0.0.1`, guarda en `local.db` y todas las
+  repeticiones, y vigila cada segundo que siga vivo el proceso del juego (en
+  Windows, con `OpenProcess`/`WaitForSingleObject`): si el juego se cierra,
+  aun de golpe, el servidor también. El cliente elige un puerto libre, lanza el
+  servidor (el ejecutable empaquetado si existe, si no Python con
+  `PYTHONPATH=rts/`) y reintenta la conexión mientras arranca.
+- **El mundo en 3D.** Una casilla mide una unidad (x al este, z al sur); un
+  píxel del juego es 1/32. Cada nivel de altura sube 0,8; las rampas se
+  alisan con una relajación de Jacobi entre los niveles que unen; los
+  roqueríos son lomas que suben con las casillas de roca vecinas; las
+  quebradas se hunden y el mar queda bajo un plano de agua. Donde dos
+  casillas no coinciden se levanta una pared, y el borde baja hasta la base
+  del diorama, con su marco y la mesa de guerra. La malla va por trozos de
+  32×32 casillas, con el color de cada esquina fundido entre vecinas y los
+  pesos del salar y la pampa para que sus texturas (grietas de la costra,
+  matas secas) no tengan bordes de casilla.
+- **Modelos por código.** `modelos.gd` arma cada figura con piezas simples
+  (cajas, cilindros, esferas bajas, techos) con caras planas y el color en los
+  vértices, como soldaditos de plomo pintados, sobre una peana del color del
+  jugador. Hay infantes (con los rasgos de cada arma), jinetes, piezas de
+  artillería con su sirviente, carros, camilleros, buques, las dieciséis obras,
+  el andamio de las obras, yacimientos, minas, heridos, el tren y la carreta.
+  Se guardan en caché por forma, nación y color; todas usan un solo material.
+  Se dibujan más grandes que el natural (×1,45 la tropa a pie), siempre dentro
+  del radio que les da la simulación.
+- **Niebla.** El cliente calcula la visibilidad con las mismas reglas que el
+  servidor (incluido el redondeo de Python en los radios) y la sube a una
+  textura de una casilla por píxel (visible, explorada, desconocida) que leen
+  los sombreadores del terreno, del agua y de los modelos: lo recordado bajo
+  la niebla se ve en penumbra. Una prueba compara casilla por casilla la
+  niebla de Godot con la de `sim/vision.py`.
+- **Selección y órdenes.** Un rayo desde la cámara recorre el relieve
+  (`Terreno.interseccion`) para saber qué punto del suelo hay bajo el ratón;
+  las tropas se eligen en la pantalla por su proyección, y los edificios y
+  yacimientos por su planta. Las órdenes son los mismos comandos del cliente de
+  Python (`inteligente`, `mover`, `atacar`, `construir`…), con las posiciones
+  en píxeles del juego; el lugar de las obras se valida como en `_lugar_obra`.
+- **Efectos**: fogonazos y nubes de pólvora negra, granadas en vuelo con su
+  parábola, explosiones con cráter, polvo, bajas que quedan tendidas y se
+  hunden, sangre, curaciones y letreros (el $ de la venta, los galones).
+
 ## Rendimiento medido
 
 - Simulación: batalla de 320 unidades, 3 ms por tick en promedio (el presupuesto
@@ -353,8 +432,18 @@ ficticio de SDL):
   serie desde el salón); el submenú de formaciones, la ficha de la tropa sin
   agua, la carreta de agua, los avisos de sed y de golpe de calor y el viento.
 
+- **cliente 3D** (`tests/test_godot.py`): el catálogo de Godot al día y en el
+  orden de la red, y el servidor privado que se cierra con el juego; con
+  `SALITRE_GODOT`, además, las pruebas del propio cliente
+  (`godot/pruebas/correr.gd`: protocolo y zlib de Python, lector por trozos,
+  niebla, espejo, terreno, tarjeta, modelos y costos), la niebla de Godot
+  comparada con la del servidor y la **prueba de humo** de punta a punta: menú,
+  servidor privado, partida rápida contra la IA, trabajadores que marchan, el
+  cuartel que forma un trabajador y lo cancela, y un depósito en obra.
+
 La integración continua (`.github/workflows/rts.yml`) corre las pruebas en Linux,
-Windows y macOS, construye el instalador de Windows con una prueba de humo del
+Windows y macOS, prueba el cliente 3D con Godot 4.7.2 (y guarda una captura de
+la batalla, dibujada por software), construye el instalador de Windows con una prueba de humo del
 ejecutable, la aplicación para macOS (universal: Intel y Apple Silicon, probada
 desde el `.dmg` en ambas arquitecturas cuando el equipo tiene Rosetta 2), la
 versión portátil para Linux y la imagen Docker del servidor.

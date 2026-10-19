@@ -52,8 +52,8 @@ static func crear(ambiente: String, w: int, h: int) -> Node3D:
 	sol.light_energy = 1.0
 	sol.shadow_enabled = true
 	sol.shadow_blur = 1.2
-	sol.directional_shadow_max_distance = 70.0
-	sol.directional_shadow_mode = DirectionalLight3D.SHADOW_PARALLEL_4_SPLITS
+	sol.directional_shadow_max_distance = 60.0
+	sol.directional_shadow_mode = DirectionalLight3D.SHADOW_PARALLEL_2_SPLITS
 	sol.rotation_degrees = Vector3(-48, -35, 0)
 	raiz.add_child(sol)
 

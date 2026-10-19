@@ -21,6 +21,9 @@ var inicio: Dictionary = {}         # mensaje "inicio" de la batalla en curso
 var bienvenida: Dictionary = {}
 var prueba_humo := false            # recorrido automático de punta a punta (pruebas e integración continua)
 var mapa_prueba := "pampa_del_tamarugal"
+var repeticion := ""                # --repeticion=nombre: ver esa repetición al abrir el juego
+var captura := ""                   # --captura=ruta.png: guardar una imagen (prueba de humo o repetición)
+var captura_en := 0.0               # --captura-en=segundos: momento de la repetición que se captura
 
 
 func _ready() -> void:
@@ -34,6 +37,12 @@ func _ready() -> void:
 	for a in args:
 		if a.begins_with("--mapa="):
 			mapa_prueba = a.trim_prefix("--mapa=")
+		elif a.begins_with("--repeticion="):
+			repeticion = a.trim_prefix("--repeticion=")
+		elif a.begins_with("--captura="):
+			captura = a.trim_prefix("--captura=")
+		elif a.begins_with("--captura-en="):
+			captura_en = float(a.trim_prefix("--captura-en="))
 	get_tree().set_auto_accept_quit(false)
 
 

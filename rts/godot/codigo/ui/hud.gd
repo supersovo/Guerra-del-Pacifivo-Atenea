@@ -199,9 +199,14 @@ func _sobre(i: int) -> void:
 
 ## Pone al día la franja superior, la tarjeta, el parte, los avisos y el lienzo.
 func actualizar(est, seleccion: Array, slots: Array, modo: Variant) -> void:
-	lbl_dinero.text = "$ %d" % est.dinero
-	lbl_agua.text = "Agua %d" % est.agua
-	lbl_pob.text = "Tropa %d/%d" % [est.pob, est.pob_max]
+	if est.espectador:
+		lbl_dinero.text = "Repetición" if Juego.inicio.get("repeticion") else "Espectador"
+		lbl_agua.text = ""
+		lbl_pob.text = ""
+	else:
+		lbl_dinero.text = "$ %d" % est.dinero
+		lbl_agua.text = "Agua %d" % est.agua
+		lbl_pob.text = "Tropa %d/%d" % [est.pob, est.pob_max]
 	var seg := int(est.tick / 16)
 	lbl_reloj.text = "%02d:%02d" % [seg / 60, seg % 60]
 	var fuerza := int(est.viento[1])

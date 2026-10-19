@@ -39,7 +39,7 @@ const VIDRIO := Color8(48, 54, 62)
 const SACO := Color8(176, 150, 104)
 const TIERRA := Color8(150, 116, 80)
 const CALICHE := Color8(238, 234, 222)
-const AGUA := Color8(64, 128, 170)
+const AGUA := Color8(72, 118, 138)
 const PIEDRA := Color8(150, 136, 118)
 # infantes de línea, con correaje cruzado y mochila
 const DE_LINEA := ["infante", "colorado", "zapador"]

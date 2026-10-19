@@ -53,6 +53,9 @@ var fantasma_obra: MeshInstance3D
 var casillas_obra: MeshInstance3D
 var _mat_casillas: StandardMaterial3D
 var _prueba := {"fase": "esperar", "t": 0.0}
+var velocidad_rep := 1.0
+var _combate: Array = []          # [punto, momento] de los disparos y explosiones recientes
+var _demo := {"fase": "", "t": 0.0}
 
 
 func _ready() -> void:
@@ -87,6 +90,12 @@ func _ready() -> void:
 		hud.mensaje("El cuartel general viene %s." % como, Tema.BRONCE_CLARO, 9.0)
 	if Juego.prueba_humo:
 		print("PRUEBA_HUMO: batalla en %s (%dx%d), jugador %d" % [mapa.get("id"), est.w, est.h, est.yo])
+	if Juego.inicio.get("repeticion"):
+		hud.mensaje("Repetición: + y - cambian la velocidad, P la detiene.", Tema.CREMA, 8.0)
+		if Juego.captura != "":
+			# se adelanta hasta el momento pedido y se captura donde haya combate
+			_demo["fase"] = "adelantar"
+			_vel_rep(8.0)
 
 
 func _preparar_obra() -> void:
@@ -148,6 +157,8 @@ func _process(delta: float) -> void:
 	hud.actualizar(est, seleccion, slots, modo)
 	if Juego.prueba_humo:
 		_prueba_humo(delta)
+	if _demo["fase"] != "":
+		_captura_repeticion(delta)
 
 
 func _mensaje_red(m: Dictionary) -> void:
@@ -258,6 +269,8 @@ func _evento(ev: Array) -> void:
 				var b = est.ents.get(int(ev[6]))
 				if b != null and b.tipo != null:
 					desde = _px(b.x, b.y) + Vector3(randf_range(-0.6, 0.6), 0.5, randf_range(-0.4, 0.4))
+			if o != null:
+				_combate.append([tropas.punto(o), est.reloj()])
 			if desde != null and o != null and tipo != "sable":
 				var hacia: Vector3 = tropas.punto(o)
 				efx.disparo(desde, hacia - desde, tipo)
@@ -283,7 +296,9 @@ func _evento(ev: Array) -> void:
 			if a != null:
 				a.ultimo_disparo = est.reloj()
 		"exp":
-			efx.explosion(_px(float(ev[2]), float(ev[3])), maxf(16.0, float(ev[4])) / 32.0 * 1.4, str(ev[5]))
+			var p := _px(float(ev[2]), float(ev[3]))
+			efx.explosion(p, maxf(16.0, float(ev[4])) / 32.0 * 1.4, str(ev[5]))
+			_combate.append([p, est.reloj()])
 		"mue":
 			var idx := int(ev[3])
 			var dueno := int(ev[4])
@@ -431,6 +446,82 @@ func _evento(ev: Array) -> void:
 		"formacion":
 			var f: Variant = cat.formacion(int(ev[2]))
 			hud.mensaje("Formación: %s (%d)" % [f["nombre"] if f != null else "Sin formación", int(ev[3])], Tema.CREMA, 3.0)
+
+
+func _vel_rep(factor: float) -> void:
+	velocidad_rep = clampf(velocidad_rep * factor, 0.25, 8.0)
+	Juego.conexion.enviar({"t": "velocidad_rep", "valor": velocidad_rep})
+	est.intervalo = 2.0 / (16.0 * velocidad_rep)
+	hud.mensaje("Velocidad ×%s" % str(velocidad_rep), Tema.CREMA, 2.0)
+
+
+## Repetición con --captura: adelanta hasta --captura-en, vuelve a la velocidad normal,
+## centra la cámara donde más se combate y guarda la imagen.
+func _captura_repeticion(delta: float) -> void:
+	_demo["t"] += delta
+	var ahora: float = est.reloj()
+	_demo["aviso"] = float(_demo.get("aviso", 0.0)) + delta
+	if _demo["aviso"] >= 5.0:
+		_demo["aviso"] = 0.0
+		print("Repetición: minuto %.1f, %d figuras, %.0f cuadros por segundo" % [est.tick / 960.0, tropas.nodos.size(),
+				Engine.get_frames_per_second()])
+	match _demo["fase"]:
+		"adelantar":
+			if est.tick >= int(Juego.captura_en * 16.0):
+				velocidad_rep = 2.0
+				_vel_rep(0.5)
+				_demo["fase"] = "mirar"
+				_demo["t"] = 0.0
+		"mirar":
+			if _demo["t"] > 2.5:
+				var foco: Variant = foco_del_combate(4.0)
+				if foco == null:
+					if _demo["t"] > 30.0:
+						_demo["fase"] = "capturar"
+					return
+				camara.centrar(foco, true)
+				camara.distancia = 12.0
+				camara.giro = 0.35
+				_demo["fase"] = "capturar"
+				_demo["t"] = 0.0
+		"capturar":
+			if _demo["t"] > 2.0:
+				if DisplayServer.get_name() != "headless":
+					get_viewport().get_texture().get_image().save_png(Juego.captura)
+					print("Captura en ", Juego.captura)
+				_demo["fase"] = ""
+				Juego.salir(0)
+	if _combate.size() > 400:
+		_combate = _combate.slice(_combate.size() - 400)
+
+
+## Donde más se combatió en los últimos segundos: el disparo o la explosión con más
+## vecinos a menos de 5 casillas, promediado con ellos (null si no hubo combate).
+func foco_del_combate(segundos: float) -> Variant:
+	var ahora: float = est.reloj()
+	var recientes: Array[Vector3] = []
+	for c in _combate:
+		if ahora - float(c[1]) < segundos:
+			recientes.append(c[0])
+	if recientes.is_empty():
+		return null
+	var mejor := recientes[0]
+	var mejor_n := 0
+	for p in recientes:
+		var n := 0
+		for q in recientes:
+			if p.distance_to(q) < 5.0:
+				n += 1
+		if n > mejor_n:
+			mejor_n = n
+			mejor = p
+	var suma := Vector3.ZERO
+	var k := 0
+	for q in recientes:
+		if mejor.distance_to(q) < 5.0:
+			suma += q
+			k += 1
+	return suma / k
 
 
 func _reemplazar(viejo: int, nuevo: int) -> void:
@@ -924,6 +1015,16 @@ func _tecla(ev: InputEventKey) -> void:
 	if k == KEY_HOME:
 		camara.giro = 0.0
 		return
+	if est.espectador and Juego.inicio.get("repeticion"):
+		if k == KEY_EQUAL or k == KEY_PLUS or k == KEY_KP_ADD:
+			_vel_rep(2.0)
+			return
+		if k == KEY_MINUS or k == KEY_KP_SUBTRACT:
+			_vel_rep(0.5)
+			return
+		if k == KEY_P:
+			Juego.conexion.enviar({"t": "pausa"})
+			return
 	if k >= KEY_0 and k <= KEY_9:
 		var n := k - KEY_0
 		if ev.ctrl_pressed:

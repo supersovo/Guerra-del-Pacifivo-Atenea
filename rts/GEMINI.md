@@ -22,8 +22,9 @@ Todas las rutas son relativas a `rts/`, salvo que se indique otra cosa.
 | **Dependencias** | El cliente usa `pygame-ce` 2.x y dibuja con la GPU (`pygame._sdl2.video.Renderer`). La simulación, el servidor y la IA usan **solo la biblioteca estándar**. |
 | **Dónde está** | Todo el juego vive en `rts/`. La raíz del repositorio guarda además **otro proyecto sin relación**: un *shooter* en JavaScript, el «Motor Atenea» (`index.html`, `src/`, `content/`, `tools/`, y los `tests/` y `docs/` de la raíz). Esta guía no lo cubre. |
 | **Tamaño** | Unas 21 200 líneas en `salitre/`: cliente 10 800, simulación 5 600, servidor 1 900, contenido 1 200, IA 1 000, red 580. Además, 2 500 líneas de pruebas y 2 000 de herramientas. |
-| **Cómo se arranca** | `python -m salitre` abre el juego (opciones: `--conectar HOST[:PUERTO]`, `--nombre`, `--version`). `python -m salitre --servidor` arranca el servidor dedicado, con las opciones `--host 0.0.0.0 --puerto 47800 --nombre … --sin-invitados --sin-lan --bd ruta --detallado`. |
-| **Pruebas** | `SDL_VIDEODRIVER=dummy SDL_AUDIODRIVER=dummy python -m pytest -q` corre 77 pruebas en unos 2,7 minutos. La revisión estática es `python -m pyflakes salitre herramientas instalador docker tests`. |
+| **Cómo se arranca** | `python -m salitre` abre el juego (opciones: `--conectar HOST[:PUERTO]`, `--nombre`, `--version`). `python -m salitre --servidor` arranca el servidor dedicado, con las opciones `--host 0.0.0.0 --puerto 47800 --nombre … --sin-invitados --sin-lan --bd ruta --detallado`; con `--local --padre PID` es el servidor privado del cliente 3D. |
+| **Cliente 3D** | `rts/godot/`: un segundo cliente en **Godot 4.7** (GDScript, unas 6 000 líneas), en construcción por fases (§10.1). Usa el mismo servidor, protocolo y datos; se abre con `godot --path godot`. |
+| **Pruebas** | `SDL_VIDEODRIVER=dummy SDL_AUDIODRIVER=dummy python -m pytest -q` corre 83 pruebas en unos 2,7 minutos (3 de ellas necesitan Godot y se omiten sin `SALITRE_GODOT`). La revisión estática es `python -m pyflakes salitre herramientas instalador docker tests`. |
 | **Integración continua** | `.github/workflows/rts.yml`, en la raíz del repositorio: pruebas en Linux, Windows y macOS; instalador de Windows (PyInstaller + Inno Setup); `.app` y `.dmg` universal2; versión portátil para Linux; imagen Docker del servidor. |
 | **Idioma** | Todo en **español**: identificadores, datos, textos, comentarios, documentación y mensajes de commit. Los identificadores van sin tildes ni eñe: `dueno`, `danio`, `tamano`, `campana` (= campaña). |
 
@@ -218,9 +219,12 @@ rts/
 ├── mapas/                        6 mapas JSON (ver §6.7)
 ├── recursos/                     fuentes, ícono, música (.ogg) y voces (.ogg + voces.json); aquí pueden
 │                                 ir gráficos y sonidos propios que reemplazan a los generados
+├── godot/                        cliente 3D en Godot 4 (§10.1): project.godot, datos/catalogo.json (generado),
+│                                 codigo/ (red, datos, batalla, mundo, ui), escenas/, sombreadores/, pruebas/
 ├── herramientas/                 generar_mapas.py, generar_tablas.py (→ docs/TABLAS.md), generar_icono.py,
 │                                 generar_musica.py (numpy + soundfile), generar_voces.py (Kokoro-82M),
-│                                 vista_mapa.py (PNG de cada mapa)
+│                                 vista_mapa.py (PNG de cada mapa), exportar_godot.py (→ godot/datos/
+│                                 catalogo.json), duelo_ia.py (IA contra IA sin red, con repetición)
 ├── instalador/                   salitre.spec (PyInstaller), salitre.iss (Inno Setup), construir.sh (portátil
 │                                 de Linux, lo usa la CI), construir_windows.ps1, construir_mac.sh,
 │                                 lanzar_juego.py / lanzar_servidor.py (puntos de entrada empaquetados)
@@ -871,6 +875,8 @@ Quien los dibuja o los dice es `cliente/escenas/juego.py:Juego._evento`.
 
 En los dos casos, el cliente se conecta a él igual que a uno remoto.
 
+**Servidor privado del cliente 3D** (`python -m salitre --servidor --local --puerto N --padre PID`, en `principal.py`): el mismo modo privado, pero como proceso aparte, porque el cliente de Godot no lleva Python adentro. Escucha en `127.0.0.1`, usa `local.db` y `minimo_registro = 0`, y la tarea `vigilar_padre` comprueba cada segundo con `proceso_vivo(pid)` que el juego siga corriendo (`os.kill(pid, 0)`; en Windows, `OpenProcess` + `WaitForSingleObject`): si terminó, el servidor se cierra.
+
 **Base de datos** (`bd.py`, SQLite en modo WAL)
 - Tablas: `usuarios`, `partidas`, `partida_jugadores`, `configuracion`, `series` y `serie_jugadores`. El esquema lleva versión en `PRAGMA user_version` (`VERSION_ESQUEMA = 2`).
 - Las claves se guardan con PBKDF2-HMAC-SHA256 (120 000 iteraciones y sal aleatoria).
@@ -967,6 +973,26 @@ Ver §14.
 - `local.db` (la base del servidor privado de escaramuzas, campaña y repeticiones) y `servidor.db` (la del servidor dedicado y la del servidor público dentro del juego).
 - Carpetas `repeticiones/`, `registros/` (`cliente.log`, `servidor.log`), `capturas/` y `mapas/`. Los mapas propios de esa carpeta también aparecen en `mapas.listar()`.
 
+### 10.1 Cliente 3D (`rts/godot`)
+
+Proyecto de Godot 4.7 en GDScript que reemplaza solo la parte gráfica. Fases: 1) cabeza de puente: red, diorama, tropas, selección, órdenes, tarjeta, obras y escaramuza (**hecha**); 2) modelos más ricos, animaciones, efectos, niebla y minimapa; 3) toda la tarjeta, menús, campaña, multijugador, archivo y sonido; 4) ejecutables con el servidor adentro. El cliente de pygame sigue siendo el oficial hasta la paridad: **todo cambio de reglas va en Python**, y el cliente 3D solo lo dibuja.
+
+**Arranque.** `Juego` (autocarga, `codigo/juego.gd`) carga `datos/catalogo.json`, las fuentes de `rts/recursos/fuentes/` y el tema. `escenas/menu.tscn` arma el diorama de fondo y la escaramuza; al comenzar, `ServidorLocal.iniciar` lanza el servidor privado (`SALITRE_SERVIDOR` o el `ServidorSalitre` empaquetado; si no, `python -m salitre` con `PYTHONPATH=rts/` y el intérprete de `SALITRE_PYTHON`, `python3`/`python` o, en Windows, `python`/`py -3`), reintenta la conexión, saluda (`hola` con la huella del catálogo), pide `partida_rapida` (o `ver_repeticion`) y con `inicio` pasa a `escenas/batalla.tscn`. Argumentos (después de `--`): `--prueba-humo`, `--mapa=`, `--repeticion=`, `--captura=`, `--captura-en=`.
+
+**Batalla** (`codigo/batalla/batalla.gd`), cada cuadro: mensajes de la red → `Estado.aplicar` → interpolación → niebla (`Estado.actualizar_vision`, como mucho 5 veces por segundo, subida al terreno con `Terreno.actualizar_niebla`) → eventos (`_evento`, puerto del de `escenas/juego.py`) → tarjeta (`Tarjeta.tarjeta`, puerto de `juego/tarjeta.py`, con los botones como diccionarios) → cámara → `Tropas.actualizar` → fantasma de la obra → `Hud.actualizar`.
+
+**Coordenadas.** Una casilla = 1 unidad del mundo; x = px / 32 al este, z = py / 32 al sur; las órdenes viajan en píxeles del juego (`int(p.x * 32)`). Cada nivel sube `Terreno.NIVEL` (0,8). Las unidades miran a +X y giran `-dir · 45°`. La cámara mira desde el sur (giro 0).
+
+**Piezas**
+- `Terreno`: alturas por esquina (rampas alisadas, lomas de roca, quebradas hundidas, mar bajo `NIVEL_AGUA`), paredes entre casillas desparejas, base y marco del diorama, decorados con `MultiMesh`, `altura_en(x, z)` e `interseccion(origen, dir)` (el rayo del ratón).
+- `Modelos`: `Constructor` arma mallas con caras planas y color en los vértices; `unidad()`, `edificio()`, `andamio()`, `salitre()`, `pozo()`, `convoy()`, `caido()`… en caché por forma, nación y color. Un solo `ShaderMaterial` (`modelo.gdshader`) para todos. `escala(tipo)` agranda la tropa (×1,45) dentro del radio de la simulación.
+- `Tropas`: una `MeshInstance3D` por entidad; la vuelve a vestir cuando cambia `_clave(e)` (tipo, dueño, obra, camilla, lo que queda de un yacimiento); el paso de la marcha, el retroceso del disparo, el anillo de selección, `radio()`, `alto()` y `punto()`.
+- `Efectos`: pólvora negra, granadas en vuelo, explosiones, polvo, bajas, sangre, marcas de las órdenes y letreros; a lo sumo 900 vivos.
+- `CamaraRTS`: deslizar, acercar (más cerca, más rasante), girar (Ctrl+rueda, Ctrl+flechas; Inicio vuelve al norte), `rayo(pantalla)` y `a_pantalla(punto)`.
+- `Hud` (`CanvasLayer`): franja superior, parte de la selección, tarjeta de 4×3 con su ayuda, avisos, lienzo (barras de vida, recuadro, punto de reunión) y carteles (fin, menú).
+
+**Pruebas** (§12): `godot/pruebas/correr.gd` (sin pantalla) y `tests/test_godot.py`. `godot/pruebas/vitrina.gd` arma una vitrina con las tropas, las obras o el mapa y guarda una captura (necesita pantalla: Xvfb con `--rendering-method gl_compatibility` sirve).
+
 ---
 
 ## 11. Recetas de campaña: cómo hacer los cambios frecuentes
@@ -975,7 +1001,8 @@ Ver §14.
 1. Cambie los números en `datos/*.json`.
 2. Corra `python -m pytest -q`.
 3. Corra `python herramientas/generar_tablas.py` para regenerar `docs/TABLAS.md`. Es un paso **manual**: ninguna prueba lo comprueba.
-4. Recuerde que el cambio altera la huella: servidor y jugadores deben actualizarse juntos.
+4. Corra `python herramientas/exportar_godot.py` para el catálogo del cliente 3D. Este sí lo vigila una prueba (`test_catalogo_de_godot_al_dia`): con datos nuevos y el catálogo viejo, el servidor rechazaría al cliente 3D por la huella.
+5. Recuerde que el cambio altera la huella: servidor y jugadores deben actualizarse juntos.
 
 Dónde está cada perilla de la 0.13.0: la sed, las formaciones, la dispersión y la cobertura, en `tablas.json` (`sed`, `formaciones`, `balistica`, `cobertura`); el CEP de cada pieza, en su `arma.cep`; la pipa de la carreta, en su `estanque`; las aguadas, en el `abastece` de cada edificio; los observadores, en la pasiva `observador`. Otras perillas están en el código: la fuerza inicial del viento (10 a 60) y su cambio (rumbo ±1, fuerza ±15) en `balistica.nuevo_viento`; la vecindad de la cobertura (la casilla y sus 8 vecinas) en `Mapa.calcular_cobertura`; el tope de −90 % de la velocidad en `comportamiento.velocidad`; el período del reparto del agua (`logistica.PERIODO`); y los umbrales de la IA (10 % de calor y 6 soldados para formar carretas, 25 % y 95 % de la pipa, 3 casillas tras el frente, 6 casillas y 3 s en `_formaciones`).
 
@@ -990,7 +1017,7 @@ Para medir el efecto, deje a la IA contra la IA sin red, como en `test_determini
 
 **Agregar una unidad**
 1. Escriba la entrada en `datos/unidades.json`, sin reordenar las existentes (§2.5). Agréguela al `produce` de su edificio y a `facciones.json`: en `_comunes.unidades` si es común, o en las `unidades` de su nación si es propia.
-2. Dibujo: use una `sprite.forma` existente; o cree una nueva en `cliente/graficos/sprites.py` (agregue la forma a `FORMA_TAM` y la función de dibujo en `Sprites.superficie`); o ponga un PNG en `recursos/graficos/unidades/`.
+2. Dibujo: use una `sprite.forma` existente; o cree una nueva en `cliente/graficos/sprites.py` (agregue la forma a `FORMA_TAM` y la función de dibujo en `Sprites.superficie`); o ponga un PNG en `recursos/graficos/unidades/`. En el cliente 3D, una forma nueva se dibuja como infante hasta que se agregue su rama en `godot/codigo/mundo/modelos.gd` (`unidad()`, y `escala`, `Tropas.radio` y `Tropas.alto` si es un carro, una pieza o un jinete); corra `python herramientas/exportar_godot.py`.
 3. Voces: la prueba `test_voces_de_la_tropa` **exige** que exista `lista_<id>` para toda unidad formable, y `seleccion_<grupo>` y `mover_<grupo>` para su grupo de voces.
    - Para generarlas, agregue las frases en `herramientas/generar_voces.py` (`FRASES`) y corra el script. Necesita `kokoro-onnx`, `soundfile` y los archivos del modelo; están en el comentario inicial del script.
    - Si no puede generarlas, no borre la prueba: dígalo y pida que las generen.
@@ -1000,7 +1027,7 @@ Para medir el efecto, deje a la IA contra la IA sin red, como en `test_determini
 **Agregar un edificio**
 1. Escriba la entrada en `datos/edificios.json`: `tamano`, `menu` y `atajo` libre dentro de su menú.
 2. Agréguelo a `facciones.json`.
-3. Dibújelo en `cliente/graficos/edificios.py` (`dibujar_edificio`, según `sprite.forma`).
+3. Dibújelo en `cliente/graficos/edificios.py` (`dibujar_edificio`, según `sprite.forma`) y, para el cliente 3D, en `godot/codigo/mundo/modelos.gd` (`_obra`, según la forma; sin rama propia sale una casa genérica de su planta).
 4. Si la IA debe construirlo, agréguelo a `ORDEN_CONSTRUCCION`.
 5. Escriba una prueba.
 
@@ -1048,7 +1075,7 @@ python -m pyflakes salitre herramientas instalador docker tests
 python -m pytest -q tests/test_simulacion.py -k camilleros   # una parte
 ```
 
-**Las 77 pruebas, por archivo**
+**Las 83 pruebas, por archivo**
 
 | Archivo | Qué cubre |
 |---|---|
@@ -1057,6 +1084,7 @@ python -m pytest -q tests/test_simulacion.py -k camilleros   # una parte
 | `test_red.py` | Protocolo, huella, cuentas, partida de dos jugadores por TCP con ELO, escaramuza y reconexión, veteranos de la campaña y serie de campaña en red. |
 | `test_cliente.py` | Todas las pantallas, escaramuza, ambulancia en el cliente, formaciones, sed, carreta y viento en el cliente, volumen, casas fuertes, campaña, multijugador completo, clics con la ventana agrandada (eventos nativos de SDL), uniformes, voces, cámara por el borde. |
 | `test_empaquetado.py` | Ícono de macOS. |
+| `test_godot.py` | Cliente 3D: el catálogo de Godot al día y en el orden de la red, el servidor privado que se cierra con el juego; con `SALITRE_GODOT`, las 211 comprobaciones de `godot/pruebas/correr.gd`, la niebla de Godot comparada casilla por casilla con `sim/vision.py`, y la prueba de humo de punta a punta (menú, servidor privado, escaramuza, marcha, formar y cancelar, depósito en obra). |
 
 **Ayudas para escribir pruebas** (`tests/utilidades.py`)
 - `cat()` carga el catálogo.
@@ -1090,8 +1118,17 @@ def test_infante_abate_a_un_enemigo():
 - Peor caso medido: 40 infantes enviados a un rincón cercado por obras dan un máximo de unos 30 ms por tick.
 - Las pruebas más lentas son las de red y las de cliente, porque juegan partidas reales por TCP o recorren pantallas con el controlador de video ficticio. La más larga, `test_partida_entre_dos_jugadores`, tarda unos 23 s. Para iterar rápido, corra solo `tests/test_simulacion.py`.
 
+**Cliente 3D**
+```sh
+SALITRE_GODOT=/ruta/Godot_v4.7.2-stable_linux.x86_64 python -m pytest -v tests/test_godot.py
+godot --headless --path godot -s res://pruebas/correr.gd      # solo las pruebas del cliente
+godot --path godot -- --prueba-humo --captura=/tmp/batalla.png  # la prueba de humo, con una imagen
+python herramientas/duelo_ia.py --nombre duelo && godot --path godot -- --repeticion=duelo
+```
+Un error de sintaxis o de tipos de GDScript aparece recién al cargar el guion (§13, trampa 19): después de tocar el cliente 3D, corra al menos la prueba de humo.
+
 **Integración continua**
-- Cada push a cualquier rama que toque `rts/**` corre las pruebas en tres sistemas operativos y construye el instalador de Windows (con prueba de humo `--prueba-humo` del `.exe`), la `.app`/`.dmg`, la versión portátil de Linux y la imagen Docker (probada con `docker/probar_servidor.py`).
+- Cada push a cualquier rama que toque `rts/**` corre las pruebas en tres sistemas operativos, prueba el cliente 3D con Godot 4.7.2 en Linux (y guarda una captura de la batalla dibujada por software como artefacto `captura-cliente-godot`) y construye el instalador de Windows (con prueba de humo `--prueba-humo` del `.exe`), la `.app`/`.dmg`, la versión portátil de Linux y la imagen Docker (probada con `docker/probar_servidor.py`).
 - A pedido (*Run workflow*), guarda el `.exe` y el `.dmg` en `rts/descargas/`; ese commit lo hace el bot de la CI en la rama.
 
 ---
@@ -1125,6 +1162,11 @@ def test_infante_abate_a_un_enemigo():
 16. **`Mundo.calor` y `Mapa.cobertura` se calculan al crear el mundo.** Si alguna vez el terreno cambia durante la partida, habrá que recalcularlos. El `Mapa` del cliente de pygame no la calcula (la tiene en ceros): para dibujar el refugio o la sombra en el cliente, calcúlela allí con `cat.cobertura`. Hoy el cliente solo lee las banderas `F_COBERTURA` y `F_SOMBRA`.
 17. **El agua se reparte cada 8 ticks.** `logistica.PERIODO` (8) multiplica los ritmos por tick de las aguadas y las carretas, y debe coincidir con el `t % 8` de `Mundo.paso`: si cambia uno, cambie el otro.
 18. **La carreta de agua es clase `artilleria` y categoría `logistica`**, con `no_adquiere`. No es biológica: no tiene sed, no queda herida, no ofrece «Replegar» y recibe los multiplicadores de daño de la artillería.
+19. **GDScript infiere tipos al compilar el guion, no antes.** `var x := e.vida` falla («Cannot infer the type») si `e` no tiene tipo (las entidades del espejo, `est`, `cat`, los valores de diccionarios): escriba el tipo (`var x: int = …`). El error solo aparece al cargar ese guion, y la escena queda vacía sin otra queja: corra la prueba de humo. `--check-only` no sirve para los guiones que usan la autocarga `Juego` (la da por inexistente).
+20. **Godot toma como cara visible la de vértices en sentido horario.** `Modelos.Constructor.cara` orienta cada polígono solo (hacia afuera de un punto interior); en las mallas armadas a mano (`Terreno._quad`, `_pared`) el orden importa.
+21. **El JSON llega a GDScript con todos los números como `float`.** Convierta con `int()` los ids, los índices de tipo y las banderas antes de compararlos o de usarlos como claves.
+22. **Los radios de la niebla se redondean como en Python** (los empates van al par): `Vision.redondear_par` en el cliente 3D. Con el `round()` de GDScript, un radio de 3,25 marcaría un círculo distinto del del servidor.
+23. **No use `class_name` en el cliente 3D.** Los guiones se cargan con `preload` en constantes, así el proyecto corre sin pasar por el editor (la CI solo hace `--import`).
 
 ---
 
@@ -1171,7 +1213,8 @@ Ordenadas por valor estimado. Cada una indica dónde atacar.
    - Límite de héroes simultáneos.
 8. **Eventos que el cliente no muestra.** La simulación emite `mina`, `golpe`, `embarca`, `desembarca` y `fin`, que `Juego._evento` no atiende. Puede ser intencional; revise antes de agregar efectos.
 9. **Formaciones a la vista.** Hoy la formación solo se lee en la ficha (y en el submenú). Dibujarla sobre el terreno (las filas de la línea, el cuadro) ayudaría a leer la batalla; lo mismo la cobertura y la sombra, que el cliente tendría que calcular (§13, trampa 16). Archivos: `cliente/juego/vista.py` y `cliente/graficos/`.
-10. **Dispersión de los cañones navales y de la Gatling.** Solo los cañones de montaña y de campaña tienen `cep`. Los buques podrían dispersar con el balanceo: como sus cañones tienen `proyectil`, basta con agregarles `cep`. La Gatling dispara al instante (metralla, sin `proyectil`): solo con `cep`, el catálogo no carga; habría que darle `proyectil`, que cambia su fuego, o dispersar los tiros instantáneos en `combate.disparar`.
+10. **Cliente 3D, fases 2 a 4** (§10.1). Para la fase 2: dibujar todas las figuras de un mismo modelo con `MultiMesh` (hoy cada entidad es un nodo; con dibujo por software se cae a 3 cuadros por segundo con 180 figuras), animaciones de marcha y de fuego, la guarnición a la vista, la formación sobre el terreno, el minimapa y la niebla con bordes más suaves.
+11. **Dispersión de los cañones navales y de la Gatling.** Solo los cañones de montaña y de campaña tienen `cep`. Los buques podrían dispersar con el balanceo: como sus cañones tienen `proyectil`, basta con agregarles `cep`. La Gatling dispara al instante (metralla, sin `proyectil`): solo con `cep`, el catálogo no carga; habría que darle `proyectil`, que cambia su fuego, o dispersar los tiros instantáneos en `combate.disparar`.
 
 ---
 

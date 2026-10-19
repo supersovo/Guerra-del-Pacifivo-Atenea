@@ -36,8 +36,11 @@ func configurar(terreno, w: float, h: float) -> void:
 	alto = h
 
 
+## Centra la vista en p. El panel de abajo tapa la parte baja de la pantalla: el punto se
+## deja un poco más arriba del centro, en el medio de lo que queda a la vista.
 func centrar(p: Vector3, inmediato := false) -> void:
-	objetivo = Vector3(p.x, 0, p.z)
+	var adelante := Vector3(-sin(giro), 0, -cos(giro))
+	objetivo = Vector3(p.x, 0, p.z) - adelante * distancia * 0.09
 	_limitar()
 	if inmediato:
 		_obj = objetivo

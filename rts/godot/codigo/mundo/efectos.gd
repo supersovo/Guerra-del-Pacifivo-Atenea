@@ -10,7 +10,9 @@ const MAX_EFECTOS := 900
 var sangre := true
 var _vivos: Array = []          # [nodo, edad, vida, tipo, datos]
 var _esfera: SphereMesh
+var _cuadro: QuadMesh
 var _mat := {}
+const NUBES := ["humo", "humo_oscuro", "polvo", "fuego", "fogonazo"]
 
 
 func _ready() -> void:
@@ -20,32 +22,55 @@ func _ready() -> void:
 	_esfera.height = 2.0
 	_esfera.radial_segments = 8
 	_esfera.rings = 4
-	_mat["humo"] = _material(Color8(236, 232, 224), false)
-	_mat["humo_oscuro"] = _material(Color8(70, 64, 58), false)
-	_mat["polvo"] = _material(Color8(196, 170, 128), false)
-	_mat["fuego"] = _material(Color8(255, 196, 90), true)
-	_mat["fogonazo"] = _material(Color8(255, 236, 160), true)
-	_mat["bala"] = _material(Color8(30, 28, 26), false, false)
-	_mat["dinamita"] = _material(Color8(198, 42, 34), false, false)
+	_cuadro = QuadMesh.new()
+	_cuadro.size = Vector2(2, 2)
+	# el humo, el polvo y el fuego son nubes de bordes suaves que miran siempre a la cámara
+	var degradado := Gradient.new()
+	degradado.set_color(0, Color(1, 1, 1, 1))
+	degradado.set_color(1, Color(1, 1, 1, 0))
+	degradado.add_point(0.45, Color(1, 1, 1, 0.7))
+	var nube := GradientTexture2D.new()
+	nube.gradient = degradado
+	nube.fill = GradientTexture2D.FILL_RADIAL
+	nube.fill_from = Vector2(0.5, 0.5)
+	nube.fill_to = Vector2(0.5, 0.0)
+	nube.width = 64
+	nube.height = 64
+	_mat["humo"] = _material_nube(nube, Color(0.93, 0.92, 0.89, 0.8), false)
+	_mat["humo_oscuro"] = _material_nube(nube, Color(0.32, 0.29, 0.26, 0.75), false)
+	_mat["polvo"] = _material_nube(nube, Color(0.77, 0.67, 0.5, 0.7), false)
+	_mat["fuego"] = _material_nube(nube, Color(1.0, 0.72, 0.32, 1.0), true)
+	_mat["fogonazo"] = _material_nube(nube, Color(1.0, 0.9, 0.6, 1.0), true)
+	_mat["bala"] = _material(Color8(30, 28, 26))
+	_mat["dinamita"] = _material(Color8(198, 42, 34))
+	_mat["tierra"] = _material(Color8(120, 96, 70))
 
 
-func _material(color: Color, brilla: bool, transparente := true) -> StandardMaterial3D:
+func _material(color: Color) -> StandardMaterial3D:
 	var m := StandardMaterial3D.new()
 	m.albedo_color = color
 	m.roughness = 1.0
-	if transparente:
-		m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	return m
+
+
+func _material_nube(textura: Texture2D, color: Color, brilla: bool) -> StandardMaterial3D:
+	var m := StandardMaterial3D.new()
+	m.albedo_texture = textura
+	m.albedo_color = color
+	m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	m.billboard_mode = BaseMaterial3D.BILLBOARD_ENABLED
+	m.billboard_keep_scale = true
+	m.cull_mode = BaseMaterial3D.CULL_DISABLED
+	m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	if brilla:
-		m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-		m.emission_enabled = true
-		m.emission = color
-		m.emission_energy_multiplier = 2.0
+		m.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
 	return m
 
 
 func _bola(tipo_mat: String, pos: Vector3, radio: float) -> MeshInstance3D:
 	var mi := MeshInstance3D.new()
-	mi.mesh = _esfera
+	mi.mesh = _cuadro if tipo_mat in NUBES else _esfera
 	mi.material_override = _mat[tipo_mat]
 	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	mi.position = pos
@@ -69,18 +94,18 @@ func disparo(desde: Vector3, dir: Vector3, tipo: String) -> void:
 	var d := dir.normalized() if dir.length() > 0.001 else Vector3.RIGHT
 	var boca := desde + Vector3(0, 0.42, 0) + d * 0.22
 	var grande := tipo in ["explosivo", "canon_naval"]
-	_agregar(_bola("fogonazo", boca, 0.09 if not grande else 0.22), 0.09, "destello")
-	var n := 1 if not grande else 4
+	_agregar(_bola("fogonazo", boca, 0.07 if not grande else 0.16), 0.08, "destello")
+	var n := 1 if not grande else 3
 	for k in n:
-		var p := boca + d * (0.05 + 0.12 * k) + Vector3(randf_range(-0.05, 0.05), randf_range(0.0, 0.06), randf_range(-0.05, 0.05))
-		var r := randf_range(0.08, 0.12) * (1.0 if not grande else 2.4)
-		_agregar(_bola("humo", p, r), randf_range(1.4, 2.2) * (1.0 if not grande else 1.6), "humo",
-				{"crece": r * 2.6, "sube": 0.18, "deriva": d * 0.08})
+		var p := boca + d * (0.04 + 0.1 * k) + Vector3(randf_range(-0.04, 0.04), randf_range(0.0, 0.05), randf_range(-0.04, 0.04))
+		var r := randf_range(0.05, 0.08) * (1.0 if not grande else 2.0)
+		_agregar(_bola("humo", p, r), randf_range(1.1, 1.7) * (1.0 if not grande else 1.4), "humo",
+				{"crece": r * 1.8, "sube": 0.16, "deriva": d * 0.06})
 
 
 ## Impacto de una bala (polvillo).
 func impacto(pos: Vector3) -> void:
-	_agregar(_bola("polvo", pos + Vector3(0, 0.05, 0), 0.04), 0.5, "humo", {"crece": 0.12, "sube": 0.1})
+	_agregar(_bola("polvo", pos + Vector3(0, 0.04, 0), 0.03), 0.45, "humo", {"crece": 0.07, "sube": 0.1})
 
 
 ## Granada o bala de cañón en vuelo (parábola de 'dur' segundos).
@@ -92,21 +117,21 @@ func lanzar(desde: Vector3, hasta: Vector3, dur: float, tipo: String) -> void:
 
 
 func explosion(pos: Vector3, radio: float, tipo := "") -> void:
-	var r := clampf(radio, 0.4, 3.0)
-	_agregar(_bola("fuego", pos + Vector3(0, 0.15, 0), r * 0.45), 0.25, "destello")
-	for k in 6:
-		var p := pos + Vector3(randf_range(-r, r) * 0.4, randf_range(0.0, 0.3), randf_range(-r, r) * 0.4)
-		_agregar(_bola("humo_oscuro" if k % 2 == 0 else "polvo", p, r * randf_range(0.2, 0.35)), randf_range(1.6, 3.0), "humo",
-				{"crece": r * 0.9, "sube": 0.35})
+	var r := clampf(radio, 0.3, 2.0)
+	_agregar(_bola("fuego", pos + Vector3(0, 0.15, 0), r * 0.35), 0.22, "destello")
+	for k in 4:
+		var p := pos + Vector3(randf_range(-r, r) * 0.25, randf_range(0.05, 0.25), randf_range(-r, r) * 0.25)
+		_agregar(_bola("humo_oscuro" if k % 2 == 0 else "polvo", p, r * randf_range(0.14, 0.22)), randf_range(1.6, 2.6), "humo",
+				{"crece": r * 0.35, "sube": 0.3})
 	# tierra levantada
 	for k in 8:
 		var a := TAU * k / 8.0
-		var p := pos + Vector3(cos(a), 0, sin(a)) * r * 0.25
-		_agregar(_bola("polvo", p, 0.05), 0.7, "chispa", {"vel": Vector3(cos(a) * 1.4, randf_range(1.5, 2.6), sin(a) * 1.4) * r * 0.8})
+		var p := pos + Vector3(cos(a), 0, sin(a)) * r * 0.2
+		_agregar(_bola("tierra", p, 0.03), 0.6, "chispa", {"vel": Vector3(cos(a) * 1.2, randf_range(1.4, 2.4), sin(a) * 1.2) * r * 0.7})
 	var crater := MeshInstance3D.new()
-	crater.mesh = Modelos.mancha(Color(0.2, 0.16, 0.12, 0.7))
+	crater.mesh = Modelos.mancha(Color(0.3, 0.24, 0.18, 0.55))
 	crater.position = pos + Vector3(0, 0.025, 0)
-	crater.scale = Vector3(r * 0.45, 1, r * 0.45)
+	crater.scale = Vector3(r * 0.22, 1, r * 0.22)
 	crater.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	add_child(crater)
 	_agregar(crater, 30.0, "mancha")
@@ -194,11 +219,11 @@ func _process(delta: float) -> void:
 				var r0: float = nodo.get_meta("r0", nodo.scale.x)
 				nodo.set_meta("r0", r0)
 				var r := r0 + crece * (1.0 - pow(1.0 - f, 2.0))
-				nodo.scale = Vector3(r, r * 0.85, r)
+				nodo.scale = Vector3(r, r, r)
 				nodo.position.y += float(datos.get("sube", 0.1)) * delta
 				if datos.has("deriva"):
 					nodo.position += (datos["deriva"] as Vector3) * delta * (1.0 - f)
-				(nodo as GeometryInstance3D).transparency = 0.25 + 0.75 * f * f
+				(nodo as GeometryInstance3D).transparency = 0.15 + 0.85 * f
 			"vuelo":
 				var a: Vector3 = datos["desde"]
 				var b: Vector3 = datos["hasta"]

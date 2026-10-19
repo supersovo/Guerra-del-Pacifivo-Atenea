@@ -75,6 +75,26 @@ python -m salitre                 # el juego
 python -m salitre --servidor      # el servidor dedicado (no necesita pygame)
 ```
 
+**Cliente 3D (en desarrollo).** En `rts/godot/` está el nuevo cliente con
+gráficos 3D hecho con [Godot 4](https://godotengine.org): el campo de batalla es
+un diorama sobre la mesa de guerra, con relieve, luz del sol y sombras, y las
+tropas y las obras modeladas en 3D con los uniformes de cada nación. Usa el
+mismo servidor, la misma simulación, la misma IA y los mismos datos que el
+juego de siempre, que sigue disponible hasta que el nuevo cliente lo iguale.
+Por ahora ofrece la escaramuza contra la IA y ver repeticiones. Para probarlo
+desde el código fuente hacen falta Godot 4.7 (o más nuevo) y Python 3.11:
+
+```sh
+cd rts
+godot --path godot                               # o abra godot/project.godot en el editor y pulse F5
+godot --path godot -- --repeticion=NOMBRE        # ver una repetición guardada
+```
+
+El cliente 3D lanza por su cuenta el servidor del juego (`python -m salitre
+--servidor --local`) con el Python del sistema (`python3`; en Windows, `python`
+o `py`); para usar otro, indíquelo en la variable `SALITRE_PYTHON`. Ese
+servidor escucha solo en el propio equipo y se cierra junto con el juego.
+
 Los datos de cada jugador (configuración, perfil, repeticiones, capturas y
 registros) se guardan en `%APPDATA%\GuerraDelPacifico` en Windows, en
 `~/Library/Application Support/GuerraDelPacifico` en macOS y en
@@ -442,6 +462,7 @@ rts/
 │   ├── red/              protocolo e instantáneas
 │   ├── servidor/         backend: cuentas, salas, partidas, series de campaña, base de datos, repeticiones
 │   └── cliente/          frontend: menús, campaña, salón, sala de espera y campo de batalla
+├── godot/                cliente 3D en Godot 4 (en desarrollo): diorama, modelos, sombreadores y pruebas
 ├── datos/                unidades, edificios, mejoras, habilidades, naciones, tablas (con la veteranía),
 │                         campañas y nombres del escalafón (JSON)
 ├── mapas/                los seis campos de batalla (JSON)
@@ -474,8 +495,18 @@ python -m pyflakes salitre herramientas instalador tests
 python herramientas/generar_mapas.py      # vuelve a generar los mapas
 python herramientas/generar_tablas.py     # actualiza docs/TABLAS.md
 python herramientas/generar_icono.py      # vuelve a dibujar el ícono
+python herramientas/exportar_godot.py     # catálogo del cliente 3D (después de tocar datos/)
+python herramientas/duelo_ia.py --mapa quebrada_de_tarapaca --nombre duelo   # IA contra IA, con repetición
 pyinstaller --noconfirm instalador/salitre.spec   # ejecutables en dist/
 ```
+
+Las pruebas del cliente 3D corren con el resto; las que necesitan Godot (las
+del propio cliente, la niebla comparada con la del servidor y una prueba de
+humo de punta a punta contra el servidor real) se activan indicando el
+ejecutable: `SALITRE_GODOT=/ruta/a/Godot_v4.7.2 python -m pytest tests/test_godot.py`.
+`godot --path godot -s res://pruebas/vitrina.gd -- --vista=tropas` arma una
+vitrina con las tropas (o `--vista=obras`, `--vista=mapa`) para revisar los
+modelos.
 
 Las voces de `recursos/sonidos/voces/` se generan sin conexión con
 `herramientas/generar_voces.py` (modelo Kokoro-82M; las instrucciones están al
@@ -495,7 +526,7 @@ python.org sirve para Intel y Apple Silicon).
 - [Diseño del juego](docs/DISENO.md): las decisiones y el equilibrio.
 - [Tablas](docs/TABLAS.md): todas las cifras.
 - [Arquitectura](docs/ARQUITECTURA.md): servidor autoritativo, simulación
-  determinista, red y base de datos.
+  determinista, red, base de datos y los dos clientes (pygame y el 3D de Godot).
 - [Multijugador](docs/MULTIJUGADOR.md): cómo jugar con los compañeros.
 - [Recomendaciones](docs/RECOMENDACIONES.md): próximos pasos y uso como material
   de estudio de ciencias militares.
