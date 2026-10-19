@@ -14,3 +14,7 @@ rts/mapas/vistas/
 # Instalador
 rts/instalador/version_windows.txt
 rts/instalador/Salida/
+
+# Cliente de Godot: caché del editor y exportaciones
+rts/godot/.godot/
+rts/godot/exportado/

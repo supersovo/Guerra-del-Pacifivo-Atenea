@@ -1,5 +1,6 @@
 # Integración continua del RTS «Guerra del Pacífico: Salitre y Pólvora» (carpeta rts/).
 # - Pruebas en Linux, Windows y macOS (simulación, red, servidor y cliente sin pantalla).
+# - Cliente 3D de Godot: pruebas, prueba de humo contra el servidor real y una captura.
 # - Instalador de Windows (PyInstaller + Inno Setup) con prueba de humo del .exe.
 # - Aplicación para macOS (Intel y Apple Silicon) en un .dmg, con prueba de humo.
 # - Versión portátil para Linux e imagen Docker del servidor dedicado.
@@ -61,6 +62,48 @@ jobs:
         run: python -m pyflakes salitre herramientas instalador docker tests
       - name: Pruebas
         run: python -m pytest -q
+
+  godot:
+    name: Cliente 3D (Godot)
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    defaults:
+      run:
+        working-directory: rts
+    env:
+      GODOT_VERSION: "4.7.2"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+          cache-dependency-path: rts/requirements-dev.txt
+      - name: Dependencias
+        run: python -m pip install -r requirements-dev.txt
+      - name: Godot ${{ env.GODOT_VERSION }}
+        run: |
+          curl -sSfL -o "$RUNNER_TEMP/godot.zip" \
+            "https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-stable/Godot_v${GODOT_VERSION}-stable_linux.x86_64.zip"
+          unzip -q "$RUNNER_TEMP/godot.zip" -d "$RUNNER_TEMP/godot"
+          echo "SALITRE_GODOT=$RUNNER_TEMP/godot/Godot_v${GODOT_VERSION}-stable_linux.x86_64" >> "$GITHUB_ENV"
+      - name: Pruebas del cliente (catálogo, niebla, servidor privado y prueba de humo)
+        run: python -m pytest -v tests/test_godot.py
+      - name: Captura de una batalla (Xvfb y render por software)
+        continue-on-error: true
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y -q xvfb libgl1-mesa-dri
+          SALITRE_PYTHON="$(which python)" SALITRE_DATOS_USUARIO="$RUNNER_TEMP/datos" \
+            xvfb-run -a -s "-screen 0 1280x720x24" "$SALITRE_GODOT" --rendering-method gl_compatibility \
+            --rendering-driver opengl3 --path godot --resolution 1280x720 \
+            -- --prueba-humo --captura="$RUNNER_TEMP/batalla.png"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: captura-cliente-godot
+          path: ${{ runner.temp }}/batalla.png
+          if-no-files-found: ignore
 
   windows:
     name: Instalador de Windows
