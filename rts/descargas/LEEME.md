@@ -1,11 +1,18 @@
 # Descargas
 
-Aquí quedan el instalador de Windows (`GuerraDelPacifico-<versión>-Instalador.exe`)
-y la aplicación para macOS (`GuerraDelPacifico-<versión>-macOS.dmg`) cuando se
-ejecuta el flujo «RTS Salitre y Pólvora» de GitHub Actions con las opciones
-**Guardar el instalador de Windows en rts/descargas/** o **Guardar la aplicación
-para macOS (.dmg) en rts/descargas/** (pestaña *Actions* → *RTS Salitre y
-Pólvora* → *Run workflow*).
+Aquí quedan el instalador de Windows (`GuerraDelPacifico-<versión>-Instalador.exe`),
+la aplicación para macOS (`GuerraDelPacifico-<versión>-macOS.dmg`) y la versión
+para Linux (`GuerraDelPacifico-<versión>-linux.tar.gz`) cuando se ejecuta el flujo
+«RTS Salitre y Pólvora» de GitHub Actions con las opciones **Guardar el instalador
+de Windows en rts/descargas/**, **Guardar la aplicación para macOS (.dmg) en
+rts/descargas/** o **Guardar la versión portátil para Linux (.tar.gz) en
+rts/descargas/** (pestaña *Actions* → *RTS Salitre y Pólvora* → *Run workflow*).
+
+Cada uno trae **dos clientes** y el servidor dedicado, sin necesidad de instalar
+Python: el **juego** (el cliente 3D, con el campo de batalla como un diorama) y la
+**versión clásica**, dibujada en dos dimensiones y más liviana, para los equipos
+sin tarjeta de video. El cliente 3D pide una tarjeta de video compatible con
+Vulkan, Direct3D 12, Metal u OpenGL 3.3.
 
 ## Windows: descargarlo sin que el navegador lo bloquee
 
@@ -14,7 +21,7 @@ evitarlo, descárguelo con PowerShell (tecla Windows → escriba *PowerShell* �
 Intro) y pegue:
 
 ```powershell
-curl.exe -L -o "$env:USERPROFILE\Downloads\GuerraDelPacifico-0.13.0-Instalador.exe" https://raw.githubusercontent.com/supersovo/Guerra-del-Pacifivo-Atenea/refs/heads/claude/friendly-keller-8ieqfo/rts/descargas/GuerraDelPacifico-0.13.0-Instalador.exe
+curl.exe -L -o "$env:USERPROFILE\Downloads\GuerraDelPacifico-0.14.0-Instalador.exe" https://raw.githubusercontent.com/supersovo/Guerra-del-Pacifivo-Atenea/refs/heads/claude/friendly-keller-8ieqfo/rts/descargas/GuerraDelPacifico-0.14.0-Instalador.exe
 ```
 
 El instalador queda en la carpeta *Descargas*. Si la rama ya se fusionó, cambie
@@ -25,23 +32,27 @@ raw file*), con GitHub Desktop o con `git clone`.
 
 Si al abrirlo Windows muestra «Windows protegió su PC», pulse *Más información →
 Ejecutar de todas formas*. Si ya tenía instalada una versión anterior, el
-instalador la actualiza en el mismo lugar y conserva la configuración.
+instalador la actualiza en el mismo lugar y conserva la configuración. En el
+menú de inicio quedan «Guerra del Pacífico» (el cliente 3D), «Guerra del
+Pacífico (versión clásica)» y «Servidor dedicado».
 
 ## macOS: descargarlo con la Terminal
 
-Sirve para Mac con procesador Intel o Apple Silicon (M1 en adelante), con macOS
-10.13 o posterior. Abra la Terminal (*Aplicaciones → Utilidades → Terminal*, o
-⌘ + espacio y escriba *Terminal*) y pegue:
+Sirve para Mac con procesador Intel y macOS 11 o posterior, o con Apple Silicon
+(M1 en adelante) y macOS 13 o posterior. Abra la Terminal (*Aplicaciones →
+Utilidades → Terminal*, o ⌘ + espacio y escriba *Terminal*) y pegue:
 
 ```sh
-curl -L -o ~/Downloads/GuerraDelPacifico-0.13.0-macOS.dmg https://raw.githubusercontent.com/supersovo/Guerra-del-Pacifivo-Atenea/refs/heads/claude/friendly-keller-8ieqfo/rts/descargas/GuerraDelPacifico-0.13.0-macOS.dmg
-open ~/Downloads/GuerraDelPacifico-0.13.0-macOS.dmg
+curl -L -o ~/Downloads/GuerraDelPacifico-0.14.0-macOS.dmg https://raw.githubusercontent.com/supersovo/Guerra-del-Pacifivo-Atenea/refs/heads/claude/friendly-keller-8ieqfo/rts/descargas/GuerraDelPacifico-0.14.0-macOS.dmg
+open ~/Downloads/GuerraDelPacifico-0.14.0-macOS.dmg
 ```
 
 Se abre la imagen de disco: arrastre *Guerra del Pacífico* sobre *Aplicaciones*
 y abra el juego desde allí. Bajado con la Terminal, macOS no le pone la marca de
 «descargado de Internet» y el juego abre sin advertencias. Para actualizarlo,
-haga lo mismo y reemplace la versión anterior; la configuración se conserva.
+haga lo mismo y reemplace la versión anterior; la configuración se conserva. Es
+una sola aplicación: abre el cliente 3D, y el botón *Versión clásica (2D)* de la
+portada abre la versión clásica.
 
 **Si lo bajó con el navegador** (Safari, Chrome…), la primera vez macOS avisa
 que no puede comprobar la aplicación, porque no está registrada ante Apple:
@@ -62,6 +73,40 @@ encuentra las partidas de los compañeros y ellos pueden entrar a la suya.
 En Mac, ⌘ (Cmd) sirve igual que Ctrl. El servidor dedicado viene dentro de la
 aplicación y se usa desde la Terminal:
 `"/Applications/Guerra del Pacífico.app/Contents/MacOS/ServidorSalitre" --help`.
+
+## Linux: descargarlo con la terminal
+
+Para Linux de 64 bits (x86_64). En una terminal:
+
+```sh
+curl -L -o ~/GuerraDelPacifico-0.14.0-linux.tar.gz https://raw.githubusercontent.com/supersovo/Guerra-del-Pacifivo-Atenea/refs/heads/claude/friendly-keller-8ieqfo/rts/descargas/GuerraDelPacifico-0.14.0-linux.tar.gz
+tar -xzf ~/GuerraDelPacifico-0.14.0-linux.tar.gz -C ~
+~/GuerraDelPacifico/GuerraDelPacifico
+```
+
+`~/GuerraDelPacifico/GuerraDelPacifico` abre el cliente 3D,
+`~/GuerraDelPacifico/GuerraDelPacificoClasico` la versión clásica y
+`~/GuerraDelPacifico/ServidorSalitre --help` explica el servidor dedicado.
+
+## Novedades de la 0.14.0
+
+- **El juego en 3D**: el campo de batalla es un diorama sobre la mesa de guerra,
+  con relieve, luz del sol y sombras, y las tropas y las obras modeladas en 3D
+  con los uniformes de cada nación. Las tropas marchan, apuntan y hacen fuego,
+  los jinetes galopan, las banderas ondean; la guarnición se ve en la trinchera
+  y en las azoteas; hay minimapa y la niebla de guerra tiene bordes suaves. Tiene
+  toda la interfaz: Campaña del Salitre, escaramuza, multijugador, repeticiones,
+  Archivo histórico (con un retrato 3D de cada unidad), opciones (también la
+  calidad gráfica), música, voces y efectos de sonido.
+- **La versión clásica sigue disponible**, en dos dimensiones y más liviana:
+  acceso propio en Windows y Linux, y botón *Versión clásica (2D)* en la portada
+  del cliente 3D. Las repeticiones y los mapas propios son los mismos; la
+  campaña y las opciones de cada versión van por separado (la primera vez, el
+  cliente 3D toma el nombre, los volúmenes y las preferencias de la clásica).
+- Ya no hace falta Python: cada instalación trae el servidor del juego.
+- En macOS, el cliente 3D pide macOS 11 o posterior (13 o posterior en Apple
+  Silicon).
+- La 0.14.0 juega en red con la 0.13.0 (mismos datos y protocolo).
 
 ## Novedades de la 0.13.0
 
