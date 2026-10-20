@@ -1,0 +1,8070 @@
+{
+ "_aviso": "Generado por herramientas/exportar_godot.py a partir de datos/: no lo edite a mano.",
+ "version": "0.14.0",
+ "protocolo": 3,
+ "huella": "67ea64ef68961246",
+ "tile_px": 32,
+ "sub": 16,
+ "ticks": 16,
+ "banderas": {
+  "MOVIENDO": 1,
+  "DISPARO": 2,
+  "SALITRE": 4,
+  "AGUA": 8,
+  "EMPLAZADA": 16,
+  "OCULTA": 32,
+  "OBRA": 64,
+  "PRODUCE": 128,
+  "SABOTAJE": 256,
+  "TRABAJA": 512,
+  "POTENCIADO": 1024,
+  "EMPLAZANDO": 2048,
+  "DETECTADO": 4096,
+  "CAMILLA": 8192,
+  "DESMONTA": 16384,
+  "DESHIDRATADA": 32768,
+  "COBERTURA": 65536,
+  "SOMBRA": 131072
+ },
+ "tipos_especiales": {
+  "salitre": -1,
+  "agua": -2,
+  "mina": -3,
+  "herido": -4,
+  "convoy": -5
+ },
+ "terrenos": {
+  ".": {
+   "codigo": 0,
+   "nombre": "arena",
+   "pisable": 1,
+   "edificable": 1,
+   "agua": 0
+  },
+  ",": {
+   "codigo": 1,
+   "nombre": "pampa",
+   "pisable": 1,
+   "edificable": 1,
+   "agua": 0
+  },
+  ":": {
+   "codigo": 2,
+   "nombre": "salar",
+   "pisable": 1,
+   "edificable": 1,
+   "agua": 0
+  },
+  "=": {
+   "codigo": 3,
+   "nombre": "camino",
+   "pisable": 1,
+   "edificable": 1,
+   "agua": 0
+  },
+  "/": {
+   "codigo": 4,
+   "nombre": "rampa",
+   "pisable": 1,
+   "edificable": 0,
+   "agua": 0
+  },
+  "#": {
+   "codigo": 5,
+   "nombre": "roca",
+   "pisable": 0,
+   "edificable": 0,
+   "agua": 0
+  },
+  "T": {
+   "codigo": 6,
+   "nombre": "tamarugo",
+   "pisable": 0,
+   "edificable": 0,
+   "agua": 0
+  },
+  "q": {
+   "codigo": 7,
+   "nombre": "quebrada",
+   "pisable": 0,
+   "edificable": 0,
+   "agua": 0
+  },
+  "~": {
+   "codigo": 8,
+   "nombre": "mar",
+   "pisable": 0,
+   "edificable": 0,
+   "agua": 1
+  },
+  "p": {
+   "codigo": 9,
+   "nombre": "ruinas",
+   "pisable": 0,
+   "edificable": 0,
+   "agua": 0
+  }
+ },
+ "colores_terreno": {
+  "0": [
+   214,
+   186,
+   140
+  ],
+  "1": [
+   194,
+   164,
+   118
+  ],
+  "2": [
+   236,
+   232,
+   220
+  ],
+  "3": [
+   132,
+   108,
+   84
+  ],
+  "4": [
+   186,
+   160,
+   120
+  ],
+  "5": [
+   126,
+   100,
+   80
+  ],
+  "6": [
+   180,
+   156,
+   112
+  ],
+  "7": [
+   92,
+   68,
+   54
+  ],
+  "8": [
+   44,
+   92,
+   140
+  ],
+  "9": [
+   160,
+   136,
+   108
+  ]
+ },
+ "colores_jugador": [
+  [
+   "Rojo",
+   [
+    204,
+    44,
+    40
+   ]
+  ],
+  [
+   "Azul",
+   [
+    44,
+    86,
+    206
+   ]
+  ],
+  [
+   "Verde",
+   [
+    46,
+    150,
+    66
+   ]
+  ],
+  [
+   "Amarillo",
+   [
+    226,
+    194,
+    40
+   ]
+  ],
+  [
+   "Celeste",
+   [
+    96,
+    184,
+    232
+   ]
+  ],
+  [
+   "Naranja",
+   [
+    232,
+    124,
+    32
+   ]
+  ],
+  [
+   "Morado",
+   [
+    142,
+    64,
+    172
+   ]
+  ],
+  [
+   "Blanco",
+   [
+    236,
+    236,
+    232
+   ]
+  ]
+ ],
+ "tipos": [
+  {
+   "id": "trabajador",
+   "nombre": "Trabajador chino",
+   "edificio": false,
+   "clase": "infanteria",
+   "categoria": "trabajador",
+   "capa": 0,
+   "radio": 0.2793,
+   "vida": 40,
+   "armadura": 0,
+   "vision": 7.0,
+   "velocidad": 1.906,
+   "arma": {
+    "tipo": "sable",
+    "danio": 5,
+    "alcance": 0.25,
+    "alcance_min": 0.0,
+    "proyectil": false,
+    "salpicadura": 0.0,
+    "cep": 0.0,
+    "enfriamiento": 1.375,
+    "objetivos": "tierra"
+   },
+   "forma": "trabajador",
+   "insignia": null,
+   "trabajador": true,
+   "autonomo": false,
+   "heroe": false,
+   "faccion": null,
+   "biologica": true,
+   "forma_filas": false,
+   "estanque": 0,
+   "estanque_radio": 0.0,
+   "sed": false,
+   "observador": 0.0,
+   "monta": null,
+   "habilidades": [
+    "reparar"
+   ],
+   "atajo": "T",
+   "poblacion": 1,
+   "costo": [
+    50,
+    0
+   ],
+   "produce_en": "cuartel_general",
+   "requisitos": [],
+   "construye": [],
+   "tiempo": 12.0,
+   "descripcion": "Extrae salitre de los yacimientos, acarrea agua desde los molinos y levanta y repara todas las construcciones.",
+   "valor": 50,
+   "veterania": false
+  },
+  {
+   "id": "infante",
+   "nombre": "Infante de línea",
+   "edificio": false,
+   "clase": "infanteria",
+   "categoria": "infanteria",
+   "capa": 0,
+   "radio": 0.3008,
+   "vida": 45,
+   "armadura": 0,
+   "vision": 8.0,
+   "velocidad": 1.594,
+   "arma": {
+    "tipo": "fusil",
+    "danio": 6,
+    "alcance": 5.0,
+    "alcance_min": 0.0,
+    "proyectil": false,
+    "salpicadura": 0.0,
+    "cep": 0.0,
+    "enfriamiento": 1.0,
+    "objetivos": "ambos"
+   },
+   "forma": "infante",
+   "insignia": null,
+   "trabajador": false,
+   "autonomo": false,
+   "heroe": false,
+   "faccion": null,
+   "biologica": true,
+   "forma_filas": true,
+   "estanque": 0,
+   "estanque_radio": 0.0,
+   "sed": true,
+   "observador": 0.0,
+   "monta": null,
+   "habilidades": [],
+   "atajo": "I",
+   "poblacion": 1,
+   "costo": [
+    50,
+    0
+   ],
+   "produce_en": "barracas",
+   "requisitos": [],
+   "construye": [],
+   "tiempo": 15.0,
+   "descripcion": "El soldado de línea con fusil de retrocarga. Barato, versátil y la base de todo ejército.",
+   "valor": 50,
+   "veterania": true
+  },
+  {
+   "id": "cantinera",
+   "nombre": "Cantinera",
+   "edificio": false,
+   "clase": "infanteria",
+   "categoria": "apoyo",
+   "capa": 0,
+   "radio": 0.3008,
+   "vida": 40,
+   "armadura": 0,
+   "vision": 8.0,
+   "velocidad": 1.594,
+   "arma": null,
+   "forma": "cantinera",
+   "insignia": null,
+   "trabajador": false,
+   "autonomo": false,
+   "heroe": false,
+   "faccion": null,
+   "biologica": true,
+   "forma_filas": false,
+   "estanque": 0,
+   "estanque_radio": 0.0,
+   "sed": true,
+   "observador": 0.0,
+   "monta": null,
+   "habilidades": [],
+   "atajo": "C",
+   "poblacion": 1,
+   "costo": [
+    50,
+    25
+   ],
+   "produce_en": "barracas",
+   "requisitos": [
+    "hospital_campana"
+   ],
+   "construye": [],
+   "tiempo": 18.0,
+   "descripcion": "Enfermera de campaña: cura a la infantería y a la caballería heridas cerca de ella. No combate.",
+   "valor": 75,
+   "veterania": true
+  },
+  {
+   "id": "camilleros",
+   "nombre": "Camilleros",
+   "edificio": false,
+   "clase": "infanteria",
+   "categoria": "sanidad",
+   "capa": 0,
+   "radio": 0.4004,
+   "vida": 60,
+   "armadura": 0,
+   "vision": 7.0,
+   "velocidad": 2.0,
+   "arma": null,
+   "forma": "camilleros",
+   "insignia": null,
+   "trabajador": false,
+   "autonomo": true,
+   "heroe": false,
+   "faccion": null,
+   "biologica": true,
+   "forma_filas": false,
+   "estanque": 0,
+   "estanque_radio": 0.0,
+   "sed": false,
+   "observador": 0.0,
+   "monta": null,
+   "habilidades": [],
+   "atajo": "",
+   "poblacion": 0,
+   "costo": [
+    0,
+    0
+   ],
+   "produce_en": null,
+   "requisitos": [
+    "hospital_campana"
+   ],
+   "construye": [],
+   "tiempo": 30.0,
+   "descripcion": "Dos sanitarios con una camilla. Cada hospital los manda solos a buscar a los heridos por todo el campo de batalla y los lleva al hospital más cercano para curarlos. No combaten ni reciben órdenes.",
+   "valor": 1,
+   "veterania": false
+  },
+  {
+   "id": "ambulancia",
+   "nombre": "Ambulancia",
+   "edificio": false,
+   "clase": "artilleria",
+   "categoria": "sanidad",
+   "capa": 0,
+   "radio": 0.5996,
+   "vida": 250,
+   "armadura": 1,
+   "vision": 7.0,
+   "velocidad": 1.594,
+   "arma": null,
+   "forma": "ambulancia",
+   "insignia": null,
+   "trabajador": false,
+   "autonomo": false,
+   "heroe": false,
+   "faccion": null,
+   "biologica": false,
+   "forma_filas": false,
+   "estanque": 0,
+   "estanque_radio": 0.0,
+   "sed": false,
+   "observador": 0.0,
+   "monta": "hospital_sangre",
+   "habilidades": [
+    "montar_hospital"
+   ],
+   "atajo": "A",
+   "poblacion": 3,
+   "costo": [
+    150,
+    50
+   ],
+   "produce_en": "hospital_campana",
+   "requisitos": [
+    "hospital_campana"
+   ],
+   "construye": [
+    "hospital_sangre"
+   ],
+   "tiempo": 30.0,
+   "descripcion": "Carro sanitario tirado por mulas, con cirujanos, practicantes, carpas y camillas. Sigue a la tropa y monta un hospital de sangre donde se le ordene: sus camilleros recogen a los heridos del frente y los curan allí mismo. No combate.",
+   "valor": 200,
+   "veterania": false
+  },
+  {
+   "id": "carreta_agua",
+   "nombre": "Carreta de agua",
+   "edificio": false,
+   "clase": "artilleria",
+   "categoria": "logistica",
+   "capa": 0,
+   "radio": 0.5996,
+   "vida": 180,
+   "armadura": 1,
+   "vision": 6.0,
+   "velocidad": 1.594,
+   "arma": null,
+   "forma": "carreta_agua",
+   "insignia": null,
+   "trabajador": false,
+   "autonomo": false,
+   "heroe": false,
+   "faccion": null,
+   "biologica": false,
+   "forma_filas": false,
+   "estanque": 2000,
+   "estanque_radio": 4.0,
+   "sed": false,
+   "observador": 0.0,
+   "monta": null,
+   "habilidades": [],
+   "atajo": "C",
+   "poblacion": 2,
+   "costo": [
+    100,
+    50
+   ],
+   "produce_en": "deposito",
+   "requisitos": [
+    "molino_agua"
+   ],
+   "construye": [],
+   "tiempo": 20.0,
+   "descripcion": "Carreta de mulas con una pipa de agua: da de beber a la tropa que marcha o combate a su alrededor y le alivia la fatiga. Llena la pipa junto a un molino de agua o al Cuartel General y acompaña a la columna en los ataques. No combate.",
+   "valor": 150,
+   "veterania": false
+  },
+  {
+   "id": "ingeniero",
+   "nombre": "Ingeniero dinamitero",
+   "edificio": false,
+   "clase": "infanteria",
+   "categoria": "apoyo",
+   "capa": 0,
+   "radio": 0.3008,
+   "vida": 70,
+   "armadura": 0,
+   "vision": 8.0,
+   "velocidad": 1.5,
+   "arma": {
+    "tipo": "dinamita",
+    "danio": 25,
+    "alcance": 4.5,
+    "alcance_min": 0.0,
+    "proyectil": true,
+    "salpicadura": 1.0,
+    "cep": 0.0,
+    "enfriamiento": 2.188,
+    "objetivos": "tierra"
+   },
+   "forma": "ingeniero",
+   "insignia": null,
+   "trabajador": false,
+   "autonomo": false,
+   "heroe": false,
+   "faccion": null,
+   "biologica": true,
+   "forma_filas": false,
+   "estanque": 0,
+   "estanque_radio": 0.0,
+   "sed": true,
+   "observador": 0.0,
+   "monta": null,
+   "habilidades": [],
+   "atajo": "N",
+   "poblacion": 2,
+   "costo": [
+    75,
+    50
+   ],
+   "produce_en": "barracas",
+   "requisitos": [
+    "barracon_instruccion"
+   ],
+   "construye": [],
+   "tiempo": 20.0,
+   "descripcion": "Lanza cartuchos de dinamita: daño en área, devastador contra edificios y piezas de artillería.",
+   "valor": 125,
+   "veterania": true
+  },
+  {
+   "id": "granadero",
+   "nombre": "Granadero a caballo",
+   "edificio": false,
+   "clase": "caballeria",
+   "categoria": "caballeria",
+   "capa": 0,
+   "radio": 0.5,
+   "vida": 250,
+   "armadura": 1,
+   "vision": 9.0,
+   "velocidad": 2.812,
+   "arma": {
+    "tipo": "sable",
+    "danio": 26,
+    "alcance": 0.3496,
+    "alcance_min": 0.0,
+    "proyectil": false,
+    "salpicadura": 0.0,
+    "cep": 0.0,
+    "enfriamiento": 1.125,
+    "objetivos": "tierra"
+   },
+   "forma": "jinete_sable",
+   "insignia": null,
+   "trabajador": false,
+   "autonomo": false,
+   "heroe": false,
+   "faccion": null,
+   "biologica": true,
+   "forma_filas": false,
+   "estanque": 0,
+   "estanque_radio": 0.0,
+   "sed": true,
+   "observador": 0.0,
+   "monta": null,
+   "habilidades": [],
+   "atajo": "G",
+   "poblacion": 5,
+   "costo": [
+    150,
+    75
+   ],
+   "produce_en": "caballeriza",
+   "requisitos": [],
+   "construye": [],
+   "tiempo": 30.0,
+   "descripcion": "Caballería de choque con sable. Su carga tras una galopada duplica el daño del primer golpe.",
+   "valor": 225,
+   "veterania": true
+  },
+  {
+   "id": "cazador",
+   "nombre": "Cazador a caballo",
+   "edificio": false,
+   "clase": "caballeria",
+   "categoria": "caballeria",
+   "capa": 0,
+   "radio": 0.5,
+   "vida": 200,
+   "armadura": 1,
+   "vision": 10.0,
+   "velocidad": 3.0,
+   "arma": {
+    "tipo": "fusil",
+    "danio": 14,
+    "alcance": 4.0,
+    "alcance_min": 0.0,
+    "proyectil": false,
+    "salpicadura": 0.0,
+    "cep": 0.0,
+    "enfriamiento": 0.812,
+    "objetivos": "ambos"
+   },
+   "forma": "jinete_carabina",
+   "insignia": null,
+   "trabajador": false,
+   "autonomo": false,
+   "heroe": false,
+   "faccion": null,
+   "biologica": true,
+   "forma_filas": false,
+   "estanque": 0,
+   "estanque_radio": 0.0,
+   "sed": true,
+   "observador": 0.0,
+   "monta": null,
+   "habilidades": [],
+   "atajo": "C",
+   "poblacion": 5,
+   "costo": [
+    125,
+    75
+   ],
+   "produce_en": "caballeriza",
+   "requisitos": [],
+   "construye": [],
+   "tiempo": 28.0,
+   "descripcion": "Caballería ligera con carabina: veloz, ideal para explorar, hostigar trabajadores y perseguir.",
+   "valor": 200,
+   "veterania": true
+  },
+  {
+   "id": "artilleria_montana",
+   "nombre": "Cañón de montaña",
+   "edificio": false,
+   "clase": "artilleria",
+   "categoria": "artilleria",
+   "capa": 0,
+   "radio": 0.5508,
+   "vida": 200,
+   "armadura": 1,
+   "vision": 10.0,
+   "velocidad": 1.312,
+   "arma": {
+    "tipo": "explosivo",
+    "danio": 45,
+    "alcance": 8.0,
+    "alcance_min": 1.5,
+    "proyectil": true,
+    "salpicadura": 1.25,
+    "cep": 0.0605,
+    "enfriamiento": 2.5,
+    "objetivos": "ambos"
+   },
+   "forma": "canon_montana",
+   "insignia": null,
+   "trabajador": false,
+   "autonomo": false,
+   "heroe": false,
+   "faccion": null,
+   "biologica": false,
+   "forma_filas": false,
+   "estanque": 0,
+   "estanque_radio": 0.0,
+   "sed": false,
+   "observador": 0.0,
+   "monta": null,
+   "habilidades": [],
+   "atajo": "M",
+   "poblacion": 10,
+   "costo": [
+    200,
+    100
+   ],
+   "produce_en": "parque_artilleria",
+   "requisitos": [],
+   "construye": [],
+   "tiempo": 35.0,
+   "descripcion": "Pieza ligera que se carga a lomo de mula. Dispara granadas con daño en área sin necesidad de emplazarse.",
+   "valor": 300,
+   "veterania": true
+  },
+  {
+   "id": "canon_campana",
+   "nombre": "Cañón de campaña",
+   "edificio": false,
+   "clase": "artilleria",
+   "categoria": "artilleria",
+   "capa": 0,
+   "radio": 0.5996,
+   "vida": 250,
+   "armadura": 2,
+   "vision": 10.0,
+   "velocidad": 1.0,
+   "arma": {
+    "tipo": "explosivo",
+    "danio": 80,
+    "alcance": 12.0,
+    "alcance_min": 2.5,
+    "proyectil": true,
+    "salpicadura": 1.5996,
+    "cep": 0.0508,
+    "enfriamiento": 3.5,
+    "objetivos": "ambos"
+   },
+   "forma": "canon_campana",
+   "insignia": null,
+   "trabajador": false,
+   "autonomo": false,
+   "heroe": false,
+   "faccion": null,
+   "biologica": false,
+   "forma_filas": false,
+   "estanque": 0,
+   "estanque_radio": 0.0,
+   "sed": false,
+   "observador": 0.0,
+   "monta": null,
+   "habilidades": [
+    "emplazar"
+   ],
+   "atajo": "K",
+   "poblacion": 10,
+   "costo": [
+    300,
+    200
+   ],
+   "produce_en": "parque_artilleria",
+   "requisitos": [],
+   "construye": [],
+   "tiempo": 45.0,
+   "descripcion": "Artillería pesada de largo alcance. Debe emplazarse (se hace solo al atacar) y no dispara a quemarropa.",
+   "valor": 500,
+   "veterania": true
+  },
+  {
+   "id": "gatling",
+   "nombre": "Ametralladora Gatling",
+   "edificio": false,
+   "clase": "artilleria",
+   "categoria": "artilleria",
+   "capa": 0,
+   "radio": 0.5,
+   "vida": 300,
+   "armadura": 2,
+   "vision": 9.0,
+   "velocidad": 1.094,
+   "arma": {
+    "tipo": "metralla",
+    "danio": 6,
+    "alcance": 6.0,
+    "alcance_min": 0.0,
+    "proyectil": false,
+    "salpicadura": 0.0,
+    "cep": 0.0,
+    "enfriamiento": 0.125,
+    "objetivos": "ambos"
+   },
+   "forma": "gatling",
+   "insignia": null,
+   "trabajador": false,
+   "autonomo": false,
+   "heroe": false,
+   "faccion": null,
+   "biologica": false,
+   "forma_filas": false,
+   "estanque": 0,
+   "estanque_radio": 0.0,
+   "sed": false,
+   "observador": 0.0,
+   "monta": null,
+   "habilidades": [],
+   "atajo": "G",
+   "poblacion": 10,
+   "costo": [
+    250,
+    150
+   ],
+   "produce_en": "parque_artilleria",
+   "requisitos": [],
+   "construye": [],
+   "tiempo": 40.0,
+   "descripcion": "Arma de manivela de varios cañones: una lluvia de balas que diezma a la infantería.",
+   "valor": 400,
+   "veterania": true
+  },
+  {
+   "id": "espia",
+   "nombre": "Espía",
+   "edificio": false,
+   "clase": "infanteria",
+   "categoria": "apoyo",
+   "capa": 0,
+   "radio": 0.2793,
+   "vida": 40,
+   "armadura": 0,
+   "vision": 11.0,
+   "velocidad": 2.0,
+   "arma": null,
+   "forma": "espia",
+   "insignia": null,
+   "trabajador": false,
+   "autonomo": false,
+   "heroe": false,
+   "faccion": null,
+   "biologica": true,
+   "forma_filas": false,
+   "estanque": 0,
+   "estanque_radio": 0.0,
+   "sed": true,
+   "observador": 6.0,
+   "monta": null,
+   "habilidades": [
+    "sabotaje"
+   ],
+   "atajo": "E",
+   "poblacion": 1,
+   "costo": [
+    50,
+    100
+   ],
+   "produce_en": "estado_mayor",
+   "requisitos": [],
+   "construye": [],
+   "tiempo": 25.0,
+   "descripcion": "Invisible para el enemigo salvo ante detectores. Gran visión; puede sabotear un edificio enemigo. Observador adelantado: la artillería propia que tira cerca de él dispersa la mitad.",
+   "valor": 150,
+   "veterania": false
+  },
+  {
+   "id": "transporte",
+   "nombre": "Transporte a vapor",
+   "edificio": false,
+   "clase": "naval",
+   "categoria": "naval",
+   "capa": 1,
+   "radio": 0.9004,
+   "vida": 300,
+   "armadura": 1,
+   "vision": 8.0,
+   "velocidad": 2.594,
+   "arma": null,
+   "forma": "transporte",
+   "insignia": null,
+   "trabajador": false,
+   "autonomo": false,
+   "heroe": false,
+   "faccion": null,
+   "biologica": false,
+   "forma_filas": false,
+   "estanque": 0,
+   "estanque_radio": 0.0,
+   "sed": false,
+   "observador": 0.0,
+   "monta": null,
+   "habilidades": [
+    "descargar"
+   ],
+   "atajo": "T",
+   "poblacion": 2,
+   "costo": [
+    150,
+    50
+   ],
+   "produce_en": "muelle",
+   "requisitos": [],
+   "construye": [],
+   "tiempo": 30.0,
+   "descripcion": "Vapor que embarca hasta 10 de población y la desembarca en la costa. Indispensable en los mapas con islas.",
+   "valor": 200,
+   "veterania": false
+  },
+  {
+   "id": "canonera",
+   "nombre": "Cañonera",
+   "edificio": false,
+   "clase": "naval",
+   "categoria": "naval",
+   "capa": 1,
+   "radio": 1.0,
+   "vida": 450,
+   "armadura": 2,
+   "vision": 10.0,
+   "velocidad": 2.188,
+   "arma": {
+    "tipo": "canon_naval",
+    "danio": 35,
+    "alcance": 9.0,
+    "alcance_min": 0.0,
+    "proyectil": true,
+    "salpicadura": 1.0,
+    "cep": 0.0,
+    "enfriamiento": 2.5,
+    "objetivos": "ambos"
+   },
+   "forma": "canonera",
+   "insignia": null,
+   "trabajador": false,
+   "autonomo": false,
+   "heroe": false,
+   "faccion": null,
+   "biologica": false,
+   "forma_filas": false,
+   "estanque": 0,
+   "estanque_radio": 0.0,
+   "sed": false,
+   "observador": 0.0,
+   "monta": null,
+   "habilidades": [],
+   "atajo": "C",
+   "poblacion": 5,
+   "costo": [
+    250,
+    150
+   ],
+   "produce_en": "muelle",
+   "requisitos": [
+    "central_telegrafos"
+   ],
+   "construye": [],
+   "tiempo": 45.0,
+   "descripcion": "Buque artillado que bate la costa y escolta los convoyes.",
+   "valor": 400,
+   "veterania": true
+  },
+  {
+   "id": "zapador",
+   "nombre": "Zapador",
+   "edificio": false,
+   "clase": "infanteria",
+   "categoria": "apoyo",
+   "capa": 0,
+   "radio": 0.3008,
+   "vida": 80,
+   "armadura": 1,
+   "vision": 8.0,
+   "velocidad": 1.594,
+   "arma": {
+    "tipo": "fusil",
+    "danio": 8,
+    "alcance": 4.5,
+    "alcance_min": 0.0,
+    "proyectil": false,
+    "salpicadura": 0.0,
+    "cep": 0.0,
+    "enfriamiento": 1.0,
+    "objetivos": "ambos"
+   },
+   "forma": "zapador",
+   "insignia": null,
+   "trabajador": false,
+   "autonomo": false,
+   "heroe": false,
+   "faccion": "chile",
+   "biologica": true,
+   "forma_filas": true,
+   "estanque": 0,
+   "estanque_radio": 0.0,
+   "sed": true,
+   "observador": 0.0,
+   "monta": null,
+   "habilidades": [
+    "carga_demolicion",
+    "construir_campana"
+   ],
+   "atajo": "Z",
+   "poblacion": 2,
+   "costo": [
+    100,
+    25
+   ],
+   "produce_en": "barracas",
+   "requisitos": [
+    "barracon_instruccion"
+   ],
+   "construye": [
+    "trinchera",
+    "reducto"
+   ],
+   "tiempo": 22.0,
+   "descripcion": "Infante de ingenieros: detecta minas y unidades ocultas, destruye edificios con su carga de demolición y levanta trincheras y reductos al doble de velocidad.",
+   "valor": 125,
+   "veterania": true
+  },
+  {
+   "id": "torpedista",
+   "nombre": "Torpedista",
+   "edificio": false,
+   "clase": "infanteria",
+   "categoria": "apoyo",
+   "capa": 0,
+   "radio": 0.3008,
+   "vida": 55,
+   "armadura": 0,
+   "vision": 8.0,
+   "velocidad": 1.5,
+   "arma": {
+    "tipo": "fusil",
+    "danio": 4,
+    "alcance": 3.5,
+    "alcance_min": 0.0,
+    "proyectil": false,
+    "salpicadura": 0.0,
+    "cep": 0.0,
+    "enfriamiento": 1.188,
+    "objetivos": "tierra"
+   },
+   "forma": "torpedista",
+   "insignia": null,
+   "trabajador": false,
+   "autonomo": false,
+   "heroe": false,
+   "faccion": "peru",
+   "biologica": true,
+   "forma_filas": true,
+   "estanque": 0,
+   "estanque_radio": 0.0,
+   "sed": true,
+   "observador": 0.0,
+   "monta": null,
+   "habilidades": [
+    "sembrar_mina"
+   ],
+   "atajo": "O",
+   "poblacion": 2,
+   "costo": [
+    100,
+    50
+   ],
+   "produce_en": "barracas",
+   "requisitos": [
+    "barracon_instruccion"
+   ],
+   "construye": [],
+   "tiempo": 22.0,
+   "descripcion": "Siembra minas ocultas ('polvorazos') que estallan al paso del enemigo. Solo los detectores las ven.",
+   "valor": 150,
+   "veterania": true
+  },
+  {
+   "id": "montonero",
+   "nombre": "Montonero",
+   "edificio": false,
+   "clase": "infanteria",
+   "categoria": "infanteria",
+   "capa": 0,
+   "radio": 0.3008,
+   "vida": 40,
+   "armadura": 0,
+   "vision": 9.0,
+   "velocidad": 1.906,
+   "arma": {
+    "tipo": "fusil",
+    "danio": 5,
+    "alcance": 4.5,
+    "alcance_min": 0.0,
+    "proyectil": false,
+    "salpicadura": 0.0,
+    "cep": 0.0,
+    "enfriamiento": 1.0,
+    "objetivos": "ambos"
+   },
+   "forma": "montonero",
+   "insignia": null,
+   "trabajador": false,
+   "autonomo": false,
+   "heroe": false,
+   "faccion": "peru",
+   "biologica": true,
+   "forma_filas": true,
+   "estanque": 0,
+   "estanque_radio": 0.0,
+   "sed": true,
+   "observador": 0.0,
+   "monta": null,
+   "habilidades": [],
+   "atajo": "M",
+   "poblacion": 1,
+   "costo": [
+    40,
+    0
+   ],
+   "produce_en": "barracas",
+   "requisitos": [
+    "barracon_instruccion"
+   ],
+   "construye": [],
+   "tiempo": 12.0,
+   "descripcion": "Guerrillero de la sierra: barato y rápido. Se oculta si permanece quieto unos segundos.",
+   "valor": 40,
+   "veterania": true
+  },
+  {
+   "id": "colorado",
+   "nombre": "Colorado de Bolivia",
+   "edificio": false,
+   "clase": "infanteria",
+   "categoria": "infanteria",
+   "capa": 0,
+   "radio": 0.3008,
+   "vida": 75,
+   "armadura": 1,
+   "vision": 8.0,
+   "velocidad": 1.594,
+   "arma": {
+    "tipo": "fusil",
+    "danio": 8,
+    "alcance": 5.0,
+    "alcance_min": 0.0,
+    "proyectil": false,
+    "salpicadura": 0.0,
+    "cep": 0.0,
+    "enfriamiento": 1.0,
+    "objetivos": "ambos"
+   },
+   "forma": "colorado",
+   "insignia": null,
+   "trabajador": false,
+   "autonomo": false,
+   "heroe": false,
+   "faccion": "bolivia",
+   "biologica": true,
+   "forma_filas": true,
+   "estanque": 0,
+   "estanque_radio": 0.0,
+   "sed": true,
+   "observador": 0.0,
+   "monta": null,
+   "habilidades": [],
+   "atajo": "L",
+   "poblacion": 1,
+   "costo": [
+    100,
+    25
+   ],
+   "produce_en": "barracas",
+   "requisitos": [
+    "barracon_instruccion"
+   ],
+   "construye": [],
+   "tiempo": 22.0,
+   "descripcion": "Infantería de élite: más vida y daño; curtida en el cuadro, recibe siempre la mitad del daño de las armas blancas, y en formación de cuadro la carga de la caballería no la arrolla.",
+   "valor": 125,
+   "veterania": true
+  },
+  {
+   "id": "baqueano",
+   "nombre": "Baqueano",
+   "edificio": false,
+   "clase": "caballeria",
+   "categoria": "apoyo",
+   "capa": 0,
+   "radio": 0.4492,
+   "vida": 70,
+   "armadura": 0,
+   "vision": 11.0,
+   "velocidad": 3.188,
+   "arma": {
+    "tipo": "fusil",
+    "danio": 6,
+    "alcance": 4.0,
+    "alcance_min": 0.0,
+    "proyectil": false,
+    "salpicadura": 0.0,
+    "cep": 0.0,
+    "enfriamiento": 1.0,
+    "objetivos": "ambos"
+   },
+   "forma": "baqueano",
+   "insignia": null,
+   "trabajador": false,
+   "autonomo": false,
+   "heroe": false,
+   "faccion": "argentina",
+   "biologica": true,
+   "forma_filas": false,
+   "estanque": 0,
+   "estanque_radio": 0.0,
+   "sed": true,
+   "observador": 6.0,
+   "monta": null,
+   "habilidades": [],
+   "atajo": "B",
+   "poblacion": 2,
+   "costo": [
+    75,
+    25
+   ],
+   "produce_en": "caballeriza",
+   "requisitos": [],
+   "construye": [],
+   "tiempo": 18.0,
+   "descripcion": "Guía y rastreador a caballo: el explorador más veloz, con enorme visión; descubre espías y minas. Observador adelantado: la artillería propia que tira cerca de él dispersa la mitad.",
+   "valor": 100,
+   "veterania": true
+  },
+  {
+   "id": "baquedano",
+   "nombre": "Gral. Manuel Baquedano",
+   "edificio": false,
+   "clase": "caballeria",
+   "categoria": "heroe",
+   "capa": 0,
+   "radio": 0.5,
+   "vida": 750,
+   "armadura": 3,
+   "vision": 10.0,
+   "velocidad": 2.594,
+   "arma": {
+    "tipo": "fusil",
+    "danio": 16,
+    "alcance": 3.5,
+    "alcance_min": 0.0,
+    "proyectil": false,
+    "salpicadura": 0.0,
+    "cep": 0.0,
+    "enfriamiento": 1.0,
+    "objetivos": "ambos"
+   },
+   "forma": "heroe_montado",
+   "insignia": "general",
+   "trabajador": false,
+   "autonomo": false,
+   "heroe": true,
+   "faccion": "chile",
+   "biologica": true,
+   "forma_filas": false,
+   "estanque": 0,
+   "estanque_radio": 0.0,
+   "sed": true,
+   "observador": 0.0,
+   "monta": null,
+   "habilidades": [
+    "al_asalto"
+   ],
+   "atajo": "B",
+   "poblacion": 4,
+   "costo": [
+    350,
+    200
+   ],
+   "produce_en": "estado_mayor",
+   "requisitos": [],
+   "construye": [],
+   "tiempo": 50.0,
+   "descripcion": "Comandante en jefe. Aura: +15 % de daño a las tropas cercanas. Habilidad: ¡Al asalto!",
+   "valor": 550,
+   "veterania": false
+  },
+  {
+   "id": "san_martin",
+   "nombre": "Tte. Cnel. Juan José San Martín Penrose",
+   "edificio": false,
+   "clase": "infanteria",
+   "categoria": "heroe",
+   "capa": 0,
+   "radio": 0.3496,
+   "vida": 600,
+   "armadura": 3,
+   "vision": 10.0,
+   "velocidad": 1.906,
+   "arma": {
+    "tipo": "fusil",
+    "danio": 15,
+    "alcance": 3.5,
+    "alcance_min": 0.0,
+    "proyectil": false,
+    "salpicadura": 0.0,
+    "cep": 0.0,
+    "enfriamiento": 0.875,
+    "objetivos": "ambos"
+   },
+   "forma": "heroe_a_pie",
+   "insignia": "comandante",
+   "trabajador": false,
+   "autonomo": false,
+   "heroe": true,
+   "faccion": "chile",
+   "biologica": true,
+   "forma_filas": false,
+   "estanque": 0,
+   "estanque_radio": 0.0,
+   "sed": true,
+   "observador": 0.0,
+   "monta": null,
+   "habilidades": [
+    "asalto_morro"
+   ],
+   "atajo": "S",
+   "poblacion": 4,
+   "costo": [
+    300,
+    150
+   ],
+   "produce_en": "estado_mayor",
+   "requisitos": [],
+   "construye": [],
+   "tiempo": 45.0,
+   "descripcion": "Jefe del 4º de Línea. Aura: +2 de armadura a la infantería. Habilidad: Asalto al Morro (ignora la ventaja de altura).",
+   "valor": 450,
+   "veterania": false
+  },
+  {
+   "id": "velasquez",
+   "nombre": "Cnel. José Velásquez",
+   "edificio": false,
+   "clase": "caballeria",
+   "categoria": "heroe",
+   "capa": 0,
+   "radio": 0.5,
+   "vida": 650,
+   "armadura": 3,
+   "vision": 11.0,
+   "velocidad": 2.406,
+   "arma": {
+    "tipo": "fusil",
+    "danio": 14,
+    "alcance": 3.5,
+    "alcance_min": 0.0,
+    "proyectil": false,
+    "salpicadura": 0.0,
+    "cep": 0.0,
+    "enfriamiento": 1.0,
+    "objetivos": "ambos"
+   },
+   "forma": "heroe_montado",
+   "insignia": "artillero",
+   "trabajador": false,
+   "autonomo": false,
+   "heroe": true,
+   "faccion": "chile",
+   "biologica": true,
+   "forma_filas": false,
+   "estanque": 0,
+   "estanque_radio": 0.0,
+   "sed": true,
+   "observador": 0.0,
+   "monta": null,
+   "habilidades": [
+    "fuego_bateria"
+   ],
+   "atajo": "V",
+   "poblacion": 4,
+   "costo": [
+    350,
+    200
+   ],
+   "produce_en": "estado_mayor",
+   "requisitos": [],
+   "construye": [],
+   "tiempo": 50.0,
+   "descripcion": "Artillero y jefe de Estado Mayor. Aura: +1 alcance y +20 % daño a la artillería. Habilidad: Fuego de batería.",
+   "valor": 550,
+   "veterania": false
+  },
+  {
+   "id": "irene_morales",
+   "nombre": "Sgto. Irene Morales",
+   "edificio": false,
+   "clase": "infanteria",
+   "categoria": "heroe",
+   "capa": 0,
+   "radio": 0.3203,
+   "vida": 500,
+   "armadura": 2,
+   "vision": 9.0,
+   "velocidad": 1.906,
+   "arma": {
+    "tipo": "fusil",
+    "danio": 10,
+    "alcance": 5.0,
+    "alcance_min": 0.0,
+    "proyectil": false,
+    "salpicadura": 0.0,
+    "cep": 0.0,
+    "enfriamiento": 1.0,
+    "objetivos": "ambos"
+   },
+   "forma": "heroina",
+   "insignia": "cantinera",
+   "trabajador": false,
+   "autonomo": false,
+   "heroe": true,
+   "faccion": "chile",
+   "biologica": true,
+   "forma_filas": false,
+   "estanque": 0,
+   "estanque_radio": 0.0,
+   "sed": true,
+   "observador": 0.0,
+   "monta": null,
+   "habilidades": [
+    "primeros_auxilios"
+   ],
+   "atajo": "I",
+   "poblacion": 4,
+   "costo": [
+    250,
+    150
+   ],
+   "produce_en": "estado_mayor",
+   "requisitos": [],
+   "construye": [],
+   "tiempo": 40.0,
+   "descripcion": "Cantinera y combatiente. Aura: regeneración de 1,5 de vida por segundo. Habilidad: Primeros auxilios.",
+   "valor": 400,
+   "veterania": false
+  },
+  {
+   "id": "prat",
+   "nombre": "Cap. Arturo Prat (corbeta Esmeralda)",
+   "edificio": false,
+   "clase": "naval",
+   "categoria": "heroe",
+   "capa": 1,
+   "radio": 1.0,
+   "vida": 800,
+   "armadura": 2,
+   "vision": 11.0,
+   "velocidad": 2.188,
+   "arma": {
+    "tipo": "canon_naval",
+    "danio": 40,
+    "alcance": 8.0,
+    "alcance_min": 0.0,
+    "proyectil": true,
+    "salpicadura": 1.0,
+    "cep": 0.0,
+    "enfriamiento": 2.5,
+    "objetivos": "ambos"
+   },
+   "forma": "corbeta",
+   "insignia": null,
+   "trabajador": false,
+   "autonomo": false,
+   "heroe": true,
+   "faccion": "chile",
+   "biologica": false,
+   "forma_filas": false,
+   "estanque": 0,
+   "estanque_radio": 0.0,
+   "sed": false,
+   "observador": 0.0,
+   "monta": null,
+   "habilidades": [
+    "al_abordaje"
+   ],
+   "atajo": "P",
+   "poblacion": 4,
+   "costo": [
+    350,
+    200
+   ],
+   "produce_en": "muelle",
+   "requisitos": [
+    "estado_mayor"
+   ],
+   "construye": [],
+   "tiempo": 50.0,
+   "descripcion": "Héroe naval. Aura: +20 % de daño a los buques cercanos. Habilidad: ¡Al abordaje!",
+   "valor": 550,
+   "veterania": false
+  },
+  {
+   "id": "bolognesi",
+   "nombre": "Cnel. Francisco Bolognesi",
+   "edificio": false,
+   "clase": "infanteria",
+   "categoria": "heroe",
+   "capa": 0,
+   "radio": 0.3496,
+   "vida": 650,
+   "armadura": 3,
+   "vision": 10.0,
+   "velocidad": 1.812,
+   "arma": {
+    "tipo": "fusil",
+    "danio": 15,
+    "alcance": 3.5,
+    "alcance_min": 0.0,
+    "proyectil": false,
+    "salpicadura": 0.0,
+    "cep": 0.0,
+    "enfriamiento": 1.0,
+    "objetivos": "ambos"
+   },
+   "forma": "heroe_a_pie",
+   "insignia": "coronel",
+   "trabajador": false,
+   "autonomo": false,
+   "heroe": true,
+   "faccion": "peru",
+   "biologica": true,
+   "forma_filas": false,
+   "estanque": 0,
+   "estanque_radio": 0.0,
+   "sed": true,
+   "observador": 0.0,
+   "monta": null,
+   "habilidades": [
+    "ultimo_cartucho"
+   ],
+   "atajo": "B",
+   "poblacion": 4,
+   "costo": [
+    300,
+    150
+   ],
+   "produce_en": "estado_mayor",
+   "requisitos": [],
+   "construye": [],
+   "tiempo": 45.0,
+   "descripcion": "Defensor de Arica. Aura: +2 de armadura. Habilidad: Hasta quemar el último cartucho (las tropas cercanas no caen).",
+   "valor": 450,
+   "veterania": false
+  },
+  {
+   "id": "caceres",
+   "nombre": "Gral. Andrés Avelino Cáceres",
+   "edificio": false,
+   "clase": "caballeria",
+   "categoria": "heroe",
+   "capa": 0,
+   "radio": 0.5,
+   "vida": 700,
+   "armadura": 3,
+   "vision": 11.0,
+   "velocidad": 2.594,
+   "arma": {
+    "tipo": "fusil",
+    "danio": 16,
+    "alcance": 3.5,
+    "alcance_min": 0.0,
+    "proyectil": false,
+    "salpicadura": 0.0,
+    "cep": 0.0,
+    "enfriamiento": 1.0,
+    "objetivos": "ambos"
+   },
+   "forma": "heroe_montado",
+   "insignia": "general",
+   "trabajador": false,
+   "autonomo": false,
+   "heroe": true,
+   "faccion": "peru",
+   "biologica": true,
+   "forma_filas": false,
+   "estanque": 0,
+   "estanque_radio": 0.0,
+   "sed": true,
+   "observador": 0.0,
+   "monta": null,
+   "habilidades": [
+    "emboscada"
+   ],
+   "atajo": "C",
+   "poblacion": 4,
+   "costo": [
+    350,
+    200
+   ],
+   "produce_en": "estado_mayor",
+   "requisitos": [],
+   "construye": [],
+   "tiempo": 50.0,
+   "descripcion": "El 'Brujo de los Andes'. Aura: +15 % de velocidad y +10 % de daño. Habilidad: Emboscada (oculta a las tropas cercanas).",
+   "valor": 550,
+   "veterania": false
+  },
+  {
+   "id": "ugarte",
+   "nombre": "Cnel. Alfonso Ugarte",
+   "edificio": false,
+   "clase": "infanteria",
+   "categoria": "heroe",
+   "capa": 0,
+   "radio": 0.3496,
+   "vida": 600,
+   "armadura": 3,
+   "vision": 10.0,
+   "velocidad": 1.906,
+   "arma": {
+    "tipo": "fusil",
+    "danio": 15,
+    "alcance": 3.5,
+    "alcance_min": 0.0,
+    "proyectil": false,
+    "salpicadura": 0.0,
+    "cep": 0.0,
+    "enfriamiento": 0.875,
+    "objetivos": "ambos"
+   },
+   "forma": "heroe_a_pie",
+   "insignia": "coronel",
+   "trabajador": false,
+   "autonomo": false,
+   "heroe": true,
+   "faccion": "peru",
+   "biologica": true,
+   "forma_filas": false,
+   "estanque": 0,
+   "estanque_radio": 0.0,
+   "sed": true,
+   "observador": 0.0,
+   "monta": null,
+   "habilidades": [
+    "viva_el_peru"
+   ],
+   "atajo": "U",
+   "poblacion": 4,
+   "costo": [
+    300,
+    150
+   ],
+   "produce_en": "estado_mayor",
+   "requisitos": [],
+   "construye": [],
+   "tiempo": 45.0,
+   "descripcion": "Jefe del batallón Iquique. Aura: +15 % de daño a la infantería. Habilidad: ¡Viva el Perú!",
+   "valor": 450,
+   "veterania": false
+  },
+  {
+   "id": "grau",
+   "nombre": "Alm. Miguel Grau (monitor Huáscar)",
+   "edificio": false,
+   "clase": "naval",
+   "categoria": "heroe",
+   "capa": 1,
+   "radio": 1.0996,
+   "vida": 950,
+   "armadura": 4,
+   "vision": 11.0,
+   "velocidad": 2.188,
+   "arma": {
+    "tipo": "canon_naval",
+    "danio": 55,
+    "alcance": 9.0,
+    "alcance_min": 0.0,
+    "proyectil": true,
+    "salpicadura": 1.1992,
+    "cep": 0.0,
+    "enfriamiento": 3.0,
+    "objetivos": "ambos"
+   },
+   "forma": "monitor",
+   "insignia": null,
+   "trabajador": false,
+   "autonomo": false,
+   "heroe": true,
+   "faccion": "peru",
+   "biologica": false,
+   "forma_filas": false,
+   "estanque": 0,
+   "estanque_radio": 0.0,
+   "sed": false,
+   "observador": 0.0,
+   "monta": null,
+   "habilidades": [
+    "espolonazo"
+   ],
+   "atajo": "G",
+   "poblacion": 4,
+   "costo": [
+    400,
+    250
+   ],
+   "produce_en": "muelle",
+   "requisitos": [
+    "estado_mayor"
+   ],
+   "construye": [],
+   "tiempo": 55.0,
+   "descripcion": "Héroe naval. Aura: +2 de armadura a los buques. Habilidad: Espolonazo contra un buque enemigo.",
+   "valor": 650,
+   "veterania": false
+  },
+  {
+   "id": "campero",
+   "nombre": "Gral. Narciso Campero",
+   "edificio": false,
+   "clase": "caballeria",
+   "categoria": "heroe",
+   "capa": 0,
+   "radio": 0.5,
+   "vida": 750,
+   "armadura": 3,
+   "vision": 10.0,
+   "velocidad": 2.5,
+   "arma": {
+    "tipo": "fusil",
+    "danio": 16,
+    "alcance": 3.5,
+    "alcance_min": 0.0,
+    "proyectil": false,
+    "salpicadura": 0.0,
+    "cep": 0.0,
+    "enfriamiento": 1.0,
+    "objetivos": "ambos"
+   },
+   "forma": "heroe_montado",
+   "insignia": "general",
+   "trabajador": false,
+   "autonomo": false,
+   "heroe": true,
+   "faccion": "bolivia",
+   "biologica": true,
+   "forma_filas": false,
+   "estanque": 0,
+   "estanque_radio": 0.0,
+   "sed": true,
+   "observador": 0.0,
+   "monta": null,
+   "habilidades": [
+    "defensa_alto"
+   ],
+   "atajo": "C",
+   "poblacion": 4,
+   "costo": [
+    350,
+    200
+   ],
+   "produce_en": "estado_mayor",
+   "requisitos": [],
+   "construye": [],
+   "tiempo": 50.0,
+   "descripcion": "Presidente y general en jefe aliado en Tacna. Aura: +15 % de daño. Habilidad: Defensa del Alto (+3 de armadura).",
+   "valor": 550,
+   "veterania": false
+  },
+  {
+   "id": "abaroa",
+   "nombre": "Eduardo Abaroa",
+   "edificio": false,
+   "clase": "infanteria",
+   "categoria": "heroe",
+   "capa": 0,
+   "radio": 0.3301,
+   "vida": 600,
+   "armadura": 3,
+   "vision": 9.0,
+   "velocidad": 1.906,
+   "arma": {
+    "tipo": "fusil",
+    "danio": 14,
+    "alcance": 5.0,
+    "alcance_min": 0.0,
+    "proyectil": false,
+    "salpicadura": 0.0,
+    "cep": 0.0,
+    "enfriamiento": 1.0,
+    "objetivos": "ambos"
+   },
+   "forma": "heroe_a_pie",
+   "insignia": "civil",
+   "trabajador": false,
+   "autonomo": false,
+   "heroe": true,
+   "faccion": "bolivia",
+   "biologica": true,
+   "forma_filas": false,
+   "estanque": 0,
+   "estanque_radio": 0.0,
+   "sed": true,
+   "observador": 0.0,
+   "monta": null,
+   "habilidades": [
+    "rendirme_yo"
+   ],
+   "atajo": "A",
+   "poblacion": 4,
+   "costo": [
+    250,
+    150
+   ],
+   "produce_en": "estado_mayor",
+   "requisitos": [],
+   "construye": [],
+   "tiempo": 40.0,
+   "descripcion": "Defensor de Calama. Aura: +2 de armadura. Habilidad: ¿Rendirme yo? (no cae y duplica su daño por 10 s).",
+   "valor": 400,
+   "veterania": false
+  },
+  {
+   "id": "camacho",
+   "nombre": "Cnel. Eliodoro Camacho",
+   "edificio": false,
+   "clase": "infanteria",
+   "categoria": "heroe",
+   "capa": 0,
+   "radio": 0.3496,
+   "vida": 600,
+   "armadura": 3,
+   "vision": 10.0,
+   "velocidad": 1.906,
+   "arma": {
+    "tipo": "fusil",
+    "danio": 15,
+    "alcance": 3.5,
+    "alcance_min": 0.0,
+    "proyectil": false,
+    "salpicadura": 0.0,
+    "cep": 0.0,
+    "enfriamiento": 1.0,
+    "objetivos": "ambos"
+   },
+   "forma": "heroe_a_pie",
+   "insignia": "coronel",
+   "trabajador": false,
+   "autonomo": false,
+   "heroe": true,
+   "faccion": "bolivia",
+   "biologica": true,
+   "forma_filas": false,
+   "estanque": 0,
+   "estanque_radio": 0.0,
+   "sed": true,
+   "observador": 0.0,
+   "monta": null,
+   "habilidades": [
+    "contraataque"
+   ],
+   "atajo": "M",
+   "poblacion": 4,
+   "costo": [
+    300,
+    150
+   ],
+   "produce_en": "estado_mayor",
+   "requisitos": [],
+   "construye": [],
+   "tiempo": 45.0,
+   "descripcion": "Jefe del ala izquierda aliada en Tacna. Aura: +15 % de cadencia a la infantería. Habilidad: Contraataque.",
+   "valor": 450,
+   "veterania": false
+  },
+  {
+   "id": "zeballos",
+   "nombre": "Ignacia Zeballos",
+   "edificio": false,
+   "clase": "infanteria",
+   "categoria": "heroe",
+   "capa": 0,
+   "radio": 0.3203,
+   "vida": 550,
+   "armadura": 2,
+   "vision": 9.0,
+   "velocidad": 1.906,
+   "arma": null,
+   "forma": "heroina",
+   "insignia": "enfermera",
+   "trabajador": false,
+   "autonomo": false,
+   "heroe": true,
+   "faccion": "bolivia",
+   "biologica": true,
+   "forma_filas": false,
+   "estanque": 0,
+   "estanque_radio": 0.0,
+   "sed": true,
+   "observador": 0.0,
+   "monta": null,
+   "habilidades": [
+    "ambulancia"
+   ],
+   "atajo": "Z",
+   "poblacion": 4,
+   "costo": [
+    250,
+    150
+   ],
+   "produce_en": "estado_mayor",
+   "requisitos": [],
+   "construye": [],
+   "tiempo": 40.0,
+   "descripcion": "Enfermera de la Ambulancia. Cura sin gastar energía. Aura: regeneración. Habilidad: Ambulancia (curación en área).",
+   "valor": 400,
+   "veterania": false
+  },
+  {
+   "id": "roca",
+   "nombre": "Gral. Julio Argentino Roca",
+   "edificio": false,
+   "clase": "caballeria",
+   "categoria": "heroe",
+   "capa": 0,
+   "radio": 0.5,
+   "vida": 750,
+   "armadura": 3,
+   "vision": 10.0,
+   "velocidad": 2.594,
+   "arma": {
+    "tipo": "fusil",
+    "danio": 16,
+    "alcance": 3.5,
+    "alcance_min": 0.0,
+    "proyectil": false,
+    "salpicadura": 0.0,
+    "cep": 0.0,
+    "enfriamiento": 1.0,
+    "objetivos": "ambos"
+   },
+   "forma": "heroe_montado",
+   "insignia": "general",
+   "trabajador": false,
+   "autonomo": false,
+   "heroe": true,
+   "faccion": "argentina",
+   "biologica": true,
+   "forma_filas": false,
+   "estanque": 0,
+   "estanque_radio": 0.0,
+   "sed": true,
+   "observador": 0.0,
+   "monta": null,
+   "habilidades": [
+    "marcha_desierto"
+   ],
+   "atajo": "R",
+   "poblacion": 4,
+   "costo": [
+    350,
+    200
+   ],
+   "produce_en": "estado_mayor",
+   "requisitos": [],
+   "construye": [],
+   "tiempo": 50.0,
+   "descripcion": "Ministro de Guerra y general en jefe. Aura: +15 % de daño. Habilidad: Marcha al desierto (+40 % de velocidad).",
+   "valor": 550,
+   "veterania": false
+  },
+  {
+   "id": "villegas",
+   "nombre": "Cnel. Conrado Villegas",
+   "edificio": false,
+   "clase": "caballeria",
+   "categoria": "heroe",
+   "capa": 0,
+   "radio": 0.5,
+   "vida": 700,
+   "armadura": 3,
+   "vision": 10.0,
+   "velocidad": 2.906,
+   "arma": {
+    "tipo": "sable",
+    "danio": 24,
+    "alcance": 0.3496,
+    "alcance_min": 0.0,
+    "proyectil": false,
+    "salpicadura": 0.0,
+    "cep": 0.0,
+    "enfriamiento": 1.0,
+    "objetivos": "tierra"
+   },
+   "forma": "heroe_montado",
+   "insignia": "coronel",
+   "trabajador": false,
+   "autonomo": false,
+   "heroe": true,
+   "faccion": "argentina",
+   "biologica": true,
+   "forma_filas": false,
+   "estanque": 0,
+   "estanque_radio": 0.0,
+   "sed": true,
+   "observador": 0.0,
+   "monta": null,
+   "habilidades": [
+    "carga_caballeria"
+   ],
+   "atajo": "V",
+   "poblacion": 4,
+   "costo": [
+    300,
+    200
+   ],
+   "produce_en": "estado_mayor",
+   "requisitos": [],
+   "construye": [],
+   "tiempo": 45.0,
+   "descripcion": "Jefe de caballería. Aura: +20 % de daño y +10 % de velocidad a la caballería. Habilidad: Carga de caballería.",
+   "valor": 500,
+   "veterania": false
+  },
+  {
+   "id": "saenz_pena",
+   "nombre": "Tte. Cnel. Roque Sáenz Peña",
+   "edificio": false,
+   "clase": "infanteria",
+   "categoria": "heroe",
+   "capa": 0,
+   "radio": 0.3496,
+   "vida": 650,
+   "armadura": 3,
+   "vision": 10.0,
+   "velocidad": 1.906,
+   "arma": {
+    "tipo": "fusil",
+    "danio": 15,
+    "alcance": 3.5,
+    "alcance_min": 0.0,
+    "proyectil": false,
+    "salpicadura": 0.0,
+    "cep": 0.0,
+    "enfriamiento": 1.0,
+    "objetivos": "ambos"
+   },
+   "forma": "heroe_a_pie",
+   "insignia": "comandante",
+   "trabajador": false,
+   "autonomo": false,
+   "heroe": true,
+   "faccion": "argentina",
+   "biologica": true,
+   "forma_filas": false,
+   "estanque": 0,
+   "estanque_radio": 0.0,
+   "sed": true,
+   "observador": 0.0,
+   "monta": null,
+   "habilidades": [
+    "resistencia_morro"
+   ],
+   "atajo": "S",
+   "poblacion": 4,
+   "costo": [
+    300,
+    150
+   ],
+   "produce_en": "estado_mayor",
+   "requisitos": [],
+   "construye": [],
+   "tiempo": 45.0,
+   "descripcion": "Voluntario en Arica. Aura: +2 de armadura. Habilidad: Resistencia en el Morro (+4 de armadura).",
+   "valor": 450,
+   "veterania": false
+  },
+  {
+   "id": "piedrabuena",
+   "nombre": "Cmdte. Luis Piedrabuena",
+   "edificio": false,
+   "clase": "naval",
+   "categoria": "heroe",
+   "capa": 1,
+   "radio": 1.0,
+   "vida": 850,
+   "armadura": 3,
+   "vision": 11.0,
+   "velocidad": 2.312,
+   "arma": {
+    "tipo": "canon_naval",
+    "danio": 40,
+    "alcance": 8.0,
+    "alcance_min": 0.0,
+    "proyectil": true,
+    "salpicadura": 1.0,
+    "cep": 0.0,
+    "enfriamiento": 2.5,
+    "objetivos": "ambos"
+   },
+   "forma": "canonera",
+   "insignia": "heroe",
+   "trabajador": false,
+   "autonomo": false,
+   "heroe": true,
+   "faccion": "argentina",
+   "biologica": false,
+   "forma_filas": false,
+   "estanque": 0,
+   "estanque_radio": 0.0,
+   "sed": false,
+   "observador": 0.0,
+   "monta": null,
+   "habilidades": [
+    "rescate_naufragos"
+   ],
+   "atajo": "P",
+   "poblacion": 4,
+   "costo": [
+    350,
+    200
+   ],
+   "produce_en": "muelle",
+   "requisitos": [
+    "estado_mayor"
+   ],
+   "construye": [],
+   "tiempo": 50.0,
+   "descripcion": "Marino de la Patagonia. Aura: regeneración de los buques. Habilidad: Rescate de náufragos (cura en área).",
+   "valor": 550,
+   "veterania": false
+  },
+  {
+   "id": "cuartel_general",
+   "nombre": "Cuartel General",
+   "edificio": true,
+   "ancho": 4,
+   "alto": 3,
+   "vida": 1500,
+   "armadura": 1,
+   "vision": 10.0,
+   "forma": "cuartel_general",
+   "arma": null,
+   "guarnicion": 8,
+   "guarnicion_vista": "techo",
+   "produce": [
+    "trabajador"
+   ],
+   "investiga": [],
+   "deposito": true,
+   "sobre_recurso": null,
+   "costero": false,
+   "poblacion": 10,
+   "abastece": 3.0,
+   "camilleros": 0,
+   "desmonta_en": null,
+   "menu": "basico",
+   "atajo": "C",
+   "costo": [
+    400,
+    0
+   ],
+   "requisitos": [],
+   "habilidades": [],
+   "faccion": null,
+   "tiempo": 100.0,
+   "descripcion": "Centro del campamento: forma trabajadores, compra el salitre que traen (1 $ por cada unidad de salitre) y recibe el agua: a su lado la tropa llena las cantimploras y las carretas de agua, la pipa. Otorga 10 de población. Hasta 8 de población de infantería pueden subir al techo y disparar desde arriba con +2 de alcance."
+  },
+  {
+   "id": "deposito",
+   "nombre": "Depósito de Intendencia",
+   "edificio": true,
+   "ancho": 2,
+   "alto": 2,
+   "vida": 400,
+   "armadura": 1,
+   "vision": 6.0,
+   "forma": "deposito",
+   "arma": null,
+   "guarnicion": 0,
+   "guarnicion_vista": null,
+   "produce": [
+    "carreta_agua"
+   ],
+   "investiga": [],
+   "deposito": false,
+   "sobre_recurso": null,
+   "costero": false,
+   "poblacion": 10,
+   "abastece": 0.0,
+   "camilleros": 0,
+   "desmonta_en": null,
+   "menu": "basico",
+   "atajo": "D",
+   "costo": [
+    100,
+    0
+   ],
+   "requisitos": [],
+   "habilidades": [],
+   "faccion": null,
+   "tiempo": 25.0,
+   "descripcion": "Almacena víveres, munición y forraje. Cada depósito permite mantener 10 de población más (máximo 200). Forma las carretas de agua que acompañan a la tropa en la pampa."
+  },
+  {
+   "id": "molino_agua",
+   "nombre": "Molino de agua",
+   "edificio": true,
+   "ancho": 3,
+   "alto": 3,
+   "vida": 500,
+   "armadura": 1,
+   "vision": 6.0,
+   "forma": "molino",
+   "arma": null,
+   "guarnicion": 0,
+   "guarnicion_vista": null,
+   "produce": [],
+   "investiga": [],
+   "deposito": false,
+   "sobre_recurso": "agua",
+   "costero": false,
+   "poblacion": 0,
+   "abastece": 3.0,
+   "camilleros": 0,
+   "desmonta_en": null,
+   "menu": "basico",
+   "atajo": "A",
+   "costo": [
+    75,
+    0
+   ],
+   "requisitos": [],
+   "habilidades": [],
+   "faccion": null,
+   "tiempo": 30.0,
+   "descripcion": "Molino de viento con bomba sobre un pozo. Los trabajadores entran y salen cargados de agua; la tropa que llega a su lado llena las cantimploras y las carretas de agua, la pipa."
+  },
+  {
+   "id": "barracas",
+   "nombre": "Barracas",
+   "edificio": true,
+   "ancho": 3,
+   "alto": 3,
+   "vida": 1000,
+   "armadura": 1,
+   "vision": 7.0,
+   "forma": "barracas",
+   "arma": null,
+   "guarnicion": 6,
+   "guarnicion_vista": "techo",
+   "produce": [
+    "infante",
+    "cantinera",
+    "ingeniero",
+    "zapador",
+    "torpedista",
+    "montonero",
+    "colorado"
+   ],
+   "investiga": [],
+   "deposito": false,
+   "sobre_recurso": null,
+   "costero": false,
+   "poblacion": 0,
+   "abastece": 0.0,
+   "camilleros": 0,
+   "desmonta_en": null,
+   "menu": "basico",
+   "atajo": "B",
+   "costo": [
+    150,
+    0
+   ],
+   "requisitos": [
+    "cuartel_general"
+   ],
+   "habilidades": [],
+   "faccion": null,
+   "tiempo": 50.0,
+   "descripcion": "Cuartel de tropa: forma infantes, cantineras, ingenieros y la infantería especial de cada país. Hasta 6 de población de infantería pueden subir al techo y disparar desde arriba con +2 de alcance, como en una pequeña fortaleza."
+  },
+  {
+   "id": "maestranza",
+   "nombre": "Maestranza",
+   "edificio": true,
+   "ancho": 3,
+   "alto": 3,
+   "vida": 850,
+   "armadura": 1,
+   "vision": 7.0,
+   "forma": "maestranza",
+   "arma": null,
+   "guarnicion": 0,
+   "guarnicion_vista": null,
+   "produce": [],
+   "investiga": [
+    "armas_infanteria_1",
+    "armas_infanteria_2",
+    "armas_infanteria_3",
+    "blindaje_infanteria_1",
+    "blindaje_infanteria_2",
+    "blindaje_infanteria_3",
+    "armas_caballeria_1",
+    "armas_caballeria_2",
+    "blindaje_caballeria_1",
+    "blindaje_caballeria_2",
+    "armas_artilleria_1",
+    "armas_artilleria_2"
+   ],
+   "deposito": false,
+   "sobre_recurso": null,
+   "costero": false,
+   "poblacion": 0,
+   "abastece": 0.0,
+   "camilleros": 0,
+   "desmonta_en": null,
+   "menu": "basico",
+   "atajo": "M",
+   "costo": [
+    125,
+    0
+   ],
+   "requisitos": [
+    "cuartel_general"
+   ],
+   "habilidades": [],
+   "faccion": null,
+   "tiempo": 40.0,
+   "descripcion": "Taller de armas y equipo: investiga las mejoras de ataque y armadura. Habilita el reducto y el muelle."
+  },
+  {
+   "id": "hospital_campana",
+   "nombre": "Hospital de campaña",
+   "edificio": true,
+   "ancho": 3,
+   "alto": 2,
+   "vida": 600,
+   "armadura": 1,
+   "vision": 7.0,
+   "forma": "hospital",
+   "arma": null,
+   "guarnicion": 0,
+   "guarnicion_vista": null,
+   "produce": [
+    "ambulancia"
+   ],
+   "investiga": [
+    "cirugia_campana",
+    "botiquines",
+    "ambulancias",
+    "convalecencia"
+   ],
+   "deposito": false,
+   "sobre_recurso": null,
+   "costero": false,
+   "poblacion": 0,
+   "abastece": 0.0,
+   "camilleros": 4,
+   "desmonta_en": null,
+   "menu": "basico",
+   "atajo": "H",
+   "costo": [
+    100,
+    25
+   ],
+   "requisitos": [
+    "barracas"
+   ],
+   "habilidades": [],
+   "faccion": null,
+   "tiempo": 40.0,
+   "descripcion": "Hospital de la retaguardia: habilita a las cantineras, forma las ambulancias, cura lentamente a la tropa cercana y mantiene cuatro equipos de camilleros que salen a buscar a los heridos a todo el campo de batalla. Los heridos se recuperan en el hospital y vuelven a filas."
+  },
+  {
+   "id": "hospital_sangre",
+   "nombre": "Hospital de sangre",
+   "edificio": true,
+   "ancho": 2,
+   "alto": 2,
+   "vida": 400,
+   "armadura": 0,
+   "vision": 7.0,
+   "forma": "hospital_sangre",
+   "arma": null,
+   "guarnicion": 0,
+   "guarnicion_vista": null,
+   "produce": [],
+   "investiga": [],
+   "deposito": false,
+   "sobre_recurso": null,
+   "costero": false,
+   "poblacion": 0,
+   "abastece": 0.0,
+   "camilleros": 2,
+   "desmonta_en": "ambulancia",
+   "menu": "ambulancia",
+   "atajo": "",
+   "costo": [
+    0,
+    0
+   ],
+   "requisitos": [],
+   "habilidades": [
+    "desmontar_hospital"
+   ],
+   "faccion": null,
+   "tiempo": 8.0,
+   "descripcion": "Las carpas que la ambulancia monta junto a la tropa: cura a los que están cerca, mantiene dos equipos de camilleros y recibe a los heridos del frente para devolverlos a filas sin el viaje a la retaguardia. Se desmonta para seguir el avance; los convalecientes viajan en el carro."
+  },
+  {
+   "id": "trinchera",
+   "nombre": "Trinchera",
+   "edificio": true,
+   "ancho": 3,
+   "alto": 2,
+   "vida": 400,
+   "armadura": 2,
+   "vision": 9.0,
+   "forma": "trinchera",
+   "arma": null,
+   "guarnicion": 4,
+   "guarnicion_vista": "trinchera",
+   "produce": [],
+   "investiga": [],
+   "deposito": false,
+   "sobre_recurso": null,
+   "costero": false,
+   "poblacion": 0,
+   "abastece": 0.0,
+   "camilleros": 0,
+   "desmonta_en": null,
+   "menu": "basico",
+   "atajo": "T",
+   "costo": [
+    100,
+    0
+   ],
+   "requisitos": [
+    "barracas"
+   ],
+   "habilidades": [],
+   "faccion": null,
+   "tiempo": 25.0,
+   "descripcion": "Obra de campaña con parapeto: hasta 4 de población de infantería disparan desde ella protegidos y con +1 de alcance."
+  },
+  {
+   "id": "reducto",
+   "nombre": "Reducto",
+   "edificio": true,
+   "ancho": 2,
+   "alto": 2,
+   "vida": 500,
+   "armadura": 2,
+   "vision": 10.0,
+   "forma": "reducto",
+   "arma": {
+    "tipo": "explosivo",
+    "danio": 22,
+    "alcance": 7.0,
+    "alcance_min": 0.0,
+    "proyectil": true,
+    "salpicadura": 0.75,
+    "cep": 0.0,
+    "enfriamiento": 2.0,
+    "objetivos": "ambos"
+   },
+   "guarnicion": 0,
+   "guarnicion_vista": null,
+   "produce": [],
+   "investiga": [],
+   "deposito": false,
+   "sobre_recurso": null,
+   "costero": false,
+   "poblacion": 0,
+   "abastece": 0.0,
+   "camilleros": 0,
+   "desmonta_en": null,
+   "menu": "basico",
+   "atajo": "R",
+   "costo": [
+    125,
+    25
+   ],
+   "requisitos": [
+    "maestranza"
+   ],
+   "habilidades": [],
+   "faccion": null,
+   "tiempo": 30.0,
+   "descripcion": "Fortificación con una pieza de artillería. Detecta unidades ocultas y minas cercanas."
+  },
+  {
+   "id": "barracon_instruccion",
+   "nombre": "Barracón de Instrucción",
+   "edificio": true,
+   "ancho": 3,
+   "alto": 3,
+   "vida": 650,
+   "armadura": 1,
+   "vision": 7.0,
+   "forma": "barracon",
+   "arma": null,
+   "guarnicion": 0,
+   "guarnicion_vista": null,
+   "produce": [],
+   "investiga": [
+    "orden_disperso",
+    "paso_trote",
+    "dinamita_alto_poder",
+    "ejercicios_tiro"
+   ],
+   "deposito": false,
+   "sobre_recurso": null,
+   "costero": false,
+   "poblacion": 0,
+   "abastece": 0.0,
+   "camilleros": 0,
+   "desmonta_en": null,
+   "menu": "avanzado",
+   "atajo": "I",
+   "costo": [
+    150,
+    50
+   ],
+   "requisitos": [
+    "barracas"
+   ],
+   "habilidades": [],
+   "faccion": null,
+   "tiempo": 50.0,
+   "descripcion": "Escuela de tiro y de clases: habilita ingenieros, la infantería especial y la caballeriza, e investiga tácticas."
+  },
+  {
+   "id": "caballeriza",
+   "nombre": "Caballeriza",
+   "edificio": true,
+   "ancho": 4,
+   "alto": 3,
+   "vida": 1000,
+   "armadura": 1,
+   "vision": 7.0,
+   "forma": "caballeriza",
+   "arma": null,
+   "guarnicion": 0,
+   "guarnicion_vista": null,
+   "produce": [
+    "granadero",
+    "cazador",
+    "baqueano"
+   ],
+   "investiga": [
+    "herraje",
+    "carga_sable"
+   ],
+   "deposito": false,
+   "sobre_recurso": null,
+   "costero": false,
+   "poblacion": 0,
+   "abastece": 0.0,
+   "camilleros": 0,
+   "desmonta_en": null,
+   "menu": "avanzado",
+   "atajo": "C",
+   "costo": [
+    150,
+    100
+   ],
+   "requisitos": [
+    "barracon_instruccion"
+   ],
+   "habilidades": [],
+   "faccion": null,
+   "tiempo": 60.0,
+   "descripcion": "Cuadras y forraje: forma la caballería. Los caballos beben mucha agua."
+  },
+  {
+   "id": "central_telegrafos",
+   "nombre": "Central de Telégrafos",
+   "edificio": true,
+   "ancho": 3,
+   "alto": 3,
+   "vida": 750,
+   "armadura": 1,
+   "vision": 10.0,
+   "forma": "telegrafos",
+   "arma": null,
+   "guarnicion": 0,
+   "guarnicion_vista": null,
+   "produce": [],
+   "investiga": [
+    "cifrado"
+   ],
+   "deposito": false,
+   "sobre_recurso": null,
+   "costero": false,
+   "poblacion": 0,
+   "abastece": 0.0,
+   "camilleros": 0,
+   "desmonta_en": null,
+   "menu": "avanzado",
+   "atajo": "T",
+   "costo": [
+    150,
+    100
+   ],
+   "requisitos": [
+    "caballeriza"
+   ],
+   "habilidades": [
+    "reconocimiento"
+   ],
+   "faccion": null,
+   "tiempo": 50.0,
+   "descripcion": "Comunica el frente con el mando: habilita la artillería, el Estado Mayor y las cañoneras. Habilidad: Reconocimiento (revela una zona del mapa)."
+  },
+  {
+   "id": "parque_artilleria",
+   "nombre": "Parque de Artillería",
+   "edificio": true,
+   "ancho": 4,
+   "alto": 3,
+   "vida": 1250,
+   "armadura": 1,
+   "vision": 7.0,
+   "forma": "parque_artilleria",
+   "arma": null,
+   "guarnicion": 0,
+   "guarnicion_vista": null,
+   "produce": [
+    "artilleria_montana",
+    "canon_campana",
+    "gatling"
+   ],
+   "investiga": [
+    "alza_mira",
+    "manivela_rapida"
+   ],
+   "deposito": false,
+   "sobre_recurso": null,
+   "costero": false,
+   "poblacion": 0,
+   "abastece": 0.0,
+   "camilleros": 0,
+   "desmonta_en": null,
+   "menu": "avanzado",
+   "atajo": "P",
+   "costo": [
+    200,
+    150
+   ],
+   "requisitos": [
+    "central_telegrafos",
+    "maestranza"
+   ],
+   "habilidades": [],
+   "faccion": null,
+   "tiempo": 70.0,
+   "descripcion": "Forma las piezas de artillería y las ametralladoras Gatling, las unidades más poderosas y caras."
+  },
+  {
+   "id": "estado_mayor",
+   "nombre": "Estado Mayor",
+   "edificio": true,
+   "ancho": 3,
+   "alto": 3,
+   "vida": 900,
+   "armadura": 1,
+   "vision": 8.0,
+   "forma": "estado_mayor",
+   "arma": null,
+   "guarnicion": 0,
+   "guarnicion_vista": null,
+   "produce": [
+    "espia",
+    "baquedano",
+    "san_martin",
+    "velasquez",
+    "irene_morales",
+    "bolognesi",
+    "caceres",
+    "ugarte",
+    "campero",
+    "abaroa",
+    "camacho",
+    "zeballos",
+    "roca",
+    "villegas",
+    "saenz_pena"
+   ],
+   "investiga": [
+    "academia_guerra",
+    "espionaje"
+   ],
+   "deposito": false,
+   "sobre_recurso": null,
+   "costero": false,
+   "poblacion": 0,
+   "abastece": 0.0,
+   "camilleros": 0,
+   "desmonta_en": null,
+   "menu": "avanzado",
+   "atajo": "E",
+   "costo": [
+    150,
+    150
+   ],
+   "requisitos": [
+    "central_telegrafos"
+   ],
+   "habilidades": [],
+   "faccion": null,
+   "tiempo": 60.0,
+   "descripcion": "Cuartel del alto mando: forma a los héroes de cada nación y a los espías. Cada héroe es único."
+  },
+  {
+   "id": "muelle",
+   "nombre": "Muelle",
+   "edificio": true,
+   "ancho": 3,
+   "alto": 3,
+   "vida": 900,
+   "armadura": 1,
+   "vision": 9.0,
+   "forma": "muelle",
+   "arma": null,
+   "guarnicion": 0,
+   "guarnicion_vista": null,
+   "produce": [
+    "transporte",
+    "canonera",
+    "prat",
+    "grau",
+    "piedrabuena"
+   ],
+   "investiga": [
+    "calderas",
+    "blindaje_naval"
+   ],
+   "deposito": false,
+   "sobre_recurso": null,
+   "costero": true,
+   "poblacion": 0,
+   "abastece": 0.0,
+   "camilleros": 0,
+   "desmonta_en": null,
+   "menu": "avanzado",
+   "atajo": "U",
+   "costo": [
+    150,
+    0
+   ],
+   "requisitos": [
+    "maestranza"
+   ],
+   "habilidades": [],
+   "faccion": null,
+   "tiempo": 50.0,
+   "descripcion": "Debe construirse en la costa. Forma transportes, cañoneras y los buques de los héroes navales."
+  },
+  {
+   "id": "fortin",
+   "nombre": "Fortín de frontera",
+   "edificio": true,
+   "ancho": 2,
+   "alto": 2,
+   "vida": 600,
+   "armadura": 2,
+   "vision": 10.0,
+   "forma": "fortin",
+   "arma": {
+    "tipo": "fusil",
+    "danio": 10,
+    "alcance": 7.0,
+    "alcance_min": 0.0,
+    "proyectil": false,
+    "salpicadura": 0.0,
+    "cep": 0.0,
+    "enfriamiento": 1.0,
+    "objetivos": "ambos"
+   },
+   "guarnicion": 0,
+   "guarnicion_vista": null,
+   "produce": [],
+   "investiga": [],
+   "deposito": false,
+   "sobre_recurso": null,
+   "costero": false,
+   "poblacion": 5,
+   "abastece": 0.0,
+   "camilleros": 0,
+   "desmonta_en": null,
+   "menu": "basico",
+   "atajo": "F",
+   "costo": [
+    125,
+    0
+   ],
+   "requisitos": [
+    "barracas"
+   ],
+   "habilidades": [],
+   "faccion": "argentina",
+   "tiempo": 30.0,
+   "descripcion": "Fuerte de palo a pique con tiradores: defiende, detecta espías y aloja 5 de población."
+  }
+ ],
+ "facciones": {
+  "chile": {
+   "nombre": "Chile",
+   "ejercito": "Ejército de Chile",
+   "bandera": "chile",
+   "uniforme": {
+    "casaca": [
+     34,
+     44,
+     98
+    ],
+    "pantalon": [
+     168,
+     32,
+     36
+    ],
+    "kepi": [
+     172,
+     34,
+     38
+    ],
+    "franja": [
+     34,
+     44,
+     98
+    ],
+    "cubrenuca": [
+     232,
+     228,
+     214
+    ],
+    "detalle": [
+     222,
+     196,
+     92
+    ]
+   },
+   "uniformes": {
+    "zapador": {
+     "kepi": [
+      28,
+      34,
+      72
+     ],
+     "franja": [
+      150,
+      24,
+      52
+     ]
+    },
+    "ingeniero": {
+     "casaca": [
+      180,
+      158,
+      114
+     ],
+     "kepi": [
+      28,
+      34,
+      72
+     ],
+     "cinta": [
+      150,
+      24,
+      52
+     ]
+    },
+    "jinete_sable": {
+     "morrion": [
+      172,
+      34,
+      38
+     ],
+     "banda": [
+      26,
+      30,
+      62
+     ],
+     "pompon": [
+      172,
+      34,
+      38
+     ],
+     "galon": [
+      222,
+      196,
+      92
+     ],
+     "chabraque": [
+      34,
+      44,
+      98
+     ]
+    },
+    "jinete_carabina": {
+     "franja": [
+      52,
+      124,
+      70
+     ],
+     "alamares": [
+      222,
+      196,
+      92
+     ],
+     "galon": [
+      52,
+      124,
+      70
+     ],
+     "chabraque": [
+      34,
+      44,
+      98
+     ]
+    }
+   },
+   "nombres": {
+    "infante": "Infante de línea (Comblain)",
+    "granadero": "Granadero a caballo",
+    "cazador": "Cazador a caballo",
+    "artilleria_montana": "Krupp de montaña",
+    "canon_campana": "Krupp de campaña",
+    "gatling": "Ametralladora Gatling"
+   },
+   "unidades": [
+    "trabajador",
+    "infante",
+    "cantinera",
+    "camilleros",
+    "ambulancia",
+    "carreta_agua",
+    "ingeniero",
+    "granadero",
+    "cazador",
+    "artilleria_montana",
+    "canon_campana",
+    "gatling",
+    "espia",
+    "transporte",
+    "canonera",
+    "zapador",
+    "baquedano",
+    "san_martin",
+    "velasquez",
+    "irene_morales",
+    "prat"
+   ],
+   "edificios": [
+    "cuartel_general",
+    "deposito",
+    "molino_agua",
+    "barracas",
+    "maestranza",
+    "hospital_campana",
+    "hospital_sangre",
+    "trinchera",
+    "reducto",
+    "barracon_instruccion",
+    "caballeriza",
+    "central_telegrafos",
+    "parque_artilleria",
+    "estado_mayor",
+    "muelle"
+   ],
+   "heroes": [
+    "baquedano",
+    "san_martin",
+    "velasquez",
+    "irene_morales",
+    "prat"
+   ],
+   "stats": {
+    "trabajador": {
+     "costo": [
+      50,
+      0
+     ],
+     "vision": 7.0
+    },
+    "infante": {
+     "costo": [
+      50,
+      0
+     ],
+     "vision": 8.0
+    },
+    "cantinera": {
+     "costo": [
+      50,
+      25
+     ],
+     "vision": 8.0
+    },
+    "camilleros": {
+     "costo": [
+      0,
+      0
+     ],
+     "vision": 7.0
+    },
+    "ambulancia": {
+     "costo": [
+      150,
+      50
+     ],
+     "vision": 7.0
+    },
+    "carreta_agua": {
+     "costo": [
+      100,
+      50
+     ],
+     "vision": 6.0
+    },
+    "ingeniero": {
+     "costo": [
+      75,
+      50
+     ],
+     "vision": 8.0
+    },
+    "granadero": {
+     "costo": [
+      150,
+      75
+     ],
+     "vision": 9.0
+    },
+    "cazador": {
+     "costo": [
+      125,
+      75
+     ],
+     "vision": 10.0
+    },
+    "artilleria_montana": {
+     "costo": [
+      200,
+      100
+     ],
+     "vision": 10.0
+    },
+    "canon_campana": {
+     "costo": [
+      300,
+      200
+     ],
+     "vision": 10.0
+    },
+    "gatling": {
+     "costo": [
+      250,
+      150
+     ],
+     "vision": 9.0
+    },
+    "espia": {
+     "costo": [
+      50,
+      100
+     ],
+     "vision": 11.0
+    },
+    "transporte": {
+     "costo": [
+      112,
+      37
+     ],
+     "vision": 8.0
+    },
+    "canonera": {
+     "costo": [
+      187,
+      112
+     ],
+     "vision": 10.0
+    },
+    "zapador": {
+     "costo": [
+      100,
+      25
+     ],
+     "vision": 8.0
+    },
+    "baquedano": {
+     "costo": [
+      350,
+      200
+     ],
+     "vision": 10.0
+    },
+    "san_martin": {
+     "costo": [
+      300,
+      150
+     ],
+     "vision": 10.0
+    },
+    "velasquez": {
+     "costo": [
+      350,
+      200
+     ],
+     "vision": 11.0
+    },
+    "irene_morales": {
+     "costo": [
+      250,
+      150
+     ],
+     "vision": 9.0
+    },
+    "prat": {
+     "costo": [
+      262,
+      150
+     ],
+     "vision": 11.0
+    },
+    "cuartel_general": {
+     "costo": [
+      400,
+      0
+     ],
+     "vision": 10.0
+    },
+    "deposito": {
+     "costo": [
+      100,
+      0
+     ],
+     "vision": 6.0
+    },
+    "molino_agua": {
+     "costo": [
+      75,
+      0
+     ],
+     "vision": 6.0
+    },
+    "barracas": {
+     "costo": [
+      150,
+      0
+     ],
+     "vision": 7.0
+    },
+    "maestranza": {
+     "costo": [
+      125,
+      0
+     ],
+     "vision": 7.0
+    },
+    "hospital_campana": {
+     "costo": [
+      100,
+      25
+     ],
+     "vision": 7.0
+    },
+    "hospital_sangre": {
+     "costo": [
+      0,
+      0
+     ],
+     "vision": 7.0
+    },
+    "trinchera": {
+     "costo": [
+      100,
+      0
+     ],
+     "vision": 9.0
+    },
+    "reducto": {
+     "costo": [
+      125,
+      25
+     ],
+     "vision": 10.0
+    },
+    "barracon_instruccion": {
+     "costo": [
+      150,
+      50
+     ],
+     "vision": 7.0
+    },
+    "caballeriza": {
+     "costo": [
+      150,
+      100
+     ],
+     "vision": 7.0
+    },
+    "central_telegrafos": {
+     "costo": [
+      150,
+      100
+     ],
+     "vision": 10.0
+    },
+    "parque_artilleria": {
+     "costo": [
+      200,
+      150
+     ],
+     "vision": 7.0
+    },
+    "estado_mayor": {
+     "costo": [
+      150,
+      150
+     ],
+     "vision": 8.0
+    },
+    "muelle": {
+     "costo": [
+      150,
+      0
+     ],
+     "vision": 9.0
+    }
+   }
+  },
+  "peru": {
+   "nombre": "Perú",
+   "ejercito": "Ejército del Perú",
+   "bandera": "peru",
+   "uniforme": {
+    "casaca": [
+     214,
+     208,
+     190
+    ],
+    "pantalon": [
+     44,
+     58,
+     112
+    ],
+    "kepi": [
+     176,
+     36,
+     42
+    ],
+    "franja": [
+     44,
+     58,
+     112
+    ],
+    "cubrenuca": [
+     236,
+     232,
+     220
+    ],
+    "detalle": [
+     222,
+     196,
+     92
+    ]
+   },
+   "uniformes": {
+    "ingeniero": {
+     "casaca": [
+      176,
+      150,
+      104
+     ],
+     "kepi": [
+      44,
+      58,
+      112
+     ],
+     "cinta": [
+      176,
+      36,
+      42
+     ]
+    },
+    "torpedista": {
+     "casaca": [
+      30,
+      38,
+      70
+     ],
+     "pantalon": [
+      230,
+      228,
+      220
+     ],
+     "kepi": [
+      26,
+      30,
+      52
+     ]
+    },
+    "jinete_sable": {
+     "casaca": [
+      40,
+      52,
+      112
+     ],
+     "pantalon": [
+      228,
+      224,
+      212
+     ],
+     "morrion": [
+      176,
+      36,
+      42
+     ],
+     "banda": [
+      30,
+      36,
+      70
+     ],
+     "pompon": [
+      236,
+      232,
+      220
+     ],
+     "galon": [
+      222,
+      196,
+      92
+     ],
+     "chabraque": [
+      176,
+      36,
+      42
+     ]
+    },
+    "jinete_carabina": {
+     "casaca": [
+      40,
+      52,
+      112
+     ],
+     "pantalon": [
+      228,
+      224,
+      212
+     ],
+     "alamares": [
+      222,
+      196,
+      92
+     ],
+     "galon": [
+      176,
+      36,
+      42
+     ],
+     "chabraque": [
+      44,
+      58,
+      112
+     ]
+    }
+   },
+   "nombres": {
+    "infante": "Infante de línea (Peabody)",
+    "cantinera": "Rabona (cantinera)",
+    "granadero": "Húsar de Junín",
+    "cazador": "Carabinero a caballo",
+    "artilleria_montana": "Cañón Grieve de montaña",
+    "canon_campana": "Cañón White de campaña",
+    "gatling": "Ametralladora"
+   },
+   "unidades": [
+    "trabajador",
+    "infante",
+    "cantinera",
+    "camilleros",
+    "ambulancia",
+    "carreta_agua",
+    "ingeniero",
+    "granadero",
+    "cazador",
+    "artilleria_montana",
+    "canon_campana",
+    "gatling",
+    "espia",
+    "transporte",
+    "canonera",
+    "torpedista",
+    "montonero",
+    "bolognesi",
+    "caceres",
+    "ugarte",
+    "grau"
+   ],
+   "edificios": [
+    "cuartel_general",
+    "deposito",
+    "molino_agua",
+    "barracas",
+    "maestranza",
+    "hospital_campana",
+    "hospital_sangre",
+    "trinchera",
+    "reducto",
+    "barracon_instruccion",
+    "caballeriza",
+    "central_telegrafos",
+    "parque_artilleria",
+    "estado_mayor",
+    "muelle"
+   ],
+   "heroes": [
+    "bolognesi",
+    "caceres",
+    "ugarte",
+    "grau"
+   ],
+   "stats": {
+    "trabajador": {
+     "costo": [
+      50,
+      0
+     ],
+     "vision": 7.0
+    },
+    "infante": {
+     "costo": [
+      50,
+      0
+     ],
+     "vision": 8.0
+    },
+    "cantinera": {
+     "costo": [
+      50,
+      25
+     ],
+     "vision": 8.0
+    },
+    "camilleros": {
+     "costo": [
+      0,
+      0
+     ],
+     "vision": 7.0
+    },
+    "ambulancia": {
+     "costo": [
+      150,
+      50
+     ],
+     "vision": 7.0
+    },
+    "carreta_agua": {
+     "costo": [
+      100,
+      50
+     ],
+     "vision": 6.0
+    },
+    "ingeniero": {
+     "costo": [
+      75,
+      50
+     ],
+     "vision": 8.0
+    },
+    "granadero": {
+     "costo": [
+      150,
+      75
+     ],
+     "vision": 9.0
+    },
+    "cazador": {
+     "costo": [
+      125,
+      75
+     ],
+     "vision": 10.0
+    },
+    "artilleria_montana": {
+     "costo": [
+      200,
+      100
+     ],
+     "vision": 10.0
+    },
+    "canon_campana": {
+     "costo": [
+      300,
+      200
+     ],
+     "vision": 10.0
+    },
+    "gatling": {
+     "costo": [
+      250,
+      150
+     ],
+     "vision": 9.0
+    },
+    "espia": {
+     "costo": [
+      50,
+      100
+     ],
+     "vision": 11.0
+    },
+    "transporte": {
+     "costo": [
+      150,
+      50
+     ],
+     "vision": 8.0
+    },
+    "canonera": {
+     "costo": [
+      250,
+      150
+     ],
+     "vision": 10.0
+    },
+    "torpedista": {
+     "costo": [
+      100,
+      50
+     ],
+     "vision": 8.0
+    },
+    "montonero": {
+     "costo": [
+      40,
+      0
+     ],
+     "vision": 9.0
+    },
+    "bolognesi": {
+     "costo": [
+      300,
+      150
+     ],
+     "vision": 10.0
+    },
+    "caceres": {
+     "costo": [
+      350,
+      200
+     ],
+     "vision": 11.0
+    },
+    "ugarte": {
+     "costo": [
+      300,
+      150
+     ],
+     "vision": 10.0
+    },
+    "grau": {
+     "costo": [
+      400,
+      250
+     ],
+     "vision": 11.0
+    },
+    "cuartel_general": {
+     "costo": [
+      400,
+      0
+     ],
+     "vision": 10.0
+    },
+    "deposito": {
+     "costo": [
+      100,
+      0
+     ],
+     "vision": 6.0
+    },
+    "molino_agua": {
+     "costo": [
+      75,
+      0
+     ],
+     "vision": 6.0
+    },
+    "barracas": {
+     "costo": [
+      150,
+      0
+     ],
+     "vision": 7.0
+    },
+    "maestranza": {
+     "costo": [
+      125,
+      0
+     ],
+     "vision": 7.0
+    },
+    "hospital_campana": {
+     "costo": [
+      100,
+      25
+     ],
+     "vision": 7.0
+    },
+    "hospital_sangre": {
+     "costo": [
+      0,
+      0
+     ],
+     "vision": 7.0
+    },
+    "trinchera": {
+     "costo": [
+      75,
+      0
+     ],
+     "vision": 9.0
+    },
+    "reducto": {
+     "costo": [
+      93,
+      18
+     ],
+     "vision": 10.0
+    },
+    "barracon_instruccion": {
+     "costo": [
+      150,
+      50
+     ],
+     "vision": 7.0
+    },
+    "caballeriza": {
+     "costo": [
+      150,
+      100
+     ],
+     "vision": 7.0
+    },
+    "central_telegrafos": {
+     "costo": [
+      150,
+      100
+     ],
+     "vision": 10.0
+    },
+    "parque_artilleria": {
+     "costo": [
+      200,
+      150
+     ],
+     "vision": 7.0
+    },
+    "estado_mayor": {
+     "costo": [
+      150,
+      150
+     ],
+     "vision": 8.0
+    },
+    "muelle": {
+     "costo": [
+      150,
+      0
+     ],
+     "vision": 9.0
+    }
+   }
+  },
+  "bolivia": {
+   "nombre": "Bolivia",
+   "ejercito": "Ejército de Bolivia",
+   "bandera": "bolivia",
+   "uniforme": {
+    "casaca": [
+     118,
+     116,
+     106
+    ],
+    "pantalon": [
+     104,
+     102,
+     94
+    ],
+    "kepi": [
+     92,
+     90,
+     82
+    ],
+    "franja": [
+     42,
+     122,
+     64
+    ],
+    "cubrenuca": [
+     226,
+     222,
+     208
+    ],
+    "detalle": [
+     42,
+     122,
+     64
+    ]
+   },
+   "uniformes": {
+    "ingeniero": {
+     "casaca": [
+      164,
+      142,
+      102
+     ],
+     "kepi": [
+      64,
+      62,
+      56
+     ],
+     "cinta": [
+      176,
+      36,
+      42
+     ]
+    },
+    "jinete_sable": {
+     "morrion": [
+      42,
+      122,
+      64
+     ],
+     "banda": [
+      176,
+      36,
+      42
+     ],
+     "pompon": [
+      176,
+      36,
+      42
+     ],
+     "galon": [
+      222,
+      196,
+      92
+     ],
+     "chabraque": [
+      42,
+      122,
+      64
+     ]
+    },
+    "jinete_carabina": {
+     "franja": [
+      176,
+      36,
+      42
+     ],
+     "alamares": [
+      222,
+      196,
+      92
+     ],
+     "galon": [
+      222,
+      196,
+      92
+     ],
+     "chabraque": [
+      176,
+      36,
+      42
+     ]
+    }
+   },
+   "nombres": {
+    "infante": "Infante (Remington)",
+    "cantinera": "Rabona (cantinera)",
+    "granadero": "Húsar de Bolivia",
+    "cazador": "Cazador del Murillo",
+    "artilleria_montana": "Krupp de montaña",
+    "canon_campana": "Krupp de campaña",
+    "gatling": "Ametralladora"
+   },
+   "unidades": [
+    "trabajador",
+    "infante",
+    "cantinera",
+    "camilleros",
+    "ambulancia",
+    "carreta_agua",
+    "ingeniero",
+    "granadero",
+    "cazador",
+    "artilleria_montana",
+    "canon_campana",
+    "gatling",
+    "espia",
+    "transporte",
+    "canonera",
+    "colorado",
+    "campero",
+    "abaroa",
+    "camacho",
+    "zeballos"
+   ],
+   "edificios": [
+    "cuartel_general",
+    "deposito",
+    "molino_agua",
+    "barracas",
+    "maestranza",
+    "hospital_campana",
+    "hospital_sangre",
+    "trinchera",
+    "reducto",
+    "barracon_instruccion",
+    "caballeriza",
+    "central_telegrafos",
+    "parque_artilleria",
+    "estado_mayor",
+    "muelle"
+   ],
+   "heroes": [
+    "campero",
+    "abaroa",
+    "camacho",
+    "zeballos"
+   ],
+   "stats": {
+    "trabajador": {
+     "costo": [
+      50,
+      0
+     ],
+     "vision": 7.0
+    },
+    "infante": {
+     "costo": [
+      50,
+      0
+     ],
+     "vision": 8.0
+    },
+    "cantinera": {
+     "costo": [
+      50,
+      25
+     ],
+     "vision": 8.0
+    },
+    "camilleros": {
+     "costo": [
+      0,
+      0
+     ],
+     "vision": 7.0
+    },
+    "ambulancia": {
+     "costo": [
+      150,
+      50
+     ],
+     "vision": 7.0
+    },
+    "carreta_agua": {
+     "costo": [
+      100,
+      50
+     ],
+     "vision": 6.0
+    },
+    "ingeniero": {
+     "costo": [
+      75,
+      50
+     ],
+     "vision": 8.0
+    },
+    "granadero": {
+     "costo": [
+      150,
+      75
+     ],
+     "vision": 9.0
+    },
+    "cazador": {
+     "costo": [
+      125,
+      75
+     ],
+     "vision": 10.0
+    },
+    "artilleria_montana": {
+     "costo": [
+      200,
+      100
+     ],
+     "vision": 10.0
+    },
+    "canon_campana": {
+     "costo": [
+      300,
+      200
+     ],
+     "vision": 10.0
+    },
+    "gatling": {
+     "costo": [
+      250,
+      150
+     ],
+     "vision": 9.0
+    },
+    "espia": {
+     "costo": [
+      50,
+      100
+     ],
+     "vision": 11.0
+    },
+    "transporte": {
+     "costo": [
+      150,
+      50
+     ],
+     "vision": 8.0
+    },
+    "canonera": {
+     "costo": [
+      250,
+      150
+     ],
+     "vision": 10.0
+    },
+    "colorado": {
+     "costo": [
+      100,
+      25
+     ],
+     "vision": 8.0
+    },
+    "campero": {
+     "costo": [
+      350,
+      200
+     ],
+     "vision": 10.0
+    },
+    "abaroa": {
+     "costo": [
+      250,
+      150
+     ],
+     "vision": 9.0
+    },
+    "camacho": {
+     "costo": [
+      300,
+      150
+     ],
+     "vision": 10.0
+    },
+    "zeballos": {
+     "costo": [
+      250,
+      150
+     ],
+     "vision": 9.0
+    },
+    "cuartel_general": {
+     "costo": [
+      400,
+      0
+     ],
+     "vision": 10.0
+    },
+    "deposito": {
+     "costo": [
+      100,
+      0
+     ],
+     "vision": 6.0
+    },
+    "molino_agua": {
+     "costo": [
+      75,
+      0
+     ],
+     "vision": 6.0
+    },
+    "barracas": {
+     "costo": [
+      150,
+      0
+     ],
+     "vision": 7.0
+    },
+    "maestranza": {
+     "costo": [
+      125,
+      0
+     ],
+     "vision": 7.0
+    },
+    "hospital_campana": {
+     "costo": [
+      100,
+      25
+     ],
+     "vision": 7.0
+    },
+    "hospital_sangre": {
+     "costo": [
+      0,
+      0
+     ],
+     "vision": 7.0
+    },
+    "trinchera": {
+     "costo": [
+      100,
+      0
+     ],
+     "vision": 9.0
+    },
+    "reducto": {
+     "costo": [
+      125,
+      25
+     ],
+     "vision": 10.0
+    },
+    "barracon_instruccion": {
+     "costo": [
+      150,
+      50
+     ],
+     "vision": 7.0
+    },
+    "caballeriza": {
+     "costo": [
+      150,
+      100
+     ],
+     "vision": 7.0
+    },
+    "central_telegrafos": {
+     "costo": [
+      150,
+      100
+     ],
+     "vision": 10.0
+    },
+    "parque_artilleria": {
+     "costo": [
+      200,
+      150
+     ],
+     "vision": 7.0
+    },
+    "estado_mayor": {
+     "costo": [
+      150,
+      150
+     ],
+     "vision": 8.0
+    },
+    "muelle": {
+     "costo": [
+      150,
+      0
+     ],
+     "vision": 9.0
+    }
+   }
+  },
+  "argentina": {
+   "nombre": "Argentina",
+   "ejercito": "Ejército Argentino",
+   "bandera": "argentina",
+   "uniforme": {
+    "casaca": [
+     36,
+     46,
+     82
+    ],
+    "pantalon": [
+     124,
+     132,
+     146
+    ],
+    "kepi": [
+     36,
+     46,
+     82
+    ],
+    "franja": [
+     112,
+     172,
+     222
+    ],
+    "cubrenuca": [
+     234,
+     232,
+     222
+    ],
+    "detalle": [
+     222,
+     196,
+     92
+    ]
+   },
+   "uniformes": {
+    "ingeniero": {
+     "casaca": [
+      172,
+      152,
+      112
+     ],
+     "kepi": [
+      36,
+      46,
+      82
+     ],
+     "cinta": [
+      150,
+      24,
+      52
+     ]
+    },
+    "jinete_sable": {
+     "morrion": [
+      30,
+      30,
+      36
+     ],
+     "banda": [
+      176,
+      36,
+      42
+     ],
+     "pompon": [
+      176,
+      36,
+      42
+     ],
+     "galon": [
+      222,
+      196,
+      92
+     ],
+     "chabraque": [
+      36,
+      46,
+      82
+     ]
+    },
+    "jinete_carabina": {
+     "alamares": [
+      112,
+      172,
+      222
+     ],
+     "galon": [
+      112,
+      172,
+      222
+     ],
+     "chabraque": [
+      36,
+      46,
+      82
+     ]
+    }
+   },
+   "nombres": {
+    "infante": "Infante de línea (Remington Patria)",
+    "granadero": "Lancero de frontera",
+    "cazador": "Carabinero a caballo",
+    "artilleria_montana": "Krupp de montaña",
+    "canon_campana": "Krupp de campaña",
+    "gatling": "Ametralladora"
+   },
+   "unidades": [
+    "trabajador",
+    "infante",
+    "cantinera",
+    "camilleros",
+    "ambulancia",
+    "carreta_agua",
+    "ingeniero",
+    "granadero",
+    "cazador",
+    "artilleria_montana",
+    "canon_campana",
+    "gatling",
+    "espia",
+    "transporte",
+    "canonera",
+    "baqueano",
+    "roca",
+    "villegas",
+    "saenz_pena",
+    "piedrabuena"
+   ],
+   "edificios": [
+    "cuartel_general",
+    "deposito",
+    "molino_agua",
+    "barracas",
+    "maestranza",
+    "hospital_campana",
+    "hospital_sangre",
+    "trinchera",
+    "reducto",
+    "barracon_instruccion",
+    "caballeriza",
+    "central_telegrafos",
+    "parque_artilleria",
+    "estado_mayor",
+    "muelle",
+    "fortin"
+   ],
+   "heroes": [
+    "roca",
+    "villegas",
+    "saenz_pena",
+    "piedrabuena"
+   ],
+   "stats": {
+    "trabajador": {
+     "costo": [
+      50,
+      0
+     ],
+     "vision": 7.0
+    },
+    "infante": {
+     "costo": [
+      50,
+      0
+     ],
+     "vision": 8.0
+    },
+    "cantinera": {
+     "costo": [
+      50,
+      25
+     ],
+     "vision": 8.0
+    },
+    "camilleros": {
+     "costo": [
+      0,
+      0
+     ],
+     "vision": 7.0
+    },
+    "ambulancia": {
+     "costo": [
+      150,
+      50
+     ],
+     "vision": 7.0
+    },
+    "carreta_agua": {
+     "costo": [
+      100,
+      50
+     ],
+     "vision": 6.0
+    },
+    "ingeniero": {
+     "costo": [
+      75,
+      50
+     ],
+     "vision": 8.0
+    },
+    "granadero": {
+     "costo": [
+      127,
+      63
+     ],
+     "vision": 9.0
+    },
+    "cazador": {
+     "costo": [
+      106,
+      63
+     ],
+     "vision": 10.0
+    },
+    "artilleria_montana": {
+     "costo": [
+      200,
+      100
+     ],
+     "vision": 10.0
+    },
+    "canon_campana": {
+     "costo": [
+      300,
+      200
+     ],
+     "vision": 10.0
+    },
+    "gatling": {
+     "costo": [
+      250,
+      150
+     ],
+     "vision": 9.0
+    },
+    "espia": {
+     "costo": [
+      50,
+      100
+     ],
+     "vision": 11.0
+    },
+    "transporte": {
+     "costo": [
+      150,
+      50
+     ],
+     "vision": 8.0
+    },
+    "canonera": {
+     "costo": [
+      250,
+      150
+     ],
+     "vision": 10.0
+    },
+    "baqueano": {
+     "costo": [
+      63,
+      21
+     ],
+     "vision": 11.0
+    },
+    "roca": {
+     "costo": [
+      350,
+      200
+     ],
+     "vision": 10.0
+    },
+    "villegas": {
+     "costo": [
+      300,
+      200
+     ],
+     "vision": 10.0
+    },
+    "saenz_pena": {
+     "costo": [
+      300,
+      150
+     ],
+     "vision": 10.0
+    },
+    "piedrabuena": {
+     "costo": [
+      350,
+      200
+     ],
+     "vision": 11.0
+    },
+    "cuartel_general": {
+     "costo": [
+      400,
+      0
+     ],
+     "vision": 10.0
+    },
+    "deposito": {
+     "costo": [
+      100,
+      0
+     ],
+     "vision": 6.0
+    },
+    "molino_agua": {
+     "costo": [
+      75,
+      0
+     ],
+     "vision": 6.0
+    },
+    "barracas": {
+     "costo": [
+      150,
+      0
+     ],
+     "vision": 7.0
+    },
+    "maestranza": {
+     "costo": [
+      125,
+      0
+     ],
+     "vision": 7.0
+    },
+    "hospital_campana": {
+     "costo": [
+      100,
+      25
+     ],
+     "vision": 7.0
+    },
+    "hospital_sangre": {
+     "costo": [
+      0,
+      0
+     ],
+     "vision": 7.0
+    },
+    "trinchera": {
+     "costo": [
+      100,
+      0
+     ],
+     "vision": 9.0
+    },
+    "reducto": {
+     "costo": [
+      125,
+      25
+     ],
+     "vision": 10.0
+    },
+    "barracon_instruccion": {
+     "costo": [
+      150,
+      50
+     ],
+     "vision": 7.0
+    },
+    "caballeriza": {
+     "costo": [
+      150,
+      100
+     ],
+     "vision": 7.0
+    },
+    "central_telegrafos": {
+     "costo": [
+      150,
+      100
+     ],
+     "vision": 10.0
+    },
+    "parque_artilleria": {
+     "costo": [
+      200,
+      150
+     ],
+     "vision": 7.0
+    },
+    "estado_mayor": {
+     "costo": [
+      150,
+      150
+     ],
+     "vision": 8.0
+    },
+    "muelle": {
+     "costo": [
+      150,
+      0
+     ],
+     "vision": 9.0
+    },
+    "fortin": {
+     "costo": [
+      125,
+      0
+     ],
+     "vision": 10.0
+    }
+   }
+  }
+ },
+ "formaciones": [
+  {
+   "id": "linea",
+   "codigo": 1,
+   "nombre": "Línea",
+   "atajo": "L",
+   "descripcion": "Dos filas de fusiles que hacen fuego a discreción: +30 % de cadencia, -10 % de velocidad; las granadas y la dinamita hacen un 15 % más de daño a la línea apretada."
+  },
+  {
+   "id": "guerrilla",
+   "codigo": 2,
+   "nombre": "Guerrilla",
+   "atajo": "G",
+   "descripcion": "Tiradores dispersos que aprovechan el terreno: -35 % del daño de la fusilería y de la artillería, +20 % de velocidad, -20 % de potencia de fuego."
+  },
+  {
+   "id": "cuadro",
+   "codigo": 3,
+   "nombre": "Cuadro",
+   "atajo": "C",
+   "descripcion": "Cuadro cerrado con las bayonetas hacia fuera: la carga de la caballería no multiplica su daño; -60 % de velocidad."
+  }
+ ],
+ "habilidades": {
+  "reparar": {
+   "nombre": "Reparar",
+   "atajo": "R",
+   "tipo": "orden_reparar",
+   "objetivo": "propio",
+   "energia": 0,
+   "enfriamiento": 0.0,
+   "alcance": 0.0,
+   "edificio": null,
+   "descripcion": "Repara edificios, piezas de artillería y buques propios. Cuesta una parte de su precio."
+  },
+  "construir_campana": {
+   "nombre": "Obras de campaña",
+   "atajo": "B",
+   "tipo": "menu_construir",
+   "objetivo": "ninguno",
+   "energia": 0,
+   "enfriamiento": 0.0,
+   "alcance": 0.0,
+   "edificio": null,
+   "descripcion": "Levanta trincheras y reductos al doble de velocidad."
+  },
+  "emplazar": {
+   "nombre": "Emplazar / Enganchar",
+   "atajo": "E",
+   "tipo": "emplazar",
+   "objetivo": "ninguno",
+   "energia": 0,
+   "enfriamiento": 0.0,
+   "alcance": 0.0,
+   "edificio": null,
+   "descripcion": "Emplaza la pieza para disparar o la engancha al armón para marchar. Se hace solo al recibir órdenes."
+  },
+  "descargar": {
+   "nombre": "Desembarcar",
+   "atajo": "D",
+   "tipo": "descargar",
+   "objetivo": "punto",
+   "energia": 0,
+   "enfriamiento": 0.0,
+   "alcance": 0.0,
+   "edificio": null,
+   "descripcion": "Desembarca a la tropa en la costa más cercana al punto elegido."
+  },
+  "montar_hospital": {
+   "nombre": "Montar hospital",
+   "atajo": "B",
+   "tipo": "montar",
+   "objetivo": "punto",
+   "energia": 0,
+   "enfriamiento": 0.0,
+   "alcance": 0.0,
+   "edificio": "hospital_sangre",
+   "descripcion": "Elija el lugar, cerca de la tropa: la ambulancia va hasta allí, levanta las carpas de un hospital de sangre en 8 segundos y manda a sus camilleros a recoger a los heridos."
+  },
+  "desmontar_hospital": {
+   "nombre": "Desmontar",
+   "atajo": "D",
+   "tipo": "desmontar",
+   "objetivo": "ninguno",
+   "energia": 0,
+   "enfriamiento": 0.0,
+   "alcance": 0.0,
+   "edificio": null,
+   "descripcion": "Recoge las carpas en el carro en 6 segundos para seguir el avance. Los camilleros suben al carro y los convalecientes siguen curándose en él hasta volver a filas."
+  },
+  "sabotaje": {
+   "nombre": "Sabotaje",
+   "atajo": "S",
+   "tipo": "sabotaje",
+   "objetivo": "edificio_enemigo",
+   "energia": 75,
+   "enfriamiento": 0.0,
+   "alcance": 2.0,
+   "edificio": null,
+   "descripcion": "Paraliza un edificio enemigo durante 20 s: no produce ni investiga."
+  },
+  "sembrar_mina": {
+   "nombre": "Sembrar mina",
+   "atajo": "M",
+   "tipo": "mina",
+   "objetivo": "punto",
+   "energia": 50,
+   "enfriamiento": 0.0,
+   "alcance": 3.0,
+   "edificio": null,
+   "descripcion": "Entierra una mina oculta que estalla al paso de tropas enemigas (125 de daño en área)."
+  },
+  "carga_demolicion": {
+   "nombre": "Carga de demolición",
+   "atajo": "D",
+   "tipo": "demolicion",
+   "objetivo": "edificio_enemigo",
+   "energia": 0,
+   "enfriamiento": 30.0,
+   "alcance": 1.0,
+   "edificio": null,
+   "descripcion": "Coloca una carga en un edificio enemigo que estalla a los 3 s con 220 de daño."
+  },
+  "reconocimiento": {
+   "nombre": "Reconocimiento telegráfico",
+   "atajo": "R",
+   "tipo": "revelar",
+   "objetivo": "punto",
+   "energia": 50,
+   "enfriamiento": 0.0,
+   "alcance": 0.0,
+   "edificio": null,
+   "descripcion": "Los informantes del telégrafo revelan una zona del mapa durante 12 s (también lo oculto)."
+  },
+  "al_asalto": {
+   "nombre": "¡Al asalto!",
+   "atajo": "Q",
+   "tipo": "potenciar_area",
+   "objetivo": "ninguno",
+   "energia": 0,
+   "enfriamiento": 60.0,
+   "alcance": 0.0,
+   "edificio": null,
+   "descripcion": "Las tropas cercanas ganan +30 % de cadencia y +20 % de velocidad durante 10 s."
+  },
+  "asalto_morro": {
+   "nombre": "Asalto al Morro",
+   "atajo": "Q",
+   "tipo": "potenciar_area",
+   "objetivo": "ninguno",
+   "energia": 0,
+   "enfriamiento": 60.0,
+   "alcance": 0.0,
+   "edificio": null,
+   "descripcion": "Las tropas cercanas ignoran la ventaja de la altura y ganan +25 % de velocidad y +1 de armadura durante 12 s."
+  },
+  "fuego_bateria": {
+   "nombre": "Fuego de batería",
+   "atajo": "Q",
+   "tipo": "bombardeo",
+   "objetivo": "punto",
+   "energia": 0,
+   "enfriamiento": 50.0,
+   "alcance": 16.0,
+   "edificio": null,
+   "descripcion": "Ordena una andanada de 8 granadas sobre la zona elegida."
+  },
+  "primeros_auxilios": {
+   "nombre": "Primeros auxilios",
+   "atajo": "Q",
+   "tipo": "curar_area",
+   "objetivo": "ninguno",
+   "energia": 0,
+   "enfriamiento": 30.0,
+   "alcance": 0.0,
+   "edificio": null,
+   "descripcion": "Cura 100 de vida a la tropa cercana."
+  },
+  "ultimo_cartucho": {
+   "nombre": "Hasta quemar el último cartucho",
+   "atajo": "Q",
+   "tipo": "potenciar_area",
+   "objetivo": "ninguno",
+   "energia": 0,
+   "enfriamiento": 90.0,
+   "alcance": 0.0,
+   "edificio": null,
+   "descripcion": "Durante 10 s las tropas cercanas no pueden caer y disparan un 25 % más rápido."
+  },
+  "emboscada": {
+   "nombre": "Emboscada",
+   "atajo": "Q",
+   "tipo": "potenciar_area",
+   "objetivo": "ninguno",
+   "energia": 0,
+   "enfriamiento": 60.0,
+   "alcance": 0.0,
+   "edificio": null,
+   "descripcion": "Oculta a las tropas cercanas durante 15 s (salvo ante detectores)."
+  },
+  "viva_el_peru": {
+   "nombre": "¡Viva el Perú!",
+   "atajo": "Q",
+   "tipo": "potenciar_area",
+   "objetivo": "ninguno",
+   "energia": 0,
+   "enfriamiento": 45.0,
+   "alcance": 0.0,
+   "edificio": null,
+   "descripcion": "+30 % de daño a las tropas cercanas durante 8 s."
+  },
+  "espolonazo": {
+   "nombre": "Espolonazo",
+   "atajo": "Q",
+   "tipo": "golpe",
+   "objetivo": "unidad_enemiga",
+   "energia": 0,
+   "enfriamiento": 40.0,
+   "alcance": 1.5,
+   "edificio": null,
+   "descripcion": "Embiste con el espolón a un buque enemigo cercano: 300 de daño."
+  },
+  "al_abordaje": {
+   "nombre": "¡Al abordaje!",
+   "atajo": "Q",
+   "tipo": "golpe",
+   "objetivo": "unidad_enemiga",
+   "energia": 0,
+   "enfriamiento": 40.0,
+   "alcance": 1.5,
+   "edificio": null,
+   "descripcion": "Aborda un buque enemigo cercano: 250 de daño."
+  },
+  "defensa_alto": {
+   "nombre": "Defensa del Alto",
+   "atajo": "Q",
+   "tipo": "potenciar_area",
+   "objetivo": "ninguno",
+   "energia": 0,
+   "enfriamiento": 60.0,
+   "alcance": 0.0,
+   "edificio": null,
+   "descripcion": "+3 de armadura a las tropas cercanas durante 12 s."
+  },
+  "rendirme_yo": {
+   "nombre": "¿Rendirme yo?",
+   "atajo": "Q",
+   "tipo": "potenciar_propio",
+   "objetivo": "ninguno",
+   "energia": 0,
+   "enfriamiento": 60.0,
+   "alcance": 0.0,
+   "edificio": null,
+   "descripcion": "Durante 10 s no puede caer y duplica su daño."
+  },
+  "contraataque": {
+   "nombre": "Contraataque",
+   "atajo": "Q",
+   "tipo": "potenciar_area",
+   "objetivo": "ninguno",
+   "energia": 0,
+   "enfriamiento": 50.0,
+   "alcance": 0.0,
+   "edificio": null,
+   "descripcion": "La infantería cercana gana +30 % de velocidad y +25 % de daño durante 10 s."
+  },
+  "ambulancia": {
+   "nombre": "Ambulancia",
+   "atajo": "Q",
+   "tipo": "curar_area",
+   "objetivo": "ninguno",
+   "energia": 0,
+   "enfriamiento": 35.0,
+   "alcance": 0.0,
+   "edificio": null,
+   "descripcion": "Cura 120 de vida a la tropa cercana."
+  },
+  "marcha_desierto": {
+   "nombre": "Marcha al desierto",
+   "atajo": "Q",
+   "tipo": "potenciar_area",
+   "objetivo": "ninguno",
+   "energia": 0,
+   "enfriamiento": 60.0,
+   "alcance": 0.0,
+   "edificio": null,
+   "descripcion": "+40 % de velocidad a las tropas cercanas durante 12 s."
+  },
+  "carga_caballeria": {
+   "nombre": "Carga de caballería",
+   "atajo": "Q",
+   "tipo": "potenciar_area",
+   "objetivo": "ninguno",
+   "energia": 0,
+   "enfriamiento": 45.0,
+   "alcance": 0.0,
+   "edificio": null,
+   "descripcion": "La caballería cercana gana +40 % de cadencia y +20 % de daño durante 8 s."
+  },
+  "resistencia_morro": {
+   "nombre": "Resistencia en el Morro",
+   "atajo": "Q",
+   "tipo": "potenciar_area",
+   "objetivo": "ninguno",
+   "energia": 0,
+   "enfriamiento": 60.0,
+   "alcance": 0.0,
+   "edificio": null,
+   "descripcion": "+4 de armadura a las tropas cercanas durante 12 s."
+  },
+  "rescate_naufragos": {
+   "nombre": "Rescate de náufragos",
+   "atajo": "Q",
+   "tipo": "curar_area",
+   "objetivo": "ninguno",
+   "energia": 0,
+   "enfriamiento": 40.0,
+   "alcance": 0.0,
+   "edificio": null,
+   "descripcion": "Cura 150 de vida a buques y tropas cercanos."
+  }
+ },
+ "mejoras": [
+  {
+   "id": "armas_infanteria_1",
+   "nombre": "Armamento de infantería I",
+   "atajo": "Q",
+   "edificio": "maestranza",
+   "costo": [
+    100,
+    100
+   ],
+   "tiempo": 60.0,
+   "previa": null,
+   "requisitos": [],
+   "descripcion": "+1 de daño a los fusiles de la infantería."
+  },
+  {
+   "id": "armas_infanteria_2",
+   "nombre": "Armamento de infantería II",
+   "atajo": "Q",
+   "edificio": "maestranza",
+   "costo": [
+    175,
+    175
+   ],
+   "tiempo": 75.0,
+   "previa": "armas_infanteria_1",
+   "requisitos": [
+    "barracon_instruccion"
+   ],
+   "descripcion": "+1 de daño a los fusiles de la infantería."
+  },
+  {
+   "id": "armas_infanteria_3",
+   "nombre": "Armamento de infantería III",
+   "atajo": "Q",
+   "edificio": "maestranza",
+   "costo": [
+    250,
+    250
+   ],
+   "tiempo": 90.0,
+   "previa": "armas_infanteria_2",
+   "requisitos": [
+    "estado_mayor"
+   ],
+   "descripcion": "+1 de daño a los fusiles de la infantería."
+  },
+  {
+   "id": "blindaje_infanteria_1",
+   "nombre": "Equipo de campaña I",
+   "atajo": "W",
+   "edificio": "maestranza",
+   "costo": [
+    100,
+    100
+   ],
+   "tiempo": 60.0,
+   "previa": null,
+   "requisitos": [],
+   "descripcion": "+1 de armadura a la infantería (correajes, mochilas y cubrenucas)."
+  },
+  {
+   "id": "blindaje_infanteria_2",
+   "nombre": "Equipo de campaña II",
+   "atajo": "W",
+   "edificio": "maestranza",
+   "costo": [
+    175,
+    175
+   ],
+   "tiempo": 75.0,
+   "previa": "blindaje_infanteria_1",
+   "requisitos": [
+    "barracon_instruccion"
+   ],
+   "descripcion": "+1 de armadura a la infantería."
+  },
+  {
+   "id": "blindaje_infanteria_3",
+   "nombre": "Equipo de campaña III",
+   "atajo": "W",
+   "edificio": "maestranza",
+   "costo": [
+    250,
+    250
+   ],
+   "tiempo": 90.0,
+   "previa": "blindaje_infanteria_2",
+   "requisitos": [
+    "estado_mayor"
+   ],
+   "descripcion": "+1 de armadura a la infantería."
+  },
+  {
+   "id": "armas_caballeria_1",
+   "nombre": "Sables y carabinas I",
+   "atajo": "E",
+   "edificio": "maestranza",
+   "costo": [
+    150,
+    150
+   ],
+   "tiempo": 70.0,
+   "previa": null,
+   "requisitos": [
+    "caballeriza"
+   ],
+   "descripcion": "+2 de daño a la caballería."
+  },
+  {
+   "id": "armas_caballeria_2",
+   "nombre": "Sables y carabinas II",
+   "atajo": "E",
+   "edificio": "maestranza",
+   "costo": [
+    225,
+    225
+   ],
+   "tiempo": 85.0,
+   "previa": "armas_caballeria_1",
+   "requisitos": [
+    "central_telegrafos"
+   ],
+   "descripcion": "+2 de daño a la caballería."
+  },
+  {
+   "id": "blindaje_caballeria_1",
+   "nombre": "Monturas y correajes I",
+   "atajo": "R",
+   "edificio": "maestranza",
+   "costo": [
+    150,
+    150
+   ],
+   "tiempo": 70.0,
+   "previa": null,
+   "requisitos": [
+    "caballeriza"
+   ],
+   "descripcion": "+1 de armadura a la caballería."
+  },
+  {
+   "id": "blindaje_caballeria_2",
+   "nombre": "Monturas y correajes II",
+   "atajo": "R",
+   "edificio": "maestranza",
+   "costo": [
+    225,
+    225
+   ],
+   "tiempo": 85.0,
+   "previa": "blindaje_caballeria_1",
+   "requisitos": [
+    "central_telegrafos"
+   ],
+   "descripcion": "+1 de armadura a la caballería."
+  },
+  {
+   "id": "armas_artilleria_1",
+   "nombre": "Granadas de acero I",
+   "atajo": "T",
+   "edificio": "maestranza",
+   "costo": [
+    175,
+    175
+   ],
+   "tiempo": 80.0,
+   "previa": null,
+   "requisitos": [
+    "parque_artilleria"
+   ],
+   "descripcion": "+8 de daño a los cañones y +1 a las ametralladoras."
+  },
+  {
+   "id": "armas_artilleria_2",
+   "nombre": "Granadas de acero II",
+   "atajo": "T",
+   "edificio": "maestranza",
+   "costo": [
+    250,
+    250
+   ],
+   "tiempo": 95.0,
+   "previa": "armas_artilleria_1",
+   "requisitos": [
+    "estado_mayor"
+   ],
+   "descripcion": "+8 de daño a los cañones y +1 a las ametralladoras."
+  },
+  {
+   "id": "cirugia_campana",
+   "nombre": "Cirugía de campaña",
+   "atajo": "Q",
+   "edificio": "hospital_campana",
+   "costo": [
+    100,
+    100
+   ],
+   "tiempo": 60.0,
+   "previa": null,
+   "requisitos": [],
+   "descripcion": "+50 % de curación de cantineras y heroínas."
+  },
+  {
+   "id": "botiquines",
+   "nombre": "Botiquines",
+   "atajo": "W",
+   "edificio": "hospital_campana",
+   "costo": [
+    75,
+    75
+   ],
+   "tiempo": 45.0,
+   "previa": null,
+   "requisitos": [],
+   "descripcion": "+50 de energía máxima de las cantineras."
+  },
+  {
+   "id": "orden_disperso",
+   "nombre": "Orden disperso",
+   "atajo": "Q",
+   "edificio": "barracon_instruccion",
+   "costo": [
+    100,
+    100
+   ],
+   "tiempo": 60.0,
+   "previa": null,
+   "requisitos": [],
+   "descripcion": "+1 de alcance a los fusiles de la infantería: tiradores en guerrilla en vez de columnas cerradas."
+  },
+  {
+   "id": "paso_trote",
+   "nombre": "Paso de trote",
+   "atajo": "W",
+   "edificio": "barracon_instruccion",
+   "costo": [
+    100,
+    100
+   ],
+   "tiempo": 60.0,
+   "previa": null,
+   "requisitos": [],
+   "descripcion": "+15 % de velocidad a la infantería."
+  },
+  {
+   "id": "dinamita_alto_poder",
+   "nombre": "Dinamita de alto poder",
+   "atajo": "E",
+   "edificio": "barracon_instruccion",
+   "costo": [
+    125,
+    125
+   ],
+   "tiempo": 70.0,
+   "previa": null,
+   "requisitos": [],
+   "descripcion": "+10 de daño y +0,5 de radio a la dinamita de los ingenieros."
+  },
+  {
+   "id": "herraje",
+   "nombre": "Herraje de campaña",
+   "atajo": "Q",
+   "edificio": "caballeriza",
+   "costo": [
+    100,
+    100
+   ],
+   "tiempo": 60.0,
+   "previa": null,
+   "requisitos": [],
+   "descripcion": "+15 % de velocidad a la caballería."
+  },
+  {
+   "id": "carga_sable",
+   "nombre": "Carga a sable",
+   "atajo": "W",
+   "edificio": "caballeriza",
+   "costo": [
+    150,
+    100
+   ],
+   "tiempo": 70.0,
+   "previa": null,
+   "requisitos": [],
+   "descripcion": "La carga de la caballería hace un 50 % más de daño."
+  },
+  {
+   "id": "cifrado",
+   "nombre": "Cifrado telegráfico",
+   "atajo": "Q",
+   "edificio": "central_telegrafos",
+   "costo": [
+    100,
+    100
+   ],
+   "tiempo": 60.0,
+   "previa": null,
+   "requisitos": [],
+   "descripcion": "+50 de energía máxima de las centrales de telégrafos y de los espías."
+  },
+  {
+   "id": "alza_mira",
+   "nombre": "Alza de mira graduada",
+   "atajo": "Q",
+   "edificio": "parque_artilleria",
+   "costo": [
+    150,
+    150
+   ],
+   "tiempo": 80.0,
+   "previa": null,
+   "requisitos": [],
+   "descripcion": "+2 de alcance a los cañones."
+  },
+  {
+   "id": "manivela_rapida",
+   "nombre": "Manivela rápida",
+   "atajo": "W",
+   "edificio": "parque_artilleria",
+   "costo": [
+    150,
+    150
+   ],
+   "tiempo": 70.0,
+   "previa": null,
+   "requisitos": [],
+   "descripcion": "+25 % de cadencia de las ametralladoras Gatling."
+  },
+  {
+   "id": "academia_guerra",
+   "nombre": "Academia de guerra",
+   "atajo": "Q",
+   "edificio": "estado_mayor",
+   "costo": [
+    200,
+    200
+   ],
+   "tiempo": 90.0,
+   "previa": null,
+   "requisitos": [],
+   "descripcion": "+200 de vida a los héroes."
+  },
+  {
+   "id": "espionaje",
+   "nombre": "Red de informantes",
+   "atajo": "W",
+   "edificio": "estado_mayor",
+   "costo": [
+    100,
+    150
+   ],
+   "tiempo": 60.0,
+   "previa": null,
+   "requisitos": [],
+   "descripcion": "+3 de visión a los espías y +20 % de velocidad."
+  },
+  {
+   "id": "calderas",
+   "nombre": "Calderas de alta presión",
+   "atajo": "Q",
+   "edificio": "muelle",
+   "costo": [
+    100,
+    100
+   ],
+   "tiempo": 60.0,
+   "previa": null,
+   "requisitos": [],
+   "descripcion": "+20 % de velocidad a los buques."
+  },
+  {
+   "id": "blindaje_naval",
+   "nombre": "Blindaje de hierro",
+   "atajo": "W",
+   "edificio": "muelle",
+   "costo": [
+    150,
+    150
+   ],
+   "tiempo": 80.0,
+   "previa": null,
+   "requisitos": [],
+   "descripcion": "+2 de armadura a los buques."
+  },
+  {
+   "id": "ejercicios_tiro",
+   "nombre": "Ejercicios de tiro",
+   "atajo": "R",
+   "edificio": "barracon_instruccion",
+   "costo": [
+    75,
+    50
+   ],
+   "tiempo": 45.0,
+   "previa": null,
+   "requisitos": [],
+   "descripcion": "Los reclutas que esperan junto al Barracón de Instrucción se fogean solos, hasta el primer grado: como la instrucción de los movilizados en Antofagasta antes del desembarco de Pisagua. Más arriba solo se llega combatiendo."
+  },
+  {
+   "id": "ambulancias",
+   "nombre": "Servicio sanitario",
+   "atajo": "E",
+   "edificio": "hospital_campana",
+   "costo": [
+    100,
+    75
+   ],
+   "tiempo": 50.0,
+   "previa": null,
+   "requisitos": [],
+   "descripcion": "Un equipo más de camilleros en cada hospital, y todos un 20 % más rápidos: el servicio sanitario que acompañó a los ejércitos en Tarapacá, Tacna y Lima."
+  },
+  {
+   "id": "convalecencia",
+   "nombre": "Convalecencia",
+   "atajo": "R",
+   "edificio": "hospital_campana",
+   "costo": [
+    100,
+    100
+   ],
+   "tiempo": 60.0,
+   "previa": null,
+   "requisitos": [],
+   "descripcion": "Los heridos aguantan 60 segundos en el suelo en vez de 40 y vuelven a filas con el 75 % de la vida, con su grado intacto."
+  }
+ ],
+ "hospitales": [
+  "hospital_campana",
+  "hospital_sangre"
+ ],
+ "dist_recursos_cuartel": 3,
+ "nombres_ataque": {
+  "fusil": "Fusil",
+  "sable": "Arma blanca",
+  "metralla": "Metralla",
+  "explosivo": "Granada explosiva",
+  "dinamita": "Dinamita",
+  "canon_naval": "Cañón naval"
+ },
+ "nombres_armadura": {
+  "infanteria": "Infantería",
+  "caballeria": "Caballería",
+  "artilleria": "Artillería",
+  "edificio": "Edificio",
+  "naval": "Naval"
+ },
+ "dificultades": {
+  "facil": "Recluta",
+  "normal": "Soldado de línea",
+  "dificil": "Veterano de la campaña"
+ },
+ "veterania": {
+  "grados": [
+   {
+    "nombre": "Recluta",
+    "rango": "Soldado",
+    "umbral": 0
+   },
+   {
+    "nombre": "Fogueado",
+    "rango": "Soldado",
+    "umbral": 100
+   },
+   {
+    "nombre": "Veterano",
+    "rango": "Cabo",
+    "umbral": 300
+   },
+   {
+    "nombre": "Aguerrido",
+    "rango": "Sargento",
+    "umbral": 600
+   }
+  ],
+  "maximo": 3,
+  "xpf": 16
+ },
+ "archivo": {
+  "cronologia": [
+   [
+    "14 feb 1879",
+    "Tropas chilenas ocupan Antofagasta, tras el impuesto boliviano de diez centavos al quintal de salitre exportado y el remate de la Compañía de Salitres."
+   ],
+   [
+    "1 mar 1879",
+    "Bolivia declara el estado de guerra con Chile."
+   ],
+   [
+    "23 mar 1879",
+    "Combate de Calama (puente del Topáter): cae Eduardo Abaroa."
+   ],
+   [
+    "5 abr 1879",
+    "Chile declara la guerra al Perú y a Bolivia, aliados por el tratado secreto de 1873."
+   ],
+   [
+    "21 may 1879",
+    "Combate naval de Iquique: Arturo Prat muere al abordar el Huáscar y la Esmeralda se hunde. En Punta Gruesa la fragata peruana Independencia encalla persiguiendo a la Covadonga."
+   ],
+   [
+    "8 oct 1879",
+    "Combate de Angamos: el Huáscar es capturado y muere el almirante Miguel Grau. Chile domina el mar."
+   ],
+   [
+    "2 nov 1879",
+    "Desembarco de Pisagua: comienza la campaña terrestre de Tarapacá."
+   ],
+   [
+    "19 nov 1879",
+    "Batalla de San Francisco (Dolores): los aliados no logran tomar el cerro y se retiran."
+   ],
+   [
+    "27 nov 1879",
+    "Batalla de Tarapacá: victoria peruana; muere el comandante Eleuterio Ramírez. Aun así, el Perú pierde la provincia."
+   ],
+   [
+    "22 mar 1880",
+    "Batalla de Los Ángeles (Moquegua)."
+   ],
+   [
+    "26 may 1880",
+    "Batalla del Alto de la Alianza (Tacna): Baquedano derrota al ejército aliado de Campero. Bolivia se retira de la guerra."
+   ],
+   [
+    "7 jun 1880",
+    "Asalto y toma del Morro de Arica: mueren Bolognesi, Ugarte y More; cae el comandante San Martín Penrose."
+   ],
+   [
+    "13 ene 1881",
+    "Batalla de Chorrillos (San Juan)."
+   ],
+   [
+    "15 ene 1881",
+    "Batalla de Miraflores. El 17 de enero el ejército chileno ocupa Lima."
+   ],
+   [
+    "23 jul 1881",
+    "Tratado de límites entre Chile y la Argentina: la cordillera de los Andes como frontera."
+   ],
+   [
+    "9 jul 1882",
+    "Combate de La Concepción: los 77 hombres de la 4ª compañía del Chacabuco mueren en la sierra frente a las fuerzas de Cáceres."
+   ],
+   [
+    "10 jul 1883",
+    "Batalla de Huamachuco: termina la campaña de la Breña."
+   ],
+   [
+    "20 oct 1883",
+    "Tratado de Ancón entre Chile y el Perú: Tarapacá pasa a Chile; Tacna y Arica quedan bajo su administración por diez años."
+   ],
+   [
+    "4 abr 1884",
+    "Pacto de Tregua entre Chile y Bolivia: Bolivia pierde su litoral."
+   ]
+  ],
+  "facciones": {
+   "chile": {
+    "descripcion": "La artillería más moderna y el dominio del mar. Zapadores que detectan minas y demuelen fortificaciones.",
+    "historia": "Chile movilizó un ejército de línea reforzado por batallones cívicos (Atacama, Coquimbo, Chacabuco, Esmeralda...) armado con fusiles Comblain y Gras y artillería Krupp. Tras Angamos (1879) dominó el mar y llevó la guerra por desembarcos: Pisagua, Pacocha, Pisco y Curayaco.",
+    "bonificaciones": [
+     [
+      "Artillería Krupp",
+      "+1 de alcance a los cañones."
+     ],
+     [
+      "Dominio del mar",
+      "Buques un 25 % más baratos y un 15 % más rápidos."
+     ]
+    ]
+   },
+   "peru": {
+    "descripcion": "Maestro de la defensa: fortificaciones más resistentes y baratas, minas ocultas de los torpedistas y montoneras de la Breña.",
+    "historia": "El Perú defendió su costa con fuertes, baterías y minas, fabricó cañones Grieve y White y fusiles Castañón, y tras la caída de Lima sostuvo la resistencia de la Breña con Cáceres hasta 1883. Su marina, con Grau en el Huáscar, retrasó seis meses la campaña terrestre.",
+    "bonificaciones": [
+     [
+      "Defensa de la plaza",
+      "Trincheras y reductos con +25 % de vida y un 25 % más baratos."
+     ]
+    ]
+   },
+   "bolivia": {
+    "descripcion": "Infantería endurecida en el altiplano (+10 % de vida) y los Colorados, la infantería de élite que resiste en cuadro.",
+    "historia": "Bolivia aportó al ejército aliado batallones como los Colorados, Aroma, Padilla, Chorolque, Grau y Loa, armados con Remington, y una pequeña artillería Krupp. Tras Tacna (1880) no volvió a combatir; el Pacto de Tregua se firmó en 1884.",
+    "bonificaciones": [
+     [
+      "Hijos del Altiplano",
+      "+10 % de vida a toda la infantería, incluidos los trabajadores."
+     ]
+    ]
+   },
+   "argentina": {
+    "descripcion": "Jinetes de la pampa: caballería más barata y rápida, baqueanos que todo lo ven y fortines que defienden y alojan tropa.",
+    "historia": "La Argentina se declaró neutral en 1879, aunque el conflicto de límites con Chile por la Patagonia la llevó al borde de la guerra hasta el Tratado de 1881. Su ejército, armado con Remington Patria y Krupp, hacía entonces las campañas de Roca y Villegas. En el juego es una facción hipotética ('¿y si...?'), con héroes reales de su historia militar.",
+    "bonificaciones": [
+     [
+      "Jinetes de la pampa",
+      "Caballería un 15 % más barata y un 10 % más rápida."
+     ]
+    ]
+   }
+  },
+  "unidades": {
+   "trabajador": {
+    "sub": "Trabajador",
+    "filas": [
+     [
+      "Costo",
+      "$ 50"
+     ],
+     [
+      "Población",
+      "1"
+     ],
+     [
+      "Tiempo",
+      "12 s"
+     ],
+     [
+      "Vida",
+      "40"
+     ],
+     [
+      "Armadura",
+      "0 (Infantería)"
+     ],
+     [
+      "Velocidad",
+      "1.9 casillas/s"
+     ],
+     [
+      "Visión",
+      "7"
+     ],
+     [
+      "Daño",
+      "5 (Arma blanca)"
+     ],
+     [
+      "Alcance",
+      "0.2"
+     ],
+     [
+      "Cadencia",
+      "1.4 s"
+     ],
+     [
+      "Se forma en",
+      "Cuartel General"
+     ]
+    ],
+    "aura": null,
+    "habilidades": [
+     [
+      "Reparar (R)",
+      "Repara edificios, piezas de artillería y buques propios. Cuesta una parte de su precio."
+     ]
+    ],
+    "historia": "Desde 1849 llegaron al Perú unos cien mil trabajadores chinos contratados (culíes) para las guaneras, las haciendas y las salitreras. En 1880 varios miles se unieron al ejército chileno en su avance sobre Lima; en Lurín, Quintín Quintana tomó el juramento del llamado batallón Vulcano."
+   },
+   "infante": {
+    "sub": "Infantería",
+    "filas": [
+     [
+      "Costo",
+      "$ 50"
+     ],
+     [
+      "Población",
+      "1"
+     ],
+     [
+      "Tiempo",
+      "15 s"
+     ],
+     [
+      "Vida",
+      "45"
+     ],
+     [
+      "Armadura",
+      "0 (Infantería)"
+     ],
+     [
+      "Velocidad",
+      "1.6 casillas/s"
+     ],
+     [
+      "Visión",
+      "8"
+     ],
+     [
+      "Daño",
+      "6 (Fusil)"
+     ],
+     [
+      "Alcance",
+      "5.0"
+     ],
+     [
+      "Cadencia",
+      "1.0 s"
+     ],
+     [
+      "Cantimplora",
+      "100 de agua"
+     ],
+     [
+      "Formaciones",
+      "Línea, Guerrilla, Cuadro"
+     ],
+     [
+      "Se forma en",
+      "Barracas"
+     ]
+    ],
+    "aura": null,
+    "habilidades": [],
+    "historia": "Chile combatió con fusiles Comblain II y Gras; el Perú con Peabody-Martini, Remington y el Castañón de fabricación nacional; Bolivia con Remington. Todos usaban pólvora negra: cada descarga cubría la línea de humo blanco."
+   },
+   "cantinera": {
+    "sub": "Apoyo",
+    "filas": [
+     [
+      "Costo",
+      "$ 50, 25 agua"
+     ],
+     [
+      "Población",
+      "1"
+     ],
+     [
+      "Tiempo",
+      "18 s"
+     ],
+     [
+      "Vida",
+      "40"
+     ],
+     [
+      "Armadura",
+      "0 (Infantería)"
+     ],
+     [
+      "Velocidad",
+      "1.6 casillas/s"
+     ],
+     [
+      "Visión",
+      "8"
+     ],
+     [
+      "Cantimplora",
+      "100 de agua"
+     ],
+     [
+      "Se forma en",
+      "Barracas"
+     ],
+     [
+      "Requiere",
+      "Hospital de campaña"
+     ]
+    ],
+    "aura": null,
+    "habilidades": [],
+    "historia": "Las cantineras marchaban con los regimientos: llevaban agua y víveres, cuidaban a los heridos y muchas combatieron. En el Perú y Bolivia las 'rabonas' acompañaban a la tropa; en Chile la sargento Irene Morales se hizo célebre en Pisagua, Dolores, Tacna, Chorrillos y Miraflores."
+   },
+   "camilleros": {
+    "sub": "Sanidad",
+    "filas": [
+     [
+      "Costo",
+      "$ 0"
+     ],
+     [
+      "Población",
+      "0"
+     ],
+     [
+      "Tiempo",
+      "30 s"
+     ],
+     [
+      "Vida",
+      "60"
+     ],
+     [
+      "Armadura",
+      "0 (Infantería)"
+     ],
+     [
+      "Velocidad",
+      "2.0 casillas/s"
+     ],
+     [
+      "Visión",
+      "7"
+     ],
+     [
+      "Requiere",
+      "Hospital de campaña"
+     ]
+    ],
+    "aura": null,
+    "habilidades": [],
+    "historia": "Tras cada batalla las ambulancias recogían a los heridos en camillas y carretas: en Tacna, Chorrillos y Miraflores los cirujanos y sanitarios trabajaron bajo el fuego, y la Cruz Roja atendió a heridos de ambos bandos."
+   },
+   "ambulancia": {
+    "sub": "Sanidad",
+    "filas": [
+     [
+      "Costo",
+      "$ 150, 50 agua"
+     ],
+     [
+      "Población",
+      "3"
+     ],
+     [
+      "Tiempo",
+      "30 s"
+     ],
+     [
+      "Vida",
+      "250"
+     ],
+     [
+      "Armadura",
+      "1 (Artillería)"
+     ],
+     [
+      "Velocidad",
+      "1.6 casillas/s"
+     ],
+     [
+      "Visión",
+      "7"
+     ],
+     [
+      "Se forma en",
+      "Hospital de campaña"
+     ],
+     [
+      "Requiere",
+      "Hospital de campaña"
+     ]
+    ],
+    "aura": null,
+    "habilidades": [
+     [
+      "Montar hospital (B)",
+      "Elija el lugar, cerca de la tropa: la ambulancia va hasta allí, levanta las carpas de un hospital de sangre en 8 segundos y manda a sus camilleros a recoger a los heridos."
+     ]
+    ],
+    "historia": "Las ambulancias de la guerra eran hospitales que marchaban con el ejército: carros y mulas con cirujanos, practicantes, botiquines, carpas y camillas, que se instalaban detrás de la línea de fuego bajo la bandera de la Cruz Roja."
+   },
+   "carreta_agua": {
+    "sub": "Logística",
+    "filas": [
+     [
+      "Costo",
+      "$ 100, 50 agua"
+     ],
+     [
+      "Población",
+      "2"
+     ],
+     [
+      "Tiempo",
+      "20 s"
+     ],
+     [
+      "Vida",
+      "180"
+     ],
+     [
+      "Armadura",
+      "1 (Artillería)"
+     ],
+     [
+      "Velocidad",
+      "1.6 casillas/s"
+     ],
+     [
+      "Visión",
+      "6"
+     ],
+     [
+      "Pipa",
+      "2000 de agua, radio 4"
+     ],
+     [
+      "Se forma en",
+      "Depósito de Intendencia"
+     ],
+     [
+      "Requiere",
+      "Molino de agua"
+     ]
+    ],
+    "aura": null,
+    "habilidades": [],
+    "historia": "En la campaña del desierto el agua decidía las marchas: los ejércitos acarreaban pipas en carretas y en los trenes salitreros, y las columnas que se quedaron sin ella, como la división chilena que marchó sobre Tarapacá en noviembre de 1879, llegaron al combate agotadas por la sed."
+   },
+   "ingeniero": {
+    "sub": "Apoyo",
+    "filas": [
+     [
+      "Costo",
+      "$ 75, 50 agua"
+     ],
+     [
+      "Población",
+      "2"
+     ],
+     [
+      "Tiempo",
+      "20 s"
+     ],
+     [
+      "Vida",
+      "70"
+     ],
+     [
+      "Armadura",
+      "0 (Infantería)"
+     ],
+     [
+      "Velocidad",
+      "1.5 casillas/s"
+     ],
+     [
+      "Visión",
+      "8"
+     ],
+     [
+      "Daño",
+      "25 (Dinamita)"
+     ],
+     [
+      "Alcance",
+      "4.5"
+     ],
+     [
+      "Cadencia",
+      "2.2 s"
+     ],
+     [
+      "Cantimplora",
+      "100 de agua"
+     ],
+     [
+      "Se forma en",
+      "Barracas"
+     ],
+     [
+      "Requiere",
+      "Barracón de Instrucción"
+     ]
+    ],
+    "aura": null,
+    "habilidades": [],
+    "historia": "La dinamita de Nobel (1867) se usó en la guerra para minas, voladuras y asaltos. En Arica el ingeniero peruano Teodoro Elmore minó los accesos con 'polvorazos'; los zapadores y mineros de ambos bandos la lanzaban a mano."
+   },
+   "granadero": {
+    "sub": "Caballería",
+    "filas": [
+     [
+      "Costo",
+      "$ 150, 75 agua"
+     ],
+     [
+      "Población",
+      "5"
+     ],
+     [
+      "Tiempo",
+      "30 s"
+     ],
+     [
+      "Vida",
+      "250"
+     ],
+     [
+      "Armadura",
+      "1 (Caballería)"
+     ],
+     [
+      "Velocidad",
+      "2.8 casillas/s"
+     ],
+     [
+      "Visión",
+      "9"
+     ],
+     [
+      "Daño",
+      "26 (Arma blanca)"
+     ],
+     [
+      "Alcance",
+      "0.3"
+     ],
+     [
+      "Cadencia",
+      "1.1 s"
+     ],
+     [
+      "Cantimplora",
+      "100 de agua"
+     ],
+     [
+      "Se forma en",
+      "Caballeriza"
+     ]
+    ],
+    "aura": null,
+    "habilidades": [],
+    "historia": "El Regimiento Granaderos a Caballo cargó en Tacna (1880) bajo el comandante Tomás Yávar, que murió tras Chorrillos. Los Húsares de Junín peruanos y los Húsares de Bolivia cargaron en Dolores."
+   },
+   "cazador": {
+    "sub": "Caballería",
+    "filas": [
+     [
+      "Costo",
+      "$ 125, 75 agua"
+     ],
+     [
+      "Población",
+      "5"
+     ],
+     [
+      "Tiempo",
+      "28 s"
+     ],
+     [
+      "Vida",
+      "200"
+     ],
+     [
+      "Armadura",
+      "1 (Caballería)"
+     ],
+     [
+      "Velocidad",
+      "3.0 casillas/s"
+     ],
+     [
+      "Visión",
+      "10"
+     ],
+     [
+      "Daño",
+      "14 (Fusil)"
+     ],
+     [
+      "Alcance",
+      "4.0"
+     ],
+     [
+      "Cadencia",
+      "0.8 s"
+     ],
+     [
+      "Cantimplora",
+      "100 de agua"
+     ],
+     [
+      "Se forma en",
+      "Caballeriza"
+     ]
+    ],
+    "aura": null,
+    "habilidades": [],
+    "historia": "El Regimiento Cazadores a Caballo chileno y los escuadrones de carabineros aliados exploraban la pampa; en Quillagua (octubre de 1879) chocaron Húsares de Junín y Cazadores chilenos."
+   },
+   "artilleria_montana": {
+    "sub": "Artillería",
+    "filas": [
+     [
+      "Costo",
+      "$ 200, 100 agua"
+     ],
+     [
+      "Población",
+      "10"
+     ],
+     [
+      "Tiempo",
+      "35 s"
+     ],
+     [
+      "Vida",
+      "200"
+     ],
+     [
+      "Armadura",
+      "1 (Artillería)"
+     ],
+     [
+      "Velocidad",
+      "1.3 casillas/s"
+     ],
+     [
+      "Visión",
+      "10"
+     ],
+     [
+      "Daño",
+      "45 (Granada explosiva)"
+     ],
+     [
+      "Alcance",
+      "8.0 (mín. 1.5)"
+     ],
+     [
+      "Cadencia",
+      "2.5 s"
+     ],
+     [
+      "Dispersión",
+      "CEP 0.06 por casilla de tiro"
+     ],
+     [
+      "Se forma en",
+      "Parque de Artillería"
+     ]
+    ],
+    "aura": null,
+    "habilidades": [],
+    "historia": "El cañón Krupp de montaña de 60 mm se desarmaba en tubo, cureña y ruedas sobre mulas. El ingeniero Juan Crisóstomo Grieve fabricó en Lima 42 piezas inspiradas en él."
+   },
+   "canon_campana": {
+    "sub": "Artillería",
+    "filas": [
+     [
+      "Costo",
+      "$ 300, 200 agua"
+     ],
+     [
+      "Población",
+      "10"
+     ],
+     [
+      "Tiempo",
+      "45 s"
+     ],
+     [
+      "Vida",
+      "250"
+     ],
+     [
+      "Armadura",
+      "2 (Artillería)"
+     ],
+     [
+      "Velocidad",
+      "1.0 casillas/s"
+     ],
+     [
+      "Visión",
+      "10"
+     ],
+     [
+      "Daño",
+      "80 (Granada explosiva)"
+     ],
+     [
+      "Alcance",
+      "12.0 (mín. 2.5)"
+     ],
+     [
+      "Cadencia",
+      "3.5 s"
+     ],
+     [
+      "Dispersión",
+      "CEP 0.05 por casilla de tiro"
+     ],
+     [
+      "Se forma en",
+      "Parque de Artillería"
+     ]
+    ],
+    "aura": null,
+    "habilidades": [
+     [
+      "Emplazar / Enganchar (E)",
+      "Emplaza la pieza para disparar o la engancha al armón para marchar. Se hace solo al recibir órdenes."
+     ]
+    ],
+    "historia": "Los Krupp de campaña de acero y retrocarga eran la artillería más moderna del conflicto; Chile los tenía desde antes de la guerra. En Tacna se reunieron 37 cañones chilenos."
+   },
+   "gatling": {
+    "sub": "Artillería",
+    "filas": [
+     [
+      "Costo",
+      "$ 250, 150 agua"
+     ],
+     [
+      "Población",
+      "10"
+     ],
+     [
+      "Tiempo",
+      "40 s"
+     ],
+     [
+      "Vida",
+      "300"
+     ],
+     [
+      "Armadura",
+      "2 (Artillería)"
+     ],
+     [
+      "Velocidad",
+      "1.1 casillas/s"
+     ],
+     [
+      "Visión",
+      "9"
+     ],
+     [
+      "Daño",
+      "6 (Metralla)"
+     ],
+     [
+      "Alcance",
+      "6.0"
+     ],
+     [
+      "Cadencia",
+      "0.1 s"
+     ],
+     [
+      "Se forma en",
+      "Parque de Artillería"
+     ]
+    ],
+    "aura": null,
+    "habilidades": [],
+    "historia": "Chile llevó ametralladoras Gatling a la campaña: dos de ellas defendieron el cerro San Francisco en Dolores (19 de noviembre de 1879) junto a la batería del mayor Salvo."
+   },
+   "espia": {
+    "sub": "Apoyo",
+    "filas": [
+     [
+      "Costo",
+      "$ 50, 100 agua"
+     ],
+     [
+      "Población",
+      "1"
+     ],
+     [
+      "Tiempo",
+      "25 s"
+     ],
+     [
+      "Vida",
+      "40"
+     ],
+     [
+      "Armadura",
+      "0 (Infantería)"
+     ],
+     [
+      "Velocidad",
+      "2.0 casillas/s"
+     ],
+     [
+      "Visión",
+      "11"
+     ],
+     [
+      "Cantimplora",
+      "100 de agua"
+     ],
+     [
+      "Observador",
+      "radio 6: el CEP a la mitad"
+     ],
+     [
+      "Se forma en",
+      "Estado Mayor"
+     ]
+    ],
+    "aura": null,
+    "habilidades": [
+     [
+      "Sabotaje (S)",
+      "Paraliza un edificio enemigo durante 20 s: no produce ni investiga."
+     ]
+    ],
+    "historia": "Todos los bandos usaron informantes y espías: Quintín Quintana sirvió a Chile como guía e informante, y los telegrafistas de la Breña filtraban mensajes a Cáceres."
+   },
+   "transporte": {
+    "sub": "Marina",
+    "filas": [
+     [
+      "Costo",
+      "$ 150, 50 agua"
+     ],
+     [
+      "Población",
+      "2"
+     ],
+     [
+      "Tiempo",
+      "30 s"
+     ],
+     [
+      "Vida",
+      "300"
+     ],
+     [
+      "Armadura",
+      "1 (Naval)"
+     ],
+     [
+      "Velocidad",
+      "2.6 casillas/s"
+     ],
+     [
+      "Visión",
+      "8"
+     ],
+     [
+      "Transporta",
+      "10 plazas"
+     ],
+     [
+      "Se forma en",
+      "Muelle"
+     ]
+    ],
+    "aura": null,
+    "habilidades": [
+     [
+      "Desembarcar (D)",
+      "Desembarca a la tropa en la costa más cercana al punto elegido."
+     ]
+    ],
+    "historia": "Los transportes Amazonas, Itata, Loa, Copiapó y Rímac llevaron al ejército chileno de desembarco en desembarco: Pisagua, Pacocha, Pisco y Curayaco."
+   },
+   "canonera": {
+    "sub": "Marina",
+    "filas": [
+     [
+      "Costo",
+      "$ 250, 150 agua"
+     ],
+     [
+      "Población",
+      "5"
+     ],
+     [
+      "Tiempo",
+      "45 s"
+     ],
+     [
+      "Vida",
+      "450"
+     ],
+     [
+      "Armadura",
+      "2 (Naval)"
+     ],
+     [
+      "Velocidad",
+      "2.2 casillas/s"
+     ],
+     [
+      "Visión",
+      "10"
+     ],
+     [
+      "Daño",
+      "35 (Cañón naval)"
+     ],
+     [
+      "Alcance",
+      "9.0"
+     ],
+     [
+      "Cadencia",
+      "2.5 s"
+     ],
+     [
+      "Se forma en",
+      "Muelle"
+     ],
+     [
+      "Requiere",
+      "Central de Telégrafos"
+     ]
+    ],
+    "aura": null,
+    "habilidades": [],
+    "historia": "Cañoneras, corbetas y monitores bombardearon fuertes y trincheras costeras: Pisagua, Arica y la línea de Miraflores fueron batidas desde el mar."
+   },
+   "zapador": {
+    "sub": "Apoyo · solo Chile",
+    "filas": [
+     [
+      "Costo",
+      "$ 100, 25 agua"
+     ],
+     [
+      "Población",
+      "2"
+     ],
+     [
+      "Tiempo",
+      "22 s"
+     ],
+     [
+      "Vida",
+      "80"
+     ],
+     [
+      "Armadura",
+      "1 (Infantería)"
+     ],
+     [
+      "Velocidad",
+      "1.6 casillas/s"
+     ],
+     [
+      "Visión",
+      "8"
+     ],
+     [
+      "Daño",
+      "8 (Fusil)"
+     ],
+     [
+      "Alcance",
+      "4.5"
+     ],
+     [
+      "Cadencia",
+      "1.0 s"
+     ],
+     [
+      "Cantimplora",
+      "100 de agua"
+     ],
+     [
+      "Formaciones",
+      "Línea, Guerrilla, Cuadro"
+     ],
+     [
+      "Se forma en",
+      "Barracas"
+     ],
+     [
+      "Requiere",
+      "Barracón de Instrucción"
+     ]
+    ],
+    "aura": null,
+    "habilidades": [
+     [
+      "Carga de demolición (D)",
+      "Coloca una carga en un edificio enemigo que estalla a los 3 s con 220 de daño."
+     ],
+     [
+      "Obras de campaña (B)",
+      "Levanta trincheras y reductos al doble de velocidad."
+     ]
+    ],
+    "historia": "El Regimiento Zapadores desembarcó en la primera ola de Pisagua junto al Atacama. Su comandante, el teniente coronel Ricardo Santa Cruz, cayó a la cabeza del regimiento en Tacna (26 de mayo de 1880)."
+   },
+   "torpedista": {
+    "sub": "Apoyo · solo Perú",
+    "filas": [
+     [
+      "Costo",
+      "$ 100, 50 agua"
+     ],
+     [
+      "Población",
+      "2"
+     ],
+     [
+      "Tiempo",
+      "22 s"
+     ],
+     [
+      "Vida",
+      "55"
+     ],
+     [
+      "Armadura",
+      "0 (Infantería)"
+     ],
+     [
+      "Velocidad",
+      "1.5 casillas/s"
+     ],
+     [
+      "Visión",
+      "8"
+     ],
+     [
+      "Daño",
+      "4 (Fusil)"
+     ],
+     [
+      "Alcance",
+      "3.5"
+     ],
+     [
+      "Cadencia",
+      "1.2 s"
+     ],
+     [
+      "Cantimplora",
+      "100 de agua"
+     ],
+     [
+      "Formaciones",
+      "Línea, Guerrilla, Cuadro"
+     ],
+     [
+      "Se forma en",
+      "Barracas"
+     ],
+     [
+      "Requiere",
+      "Barracón de Instrucción"
+     ]
+    ],
+    "aura": null,
+    "habilidades": [
+     [
+      "Sembrar mina (M)",
+      "Entierra una mina oculta que estalla al paso de tropas enemigas (125 de daño en área)."
+     ]
+    ],
+    "historia": "El ingeniero Teodoro Elmore planificó el sistema de minas automáticas, zanjas y túneles con dinamita que defendía Arica; Manuel Cuadros y Pedro Ruiz Gallo trabajaron en torpedos para la defensa de la costa."
+   },
+   "montonero": {
+    "sub": "Infantería · solo Perú",
+    "filas": [
+     [
+      "Costo",
+      "$ 40"
+     ],
+     [
+      "Población",
+      "1"
+     ],
+     [
+      "Tiempo",
+      "12 s"
+     ],
+     [
+      "Vida",
+      "40"
+     ],
+     [
+      "Armadura",
+      "0 (Infantería)"
+     ],
+     [
+      "Velocidad",
+      "1.9 casillas/s"
+     ],
+     [
+      "Visión",
+      "9"
+     ],
+     [
+      "Daño",
+      "5 (Fusil)"
+     ],
+     [
+      "Alcance",
+      "4.5"
+     ],
+     [
+      "Cadencia",
+      "1.0 s"
+     ],
+     [
+      "Cantimplora",
+      "100 de agua"
+     ],
+     [
+      "Formaciones",
+      "Línea, Guerrilla, Cuadro"
+     ],
+     [
+      "Se forma en",
+      "Barracas"
+     ],
+     [
+      "Requiere",
+      "Barracón de Instrucción"
+     ]
+    ],
+    "aura": null,
+    "habilidades": [],
+    "historia": "En la campaña de la Breña (1881-1883) Andrés Avelino Cáceres organizó montoneras de campesinos de la sierra central que hostigaron a las guarniciones chilenas."
+   },
+   "colorado": {
+    "sub": "Infantería · solo Bolivia",
+    "filas": [
+     [
+      "Costo",
+      "$ 100, 25 agua"
+     ],
+     [
+      "Población",
+      "1"
+     ],
+     [
+      "Tiempo",
+      "22 s"
+     ],
+     [
+      "Vida",
+      "75"
+     ],
+     [
+      "Armadura",
+      "1 (Infantería)"
+     ],
+     [
+      "Velocidad",
+      "1.6 casillas/s"
+     ],
+     [
+      "Visión",
+      "8"
+     ],
+     [
+      "Daño",
+      "8 (Fusil)"
+     ],
+     [
+      "Alcance",
+      "5.0"
+     ],
+     [
+      "Cadencia",
+      "1.0 s"
+     ],
+     [
+      "Cantimplora",
+      "100 de agua"
+     ],
+     [
+      "Formaciones",
+      "Línea, Guerrilla, Cuadro"
+     ],
+     [
+      "Se forma en",
+      "Barracas"
+     ],
+     [
+      "Requiere",
+      "Barracón de Instrucción"
+     ]
+    ],
+    "aura": null,
+    "habilidades": [],
+    "historia": "El batallón Colorados, guardia del presidente Daza, vestía casaca roja. En Tacna contraatacó con el Aroma y resistió en cuadro la carga de los Granaderos de Yávar."
+   },
+   "baqueano": {
+    "sub": "Apoyo · solo Argentina",
+    "filas": [
+     [
+      "Costo",
+      "$ 75, 25 agua"
+     ],
+     [
+      "Población",
+      "2"
+     ],
+     [
+      "Tiempo",
+      "18 s"
+     ],
+     [
+      "Vida",
+      "70"
+     ],
+     [
+      "Armadura",
+      "0 (Caballería)"
+     ],
+     [
+      "Velocidad",
+      "3.2 casillas/s"
+     ],
+     [
+      "Visión",
+      "11"
+     ],
+     [
+      "Daño",
+      "6 (Fusil)"
+     ],
+     [
+      "Alcance",
+      "4.0"
+     ],
+     [
+      "Cadencia",
+      "1.0 s"
+     ],
+     [
+      "Cantimplora",
+      "100 de agua"
+     ],
+     [
+      "Observador",
+      "radio 6: el CEP a la mitad"
+     ],
+     [
+      "Se forma en",
+      "Caballeriza"
+     ]
+    ],
+    "aura": null,
+    "habilidades": [],
+    "historia": "Los baqueanos y rastreadores criollos guiaban a las columnas por la pampa y la Patagonia durante las campañas de Roca y Villegas (1879-1885)."
+   },
+   "baquedano": {
+    "sub": "Héroe · solo Chile",
+    "filas": [
+     [
+      "Costo",
+      "$ 350, 200 agua"
+     ],
+     [
+      "Población",
+      "4"
+     ],
+     [
+      "Tiempo",
+      "50 s"
+     ],
+     [
+      "Vida",
+      "750"
+     ],
+     [
+      "Armadura",
+      "3 (Caballería)"
+     ],
+     [
+      "Velocidad",
+      "2.6 casillas/s"
+     ],
+     [
+      "Visión",
+      "10"
+     ],
+     [
+      "Daño",
+      "16 (Fusil)"
+     ],
+     [
+      "Alcance",
+      "3.5"
+     ],
+     [
+      "Cadencia",
+      "1.0 s"
+     ],
+     [
+      "Cantimplora",
+      "100 de agua"
+     ],
+     [
+      "Se forma en",
+      "Estado Mayor"
+     ]
+    ],
+    "aura": [
+     "Aura de mando (radio 8 casillas)",
+     "+15% de daño (tropas de tierra)"
+    ],
+    "habilidades": [
+     [
+      "¡Al asalto! (Q)",
+      "Las tropas cercanas ganan +30 % de cadencia y +20 % de velocidad durante 10 s."
+     ]
+    ],
+    "historia": "Manuel Baquedano (1823-1897) mandó el Ejército de Chile en Tacna, Chorrillos y Miraflores y entró en Lima en enero de 1881."
+   },
+   "san_martin": {
+    "sub": "Héroe · solo Chile",
+    "filas": [
+     [
+      "Costo",
+      "$ 300, 150 agua"
+     ],
+     [
+      "Población",
+      "4"
+     ],
+     [
+      "Tiempo",
+      "45 s"
+     ],
+     [
+      "Vida",
+      "600"
+     ],
+     [
+      "Armadura",
+      "3 (Infantería)"
+     ],
+     [
+      "Velocidad",
+      "1.9 casillas/s"
+     ],
+     [
+      "Visión",
+      "10"
+     ],
+     [
+      "Daño",
+      "15 (Fusil)"
+     ],
+     [
+      "Alcance",
+      "3.5"
+     ],
+     [
+      "Cadencia",
+      "0.9 s"
+     ],
+     [
+      "Cantimplora",
+      "100 de agua"
+     ],
+     [
+      "Se forma en",
+      "Estado Mayor"
+     ]
+    ],
+    "aura": [
+     "Aura de mando (radio 8 casillas)",
+     "+2 de armadura (infantería)"
+    ],
+    "habilidades": [
+     [
+      "Asalto al Morro (Q)",
+      "Las tropas cercanas ignoran la ventaja de la altura y ganan +25 % de velocidad y +1 de armadura durante 12 s."
+     ]
+    ],
+    "historia": "Juan José San Martín Penrose (1839-1880) mandó al 4º de Línea en el asalto al Morro de Arica el 7 de junio de 1880 y murió a pocos metros de la cumbre."
+   },
+   "velasquez": {
+    "sub": "Héroe · solo Chile",
+    "filas": [
+     [
+      "Costo",
+      "$ 350, 200 agua"
+     ],
+     [
+      "Población",
+      "4"
+     ],
+     [
+      "Tiempo",
+      "50 s"
+     ],
+     [
+      "Vida",
+      "650"
+     ],
+     [
+      "Armadura",
+      "3 (Caballería)"
+     ],
+     [
+      "Velocidad",
+      "2.4 casillas/s"
+     ],
+     [
+      "Visión",
+      "11"
+     ],
+     [
+      "Daño",
+      "14 (Fusil)"
+     ],
+     [
+      "Alcance",
+      "3.5"
+     ],
+     [
+      "Cadencia",
+      "1.0 s"
+     ],
+     [
+      "Cantimplora",
+      "100 de agua"
+     ],
+     [
+      "Se forma en",
+      "Estado Mayor"
+     ]
+    ],
+    "aura": [
+     "Aura de mando (radio 9 casillas)",
+     "+1 de alcance (artillería), +20% de daño (artillería)"
+    ],
+    "habilidades": [
+     [
+      "Fuego de batería (Q)",
+      "Ordena una andanada de 8 granadas sobre la zona elegida."
+     ]
+    ],
+    "historia": "José Velásquez, oficial de artillería, fue jefe de Estado Mayor del ejército de Baquedano en la batalla de Tacna (1880)."
+   },
+   "irene_morales": {
+    "sub": "Héroe · solo Chile",
+    "filas": [
+     [
+      "Costo",
+      "$ 250, 150 agua"
+     ],
+     [
+      "Población",
+      "4"
+     ],
+     [
+      "Tiempo",
+      "40 s"
+     ],
+     [
+      "Vida",
+      "500"
+     ],
+     [
+      "Armadura",
+      "2 (Infantería)"
+     ],
+     [
+      "Velocidad",
+      "1.9 casillas/s"
+     ],
+     [
+      "Visión",
+      "9"
+     ],
+     [
+      "Daño",
+      "10 (Fusil)"
+     ],
+     [
+      "Alcance",
+      "5.0"
+     ],
+     [
+      "Cadencia",
+      "1.0 s"
+     ],
+     [
+      "Cantimplora",
+      "100 de agua"
+     ],
+     [
+      "Se forma en",
+      "Estado Mayor"
+     ]
+    ],
+    "aura": [
+     "Aura de mando (radio 7 casillas)",
+     "+1.5 de vida por segundo (soldados)"
+    ],
+    "habilidades": [
+     [
+      "Primeros auxilios (Q)",
+      "Cura 100 de vida a la tropa cercana."
+     ]
+    ],
+    "historia": "Irene Morales fue cantinera del 3º de Línea; combatió fusil en mano en Pisagua y Dolores y cuidó heridos en Tacna, Chorrillos y Miraflores. Baquedano la autorizó a vestir uniforme y le dio el grado de sargento."
+   },
+   "prat": {
+    "sub": "Héroe · solo Chile",
+    "filas": [
+     [
+      "Costo",
+      "$ 350, 200 agua"
+     ],
+     [
+      "Población",
+      "4"
+     ],
+     [
+      "Tiempo",
+      "50 s"
+     ],
+     [
+      "Vida",
+      "800"
+     ],
+     [
+      "Armadura",
+      "2 (Naval)"
+     ],
+     [
+      "Velocidad",
+      "2.2 casillas/s"
+     ],
+     [
+      "Visión",
+      "11"
+     ],
+     [
+      "Daño",
+      "40 (Cañón naval)"
+     ],
+     [
+      "Alcance",
+      "8.0"
+     ],
+     [
+      "Cadencia",
+      "2.5 s"
+     ],
+     [
+      "Se forma en",
+      "Muelle"
+     ],
+     [
+      "Requiere",
+      "Estado Mayor"
+     ]
+    ],
+    "aura": [
+     "Aura de mando (radio 8 casillas)",
+     "+20% de daño (marina)"
+    ],
+    "habilidades": [
+     [
+      "¡Al abordaje! (Q)",
+      "Aborda un buque enemigo cercano: 250 de daño."
+     ]
+    ],
+    "historia": "Arturo Prat mandaba la vieja corbeta Esmeralda en el combate naval de Iquique (21 de mayo de 1879); murió al saltar al abordaje del monitor Huáscar."
+   },
+   "bolognesi": {
+    "sub": "Héroe · solo Perú",
+    "filas": [
+     [
+      "Costo",
+      "$ 300, 150 agua"
+     ],
+     [
+      "Población",
+      "4"
+     ],
+     [
+      "Tiempo",
+      "45 s"
+     ],
+     [
+      "Vida",
+      "650"
+     ],
+     [
+      "Armadura",
+      "3 (Infantería)"
+     ],
+     [
+      "Velocidad",
+      "1.8 casillas/s"
+     ],
+     [
+      "Visión",
+      "10"
+     ],
+     [
+      "Daño",
+      "15 (Fusil)"
+     ],
+     [
+      "Alcance",
+      "3.5"
+     ],
+     [
+      "Cadencia",
+      "1.0 s"
+     ],
+     [
+      "Cantimplora",
+      "100 de agua"
+     ],
+     [
+      "Se forma en",
+      "Estado Mayor"
+     ]
+    ],
+    "aura": [
+     "Aura de mando (radio 8 casillas)",
+     "+2 de armadura (tropas de tierra)"
+    ],
+    "habilidades": [
+     [
+      "Hasta quemar el último cartucho (Q)",
+      "Durante 10 s las tropas cercanas no pueden caer y disparan un 25 % más rápido."
+     ]
+    ],
+    "historia": "Francisco Bolognesi defendió Arica en 1880. Intimado a rendirse, respondió que cumpliría sus deberes 'hasta quemar el último cartucho'. Murió en el Morro el 7 de junio."
+   },
+   "caceres": {
+    "sub": "Héroe · solo Perú",
+    "filas": [
+     [
+      "Costo",
+      "$ 350, 200 agua"
+     ],
+     [
+      "Población",
+      "4"
+     ],
+     [
+      "Tiempo",
+      "50 s"
+     ],
+     [
+      "Vida",
+      "700"
+     ],
+     [
+      "Armadura",
+      "3 (Caballería)"
+     ],
+     [
+      "Velocidad",
+      "2.6 casillas/s"
+     ],
+     [
+      "Visión",
+      "11"
+     ],
+     [
+      "Daño",
+      "16 (Fusil)"
+     ],
+     [
+      "Alcance",
+      "3.5"
+     ],
+     [
+      "Cadencia",
+      "1.0 s"
+     ],
+     [
+      "Cantimplora",
+      "100 de agua"
+     ],
+     [
+      "Se forma en",
+      "Estado Mayor"
+     ]
+    ],
+    "aura": [
+     "Aura de mando (radio 8 casillas)",
+     "+15% de velocidad (tropas de tierra), +10% de daño (tropas de tierra)"
+    ],
+    "habilidades": [
+     [
+      "Emboscada (Q)",
+      "Oculta a las tropas cercanas durante 15 s (salvo ante detectores)."
+     ]
+    ],
+    "historia": "Andrés A. Cáceres se distinguió en Tarapacá (1879) y en la defensa de Lima; después dirigió la resistencia de la Breña en la sierra central hasta 1883."
+   },
+   "ugarte": {
+    "sub": "Héroe · solo Perú",
+    "filas": [
+     [
+      "Costo",
+      "$ 300, 150 agua"
+     ],
+     [
+      "Población",
+      "4"
+     ],
+     [
+      "Tiempo",
+      "45 s"
+     ],
+     [
+      "Vida",
+      "600"
+     ],
+     [
+      "Armadura",
+      "3 (Infantería)"
+     ],
+     [
+      "Velocidad",
+      "1.9 casillas/s"
+     ],
+     [
+      "Visión",
+      "10"
+     ],
+     [
+      "Daño",
+      "15 (Fusil)"
+     ],
+     [
+      "Alcance",
+      "3.5"
+     ],
+     [
+      "Cadencia",
+      "0.9 s"
+     ],
+     [
+      "Cantimplora",
+      "100 de agua"
+     ],
+     [
+      "Se forma en",
+      "Estado Mayor"
+     ]
+    ],
+    "aura": [
+     "Aura de mando (radio 8 casillas)",
+     "+15% de daño (infantería)"
+    ],
+    "habilidades": [
+     [
+      "¡Viva el Perú! (Q)",
+      "+30 % de daño a las tropas cercanas durante 8 s."
+     ]
+    ],
+    "historia": "Alfonso Ugarte, comerciante de Iquique, formó y costeó el batallón Iquique y murió en la defensa del Morro de Arica (1880)."
+   },
+   "grau": {
+    "sub": "Héroe · solo Perú",
+    "filas": [
+     [
+      "Costo",
+      "$ 400, 250 agua"
+     ],
+     [
+      "Población",
+      "4"
+     ],
+     [
+      "Tiempo",
+      "55 s"
+     ],
+     [
+      "Vida",
+      "950"
+     ],
+     [
+      "Armadura",
+      "4 (Naval)"
+     ],
+     [
+      "Velocidad",
+      "2.2 casillas/s"
+     ],
+     [
+      "Visión",
+      "11"
+     ],
+     [
+      "Daño",
+      "55 (Cañón naval)"
+     ],
+     [
+      "Alcance",
+      "9.0"
+     ],
+     [
+      "Cadencia",
+      "3.0 s"
+     ],
+     [
+      "Se forma en",
+      "Muelle"
+     ],
+     [
+      "Requiere",
+      "Estado Mayor"
+     ]
+    ],
+    "aura": [
+     "Aura de mando (radio 8 casillas)",
+     "+2 de armadura (marina)"
+    ],
+    "habilidades": [
+     [
+      "Espolonazo (Q)",
+      "Embiste con el espolón a un buque enemigo cercano: 300 de daño."
+     ]
+    ],
+    "historia": "Miguel Grau, el 'Caballero de los Mares', mantuvo en jaque a la escuadra chilena con el monitor Huáscar durante seis meses de 1879. Murió en Angamos el 8 de octubre."
+   },
+   "campero": {
+    "sub": "Héroe · solo Bolivia",
+    "filas": [
+     [
+      "Costo",
+      "$ 350, 200 agua"
+     ],
+     [
+      "Población",
+      "4"
+     ],
+     [
+      "Tiempo",
+      "50 s"
+     ],
+     [
+      "Vida",
+      "750"
+     ],
+     [
+      "Armadura",
+      "3 (Caballería)"
+     ],
+     [
+      "Velocidad",
+      "2.5 casillas/s"
+     ],
+     [
+      "Visión",
+      "10"
+     ],
+     [
+      "Daño",
+      "16 (Fusil)"
+     ],
+     [
+      "Alcance",
+      "3.5"
+     ],
+     [
+      "Cadencia",
+      "1.0 s"
+     ],
+     [
+      "Cantimplora",
+      "100 de agua"
+     ],
+     [
+      "Se forma en",
+      "Estado Mayor"
+     ]
+    ],
+    "aura": [
+     "Aura de mando (radio 8 casillas)",
+     "+15% de daño (tropas de tierra)"
+    ],
+    "habilidades": [
+     [
+      "Defensa del Alto (Q)",
+      "+3 de armadura a las tropas cercanas durante 12 s."
+     ]
+    ],
+    "historia": "Narciso Campero, presidente de Bolivia desde 1880, mandó el ejército aliado en el Alto de la Alianza (Tacna, 26 de mayo de 1880)."
+   },
+   "abaroa": {
+    "sub": "Héroe · solo Bolivia",
+    "filas": [
+     [
+      "Costo",
+      "$ 250, 150 agua"
+     ],
+     [
+      "Población",
+      "4"
+     ],
+     [
+      "Tiempo",
+      "40 s"
+     ],
+     [
+      "Vida",
+      "600"
+     ],
+     [
+      "Armadura",
+      "3 (Infantería)"
+     ],
+     [
+      "Velocidad",
+      "1.9 casillas/s"
+     ],
+     [
+      "Visión",
+      "9"
+     ],
+     [
+      "Daño",
+      "14 (Fusil)"
+     ],
+     [
+      "Alcance",
+      "5.0"
+     ],
+     [
+      "Cadencia",
+      "1.0 s"
+     ],
+     [
+      "Cantimplora",
+      "100 de agua"
+     ],
+     [
+      "Se forma en",
+      "Estado Mayor"
+     ]
+    ],
+    "aura": [
+     "Aura de mando (radio 7 casillas)",
+     "+2 de armadura (tropas de tierra)"
+    ],
+    "habilidades": [
+     [
+      "¿Rendirme yo? (Q)",
+      "Durante 10 s no puede caer y duplica su daño."
+     ]
+    ],
+    "historia": "Eduardo Abaroa, civil, defendió el puente del Topáter en Calama (23 de marzo de 1879), el primer combate de la guerra. Se negó a rendirse y peleó hasta morir."
+   },
+   "camacho": {
+    "sub": "Héroe · solo Bolivia",
+    "filas": [
+     [
+      "Costo",
+      "$ 300, 150 agua"
+     ],
+     [
+      "Población",
+      "4"
+     ],
+     [
+      "Tiempo",
+      "45 s"
+     ],
+     [
+      "Vida",
+      "600"
+     ],
+     [
+      "Armadura",
+      "3 (Infantería)"
+     ],
+     [
+      "Velocidad",
+      "1.9 casillas/s"
+     ],
+     [
+      "Visión",
+      "10"
+     ],
+     [
+      "Daño",
+      "15 (Fusil)"
+     ],
+     [
+      "Alcance",
+      "3.5"
+     ],
+     [
+      "Cadencia",
+      "1.0 s"
+     ],
+     [
+      "Cantimplora",
+      "100 de agua"
+     ],
+     [
+      "Se forma en",
+      "Estado Mayor"
+     ]
+    ],
+    "aura": [
+     "Aura de mando (radio 8 casillas)",
+     "+15% de cadencia de fuego (infantería)"
+    ],
+    "habilidades": [
+     [
+      "Contraataque (Q)",
+      "La infantería cercana gana +30 % de velocidad y +25 % de daño durante 10 s."
+     ]
+    ],
+    "historia": "Eliodoro Camacho mandó el ala izquierda aliada en el Alto de la Alianza, donde contraatacaron los Colorados y el Aroma."
+   },
+   "zeballos": {
+    "sub": "Héroe · solo Bolivia",
+    "filas": [
+     [
+      "Costo",
+      "$ 250, 150 agua"
+     ],
+     [
+      "Población",
+      "4"
+     ],
+     [
+      "Tiempo",
+      "40 s"
+     ],
+     [
+      "Vida",
+      "550"
+     ],
+     [
+      "Armadura",
+      "2 (Infantería)"
+     ],
+     [
+      "Velocidad",
+      "1.9 casillas/s"
+     ],
+     [
+      "Visión",
+      "9"
+     ],
+     [
+      "Cantimplora",
+      "100 de agua"
+     ],
+     [
+      "Se forma en",
+      "Estado Mayor"
+     ]
+    ],
+    "aura": [
+     "Aura de mando (radio 7 casillas)",
+     "+1.5 de vida por segundo (soldados)"
+    ],
+    "habilidades": [
+     [
+      "Ambulancia (Q)",
+      "Cura 120 de vida a la tropa cercana."
+     ]
+    ],
+    "historia": "Ignacia Zeballos Taborga (1831-1904) sirvió como enfermera de la Ambulancia en Tacna, la primera boliviana con el emblema de la Cruz Roja. Es la 'Madre del soldado boliviano'."
+   },
+   "roca": {
+    "sub": "Héroe · solo Argentina",
+    "filas": [
+     [
+      "Costo",
+      "$ 350, 200 agua"
+     ],
+     [
+      "Población",
+      "4"
+     ],
+     [
+      "Tiempo",
+      "50 s"
+     ],
+     [
+      "Vida",
+      "750"
+     ],
+     [
+      "Armadura",
+      "3 (Caballería)"
+     ],
+     [
+      "Velocidad",
+      "2.6 casillas/s"
+     ],
+     [
+      "Visión",
+      "10"
+     ],
+     [
+      "Daño",
+      "16 (Fusil)"
+     ],
+     [
+      "Alcance",
+      "3.5"
+     ],
+     [
+      "Cadencia",
+      "1.0 s"
+     ],
+     [
+      "Cantimplora",
+      "100 de agua"
+     ],
+     [
+      "Se forma en",
+      "Estado Mayor"
+     ]
+    ],
+    "aura": [
+     "Aura de mando (radio 8 casillas)",
+     "+15% de daño (tropas de tierra)"
+    ],
+    "habilidades": [
+     [
+      "Marcha al desierto (Q)",
+      "+40 % de velocidad a las tropas cercanas durante 12 s."
+     ]
+    ],
+    "historia": "Julio A. Roca, ministro de Guerra, dirigió la campaña de 1879 al río Negro y fue presidente de la Argentina desde 1880."
+   },
+   "villegas": {
+    "sub": "Héroe · solo Argentina",
+    "filas": [
+     [
+      "Costo",
+      "$ 300, 200 agua"
+     ],
+     [
+      "Población",
+      "4"
+     ],
+     [
+      "Tiempo",
+      "45 s"
+     ],
+     [
+      "Vida",
+      "700"
+     ],
+     [
+      "Armadura",
+      "3 (Caballería)"
+     ],
+     [
+      "Velocidad",
+      "2.9 casillas/s"
+     ],
+     [
+      "Visión",
+      "10"
+     ],
+     [
+      "Daño",
+      "24 (Arma blanca)"
+     ],
+     [
+      "Alcance",
+      "0.3"
+     ],
+     [
+      "Cadencia",
+      "1.0 s"
+     ],
+     [
+      "Cantimplora",
+      "100 de agua"
+     ],
+     [
+      "Se forma en",
+      "Estado Mayor"
+     ]
+    ],
+    "aura": [
+     "Aura de mando (radio 8 casillas)",
+     "+20% de daño (caballería), +10% de velocidad (caballería)"
+    ],
+    "habilidades": [
+     [
+      "Carga de caballería (Q)",
+      "La caballería cercana gana +40 % de cadencia y +20 % de daño durante 8 s."
+     ]
+    ],
+    "historia": "Conrado Villegas (1841-1884) mandó la división que llegó al lago Nahuel Huapi el 2 de abril de 1881, en la campaña de los Andes."
+   },
+   "saenz_pena": {
+    "sub": "Héroe · solo Argentina",
+    "filas": [
+     [
+      "Costo",
+      "$ 300, 150 agua"
+     ],
+     [
+      "Población",
+      "4"
+     ],
+     [
+      "Tiempo",
+      "45 s"
+     ],
+     [
+      "Vida",
+      "650"
+     ],
+     [
+      "Armadura",
+      "3 (Infantería)"
+     ],
+     [
+      "Velocidad",
+      "1.9 casillas/s"
+     ],
+     [
+      "Visión",
+      "10"
+     ],
+     [
+      "Daño",
+      "15 (Fusil)"
+     ],
+     [
+      "Alcance",
+      "3.5"
+     ],
+     [
+      "Cadencia",
+      "1.0 s"
+     ],
+     [
+      "Cantimplora",
+      "100 de agua"
+     ],
+     [
+      "Se forma en",
+      "Estado Mayor"
+     ]
+    ],
+    "aura": [
+     "Aura de mando (radio 8 casillas)",
+     "+2 de armadura (tropas de tierra)"
+    ],
+    "habilidades": [
+     [
+      "Resistencia en el Morro (Q)",
+      "+4 de armadura a las tropas cercanas durante 12 s."
+     ]
+    ],
+    "historia": "El argentino Roque Sáenz Peña se ofreció al Perú en 1879; como teniente coronel mandó el batallón Iquique en el Morro de Arica, donde cayó herido y prisionero. Fue presidente de la Argentina (1910-1914)."
+   },
+   "piedrabuena": {
+    "sub": "Héroe · solo Argentina",
+    "filas": [
+     [
+      "Costo",
+      "$ 350, 200 agua"
+     ],
+     [
+      "Población",
+      "4"
+     ],
+     [
+      "Tiempo",
+      "50 s"
+     ],
+     [
+      "Vida",
+      "850"
+     ],
+     [
+      "Armadura",
+      "3 (Naval)"
+     ],
+     [
+      "Velocidad",
+      "2.3 casillas/s"
+     ],
+     [
+      "Visión",
+      "11"
+     ],
+     [
+      "Daño",
+      "40 (Cañón naval)"
+     ],
+     [
+      "Alcance",
+      "8.0"
+     ],
+     [
+      "Cadencia",
+      "2.5 s"
+     ],
+     [
+      "Se forma en",
+      "Muelle"
+     ],
+     [
+      "Requiere",
+      "Estado Mayor"
+     ]
+    ],
+    "aura": [
+     "Aura de mando (radio 8 casillas)",
+     "+2 de vida por segundo (marina)"
+    ],
+    "habilidades": [
+     [
+      "Rescate de náufragos (Q)",
+      "Cura 150 de vida a buques y tropas cercanos."
+     ]
+    ],
+    "historia": "Luis Piedrabuena (1833-1883) afirmó la soberanía argentina en la Patagonia oriental y rescató a decenas de náufragos; en 1879 ingresó a la Armada como capitán de fragata."
+   }
+  },
+  "edificios": {
+   "cuartel_general": {
+    "sub": "Edificio de 4×3 casillas",
+    "filas": [
+     [
+      "Costo",
+      "$ 400"
+     ],
+     [
+      "Tiempo",
+      "100 s"
+     ],
+     [
+      "Vida",
+      "1500"
+     ],
+     [
+      "Armadura",
+      "1"
+     ],
+     [
+      "Población",
+      "+10"
+     ],
+     [
+      "Guarnición",
+      "8 soldados"
+     ],
+     [
+      "Aguada",
+      "radio 3 (tropa y pipas)"
+     ]
+    ],
+    "historia": "Cada división tenía su cuartel general con el Estado Mayor, la intendencia y el parque. Las oficinas salitreras del Tamarugal sirvieron de campamento a los ejércitos."
+   },
+   "deposito": {
+    "sub": "Edificio de 2×2 casillas",
+    "filas": [
+     [
+      "Costo",
+      "$ 100"
+     ],
+     [
+      "Tiempo",
+      "25 s"
+     ],
+     [
+      "Vida",
+      "400"
+     ],
+     [
+      "Armadura",
+      "1"
+     ],
+     [
+      "Población",
+      "+10"
+     ]
+    ],
+    "historia": "La Intendencia General del Ejército y la Delegación en Antofagasta sostuvieron la campaña: el abastecimiento en el desierto decidió las operaciones tanto como las batallas."
+   },
+   "molino_agua": {
+    "sub": "Edificio de 3×3 casillas",
+    "filas": [
+     [
+      "Costo",
+      "$ 75"
+     ],
+     [
+      "Tiempo",
+      "30 s"
+     ],
+     [
+      "Vida",
+      "500"
+     ],
+     [
+      "Armadura",
+      "1"
+     ],
+     [
+      "Aguada",
+      "radio 3 (tropa y pipas)"
+     ]
+    ],
+    "historia": "El agua fue el gran problema del desierto: se defendían los pozos de Dolores y de Pozo Almonte, y en Pisagua y Antofagasta las máquinas condensadoras destilaban agua de mar para la tropa."
+   },
+   "barracas": {
+    "sub": "Edificio de 3×3 casillas",
+    "filas": [
+     [
+      "Costo",
+      "$ 150"
+     ],
+     [
+      "Tiempo",
+      "50 s"
+     ],
+     [
+      "Vida",
+      "1000"
+     ],
+     [
+      "Armadura",
+      "1"
+     ],
+     [
+      "Guarnición",
+      "6 soldados"
+     ],
+     [
+      "Requiere",
+      "Cuartel General"
+     ]
+    ],
+    "historia": "Los regimientos se formaban y acuartelaban antes de embarcar: el 2º, 3º y 4º de Línea, el Buin, el Atacama, el Esmeralda, el Chacabuco y tantos batallones cívicos movilizados."
+   },
+   "maestranza": {
+    "sub": "Edificio de 3×3 casillas",
+    "filas": [
+     [
+      "Costo",
+      "$ 125"
+     ],
+     [
+      "Tiempo",
+      "40 s"
+     ],
+     [
+      "Vida",
+      "850"
+     ],
+     [
+      "Armadura",
+      "1"
+     ],
+     [
+      "Requiere",
+      "Cuartel General"
+     ]
+    ],
+    "historia": "Las maestranzas y arsenales reparaban fusiles, fundían proyectiles y armaban cureñas; en Lima, Grieve y White fabricaron cañones durante la guerra."
+   },
+   "hospital_campana": {
+    "sub": "Edificio de 3×2 casillas",
+    "filas": [
+     [
+      "Costo",
+      "$ 100, 25 agua"
+     ],
+     [
+      "Tiempo",
+      "40 s"
+     ],
+     [
+      "Vida",
+      "600"
+     ],
+     [
+      "Armadura",
+      "1"
+     ],
+     [
+      "Requiere",
+      "Barracas"
+     ]
+    ],
+    "historia": "Los ejércitos de 1879 tenían hospitales fijos en la retaguardia y 'ambulancias' que seguían a las tropas. La boliviana Ignacia Zeballos sirvió en la Ambulancia en Tacna."
+   },
+   "hospital_sangre": {
+    "sub": "Edificio de 2×2 casillas",
+    "filas": [
+     [
+      "Costo",
+      "$ 0"
+     ],
+     [
+      "Tiempo",
+      "8 s"
+     ],
+     [
+      "Vida",
+      "400"
+     ],
+     [
+      "Armadura",
+      "0"
+     ]
+    ],
+    "historia": "Detrás de la línea de fuego las ambulancias levantaban 'hospitales de sangre' en carpas, casas o iglesias, donde cirujanos y practicantes atendían a los heridos que traían los camilleros."
+   },
+   "trinchera": {
+    "sub": "Edificio de 3×2 casillas",
+    "filas": [
+     [
+      "Costo",
+      "$ 100"
+     ],
+     [
+      "Tiempo",
+      "25 s"
+     ],
+     [
+      "Vida",
+      "400"
+     ],
+     [
+      "Armadura",
+      "2"
+     ],
+     [
+      "Guarnición",
+      "4 soldados"
+     ],
+     [
+      "Requiere",
+      "Barracas"
+     ]
+    ],
+    "historia": "Trincheras y parapetos de sacos de arena cubrieron Pisagua, el Alto de la Alianza y las líneas de San Juan y Miraflores."
+   },
+   "reducto": {
+    "sub": "Edificio de 2×2 casillas",
+    "filas": [
+     [
+      "Costo",
+      "$ 125, 25 agua"
+     ],
+     [
+      "Tiempo",
+      "30 s"
+     ],
+     [
+      "Vida",
+      "500"
+     ],
+     [
+      "Armadura",
+      "2"
+     ],
+     [
+      "Daño",
+      "22 a 7 casillas"
+     ],
+     [
+      "Requiere",
+      "Maestranza"
+     ]
+    ],
+    "historia": "Los reductos de la línea de Miraflores, a unos 900 m uno de otro, y los fuertes Ciudadela y del Este de Arica son el modelo de esta obra."
+   },
+   "barracon_instruccion": {
+    "sub": "Edificio de 3×3 casillas",
+    "filas": [
+     [
+      "Costo",
+      "$ 150, 50 agua"
+     ],
+     [
+      "Tiempo",
+      "50 s"
+     ],
+     [
+      "Vida",
+      "650"
+     ],
+     [
+      "Armadura",
+      "1"
+     ],
+     [
+      "Requiere",
+      "Barracas"
+     ]
+    ],
+    "historia": "La instrucción de reclutas y movilizados en tiro y orden disperso se hizo en los campamentos de Antofagasta y Tacna antes de cada campaña."
+   },
+   "caballeriza": {
+    "sub": "Edificio de 4×3 casillas",
+    "filas": [
+     [
+      "Costo",
+      "$ 150, 100 agua"
+     ],
+     [
+      "Tiempo",
+      "60 s"
+     ],
+     [
+      "Vida",
+      "1000"
+     ],
+     [
+      "Armadura",
+      "1"
+     ],
+     [
+      "Requiere",
+      "Barracón de Instrucción"
+     ]
+    ],
+    "historia": "La falta de agua y forraje limitó a la caballería en el desierto: cada animal necesitaba decenas de litros diarios."
+   },
+   "central_telegrafos": {
+    "sub": "Edificio de 3×3 casillas",
+    "filas": [
+     [
+      "Costo",
+      "$ 150, 100 agua"
+     ],
+     [
+      "Tiempo",
+      "50 s"
+     ],
+     [
+      "Vida",
+      "750"
+     ],
+     [
+      "Armadura",
+      "1"
+     ],
+     [
+      "Requiere",
+      "Caballeriza"
+     ]
+    ],
+    "historia": "El cable submarino Valparaíso-Lima y las líneas terrestres fueron objetivos militares: el Huáscar intentó cortar el cable de Antofagasta y Chile extendió el telégrafo a Salinas y Caracoles."
+   },
+   "parque_artilleria": {
+    "sub": "Edificio de 4×3 casillas",
+    "filas": [
+     [
+      "Costo",
+      "$ 200, 150 agua"
+     ],
+     [
+      "Tiempo",
+      "70 s"
+     ],
+     [
+      "Vida",
+      "1250"
+     ],
+     [
+      "Armadura",
+      "1"
+     ],
+     [
+      "Requiere",
+      "Central de Telégrafos, Maestranza"
+     ]
+    ],
+    "historia": "El parque reunía cañones, armones, mulas y municiones. La artillería chilena, la más moderna, decidió Tacna y Chorrillos."
+   },
+   "estado_mayor": {
+    "sub": "Edificio de 3×3 casillas",
+    "filas": [
+     [
+      "Costo",
+      "$ 150, 150 agua"
+     ],
+     [
+      "Tiempo",
+      "60 s"
+     ],
+     [
+      "Vida",
+      "900"
+     ],
+     [
+      "Armadura",
+      "1"
+     ],
+     [
+      "Requiere",
+      "Central de Telégrafos"
+     ]
+    ],
+    "historia": "Los estados mayores planificaron desembarcos y marchas por el desierto con mapas, telegramas y partes de operaciones."
+   },
+   "muelle": {
+    "sub": "Edificio de 3×3 casillas",
+    "filas": [
+     [
+      "Costo",
+      "$ 150"
+     ],
+     [
+      "Tiempo",
+      "50 s"
+     ],
+     [
+      "Vida",
+      "900"
+     ],
+     [
+      "Armadura",
+      "1"
+     ],
+     [
+      "Requiere",
+      "Maestranza"
+     ]
+    ],
+    "historia": "Los desembarcos de Pisagua, Pacocha y Curayaco requirieron lanchas, botes y muelles improvisados bajo el fuego enemigo."
+   },
+   "fortin": {
+    "sub": "Edificio de 2×2 casillas",
+    "filas": [
+     [
+      "Costo",
+      "$ 125"
+     ],
+     [
+      "Tiempo",
+      "30 s"
+     ],
+     [
+      "Vida",
+      "600"
+     ],
+     [
+      "Armadura",
+      "2"
+     ],
+     [
+      "Población",
+      "+5"
+     ],
+     [
+      "Daño",
+      "10 a 7 casillas"
+     ],
+     [
+      "Requiere",
+      "Barracas"
+     ]
+    ],
+    "historia": "La línea de fortines y la zanja de Alsina marcaron la frontera argentina antes de las campañas de 1879; cada fortín tenía mangrullo, foso y una pequeña guarnición."
+   }
+  }
+ },
+ "velocidades": [
+  "normal",
+  "rapida",
+  "muy_rapida"
+ ]
+}

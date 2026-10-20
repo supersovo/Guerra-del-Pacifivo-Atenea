@@ -1,0 +1,46 @@
+{
+  "_comentario": "Campañas: batallas encadenadas contra la IA en las que los veteranos sobrevivientes pasan de una batalla a la siguiente (llegan con el cuartel general). 'rival': nación de la IA según la nación del jugador ('otra' para cualquier otra). 'nucleo_rival': veteranos con que la IA empieza esa batalla (además de los suyos que sobrevivieron antes). 'honores': lo que vale ganar y cada veterano preservado según su grado; 'medallas': honores mínimos al terminar.",
+  "salitre": {
+    "nombre": "Campaña del Salitre (1879-1880)",
+    "descripcion": "De la pampa de Tarapacá al Morro de Arica: cuatro batallas en las que cada veterano cuenta. Los sobrevivientes llegan a la siguiente batalla en el tren o la carreta del cuartel general; los caídos no vuelven. Cuide a su tropa con hospitales, camilleros y cantineras.",
+    "naciones": ["chile", "peru", "bolivia"],
+    "honores": {"victoria": 10, "por_grado": [0, 1, 3, 6]},
+    "medallas": [
+      {"nombre": "Medalla de oro de la campaña", "minimo": 100},
+      {"nombre": "Medalla de plata de la campaña", "minimo": 55},
+      {"nombre": "Medalla de bronce de la campaña", "minimo": 0}
+    ],
+    "etapas": [
+      {
+        "id": "dolores", "nombre": "San Francisco (Dolores)", "fecha": "19 de noviembre de 1879",
+        "mapa": "pampa_del_tamarugal", "dificultad": "facil",
+        "rival": {"chile": "peru", "otra": "chile"},
+        "relato": "Tras el desembarco de Pisagua, el ejército chileno avanzó por la pampa y se hizo fuerte en el cerro San Francisco, junto a la aguada de Dolores. El 19 de noviembre lo atacó el ejército aliado de Juan Buendía, sin las tropas de Daza, que habían vuelto desde Camarones; el ataque fracasó y los aliados se retiraron hacia Tarapacá.",
+        "nucleo_rival": []
+      },
+      {
+        "id": "tarapaca", "nombre": "Tarapacá", "fecha": "27 de noviembre de 1879",
+        "mapa": "quebrada_de_tarapaca", "dificultad": "normal",
+        "rival": {"chile": "peru", "otra": "chile"},
+        "relato": "Una división chilena al mando de Luis Arteaga atacó a las fuerzas de Buendía y Cáceres replegadas en la quebrada de Tarapacá. Los peruanos ganaron la jornada —cayó el comandante Eleuterio Ramírez con buena parte del 2.º de Línea—, pero sin agua ni víveres se retiraron a Arica y el Perú perdió la provincia salitrera.",
+        "nucleo_rival": [{"tipo": "infante", "grado": 1, "cantidad": 4}]
+      },
+      {
+        "id": "alto_alianza", "nombre": "Alto de la Alianza (Tacna)", "fecha": "26 de mayo de 1880",
+        "mapa": "alto_de_la_alianza", "dificultad": "normal",
+        "rival": {"chile": "bolivia", "otra": "chile"},
+        "relato": "El general Manuel Baquedano atacó con unos 14.000 hombres al ejército aliado de Narciso Campero, atrincherado en la meseta del Intiorko, frente a Tacna. Tras una dura jornada, en la que los Colorados de Bolivia y los batallones peruanos resistieron hasta el último cartucho, los aliados fueron derrotados y Bolivia dejó la guerra.",
+        "nucleo_rival": [{"tipo": "infante", "grado": 1, "cantidad": 4}, {"tipo": "infante", "grado": 2, "cantidad": 3},
+                         {"tipo": "granadero", "grado": 2, "cantidad": 1}]
+      },
+      {
+        "id": "arica", "nombre": "Asalto y toma del Morro de Arica", "fecha": "7 de junio de 1880",
+        "mapa": "morro_de_arica", "dificultad": "dificil",
+        "rival": {"chile": "peru", "otra": "chile"},
+        "relato": "La guarnición peruana de Francisco Bolognesi, con fuertes, baterías y minas, se negó a rendirse: «tengo deberes sagrados que cumplir y los cumpliré hasta quemar el último cartucho». Al amanecer del 7 de junio los regimientos chilenos tomaron el Morro por asalto en menos de una hora; murieron Bolognesi, Alfonso Ugarte y el chileno Juan José San Martín Penrose.",
+        "nucleo_rival": [{"tipo": "infante", "grado": 2, "cantidad": 4}, {"tipo": "infante", "grado": 3, "cantidad": 2},
+                         {"tipo": "canon_campana", "grado": 2, "cantidad": 1}]
+      }
+    ]
+  }
+}

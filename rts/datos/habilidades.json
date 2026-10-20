@@ -1,0 +1,281 @@
+{
+  "_comentario": "Habilidades activas. 'objetivo': ninguno | punto | unidad_enemiga | edificio_enemigo. Tiempos en segundos, distancias en casillas. Los efectos temporales ('potenciar_area') usan los campos danio_pct, armadura, velocidad_pct, ataque_vel_pct, alcance, regeneracion, inmortal, ignora_altura.",
+
+  "reparar": {
+    "nombre": "Reparar",
+    "descripcion": "Repara edificios, piezas de artillería y buques propios. Cuesta una parte de su precio.",
+    "tipo": "orden_reparar",
+    "objetivo": "propio",
+    "atajo": "R"
+  },
+  "construir_campana": {
+    "nombre": "Obras de campaña",
+    "descripcion": "Levanta trincheras y reductos al doble de velocidad.",
+    "tipo": "menu_construir",
+    "objetivo": "ninguno",
+    "atajo": "B"
+  },
+  "emplazar": {
+    "nombre": "Emplazar / Enganchar",
+    "descripcion": "Emplaza la pieza para disparar o la engancha al armón para marchar. Se hace solo al recibir órdenes.",
+    "tipo": "emplazar",
+    "objetivo": "ninguno",
+    "atajo": "E"
+  },
+  "descargar": {
+    "nombre": "Desembarcar",
+    "descripcion": "Desembarca a la tropa en la costa más cercana al punto elegido.",
+    "tipo": "descargar",
+    "objetivo": "punto",
+    "atajo": "D"
+  },
+  "montar_hospital": {
+    "nombre": "Montar hospital",
+    "descripcion": "Elija el lugar, cerca de la tropa: la ambulancia va hasta allí, levanta las carpas de un hospital de sangre en 8 segundos y manda a sus camilleros a recoger a los heridos.",
+    "tipo": "montar",
+    "objetivo": "punto",
+    "atajo": "B"
+  },
+  "desmontar_hospital": {
+    "nombre": "Desmontar",
+    "descripcion": "Recoge las carpas en el carro en 6 segundos para seguir el avance. Los camilleros suben al carro y los convalecientes siguen curándose en él hasta volver a filas.",
+    "tipo": "desmontar",
+    "objetivo": "ninguno",
+    "duracion": 6,
+    "atajo": "D"
+  },
+  "sabotaje": {
+    "nombre": "Sabotaje",
+    "descripcion": "Paraliza un edificio enemigo durante 20 s: no produce ni investiga.",
+    "tipo": "sabotaje",
+    "objetivo": "edificio_enemigo",
+    "alcance": 2,
+    "energia": 75,
+    "duracion": 20,
+    "atajo": "S"
+  },
+  "sembrar_mina": {
+    "nombre": "Sembrar mina",
+    "descripcion": "Entierra una mina oculta que estalla al paso de tropas enemigas (125 de daño en área).",
+    "tipo": "mina",
+    "objetivo": "punto",
+    "alcance": 3,
+    "energia": 50,
+    "danio": 125,
+    "tipo_danio": "explosivo",
+    "radio": 1.5,
+    "activacion": 0.8,
+    "armado": 1.0,
+    "atajo": "M"
+  },
+  "carga_demolicion": {
+    "nombre": "Carga de demolición",
+    "descripcion": "Coloca una carga en un edificio enemigo que estalla a los 3 s con 220 de daño.",
+    "tipo": "demolicion",
+    "objetivo": "edificio_enemigo",
+    "alcance": 1,
+    "danio": 220,
+    "retardo": 3,
+    "enfriamiento": 30,
+    "atajo": "D"
+  },
+  "reconocimiento": {
+    "nombre": "Reconocimiento telegráfico",
+    "descripcion": "Los informantes del telégrafo revelan una zona del mapa durante 12 s (también lo oculto).",
+    "tipo": "revelar",
+    "objetivo": "punto",
+    "energia": 50,
+    "radio": 9,
+    "duracion": 12,
+    "atajo": "R"
+  },
+
+  "al_asalto": {
+    "nombre": "¡Al asalto!",
+    "descripcion": "Las tropas cercanas ganan +30 % de cadencia y +20 % de velocidad durante 10 s.",
+    "tipo": "potenciar_area",
+    "objetivo": "ninguno",
+    "radio": 8,
+    "duracion": 10,
+    "enfriamiento": 60,
+    "efectos": [{"campo": "ataque_vel_pct", "suma": 30}, {"campo": "velocidad_pct", "suma": 20}],
+    "atajo": "Q"
+  },
+  "asalto_morro": {
+    "nombre": "Asalto al Morro",
+    "descripcion": "Las tropas cercanas ignoran la ventaja de la altura y ganan +25 % de velocidad y +1 de armadura durante 12 s.",
+    "tipo": "potenciar_area",
+    "objetivo": "ninguno",
+    "radio": 8,
+    "duracion": 12,
+    "enfriamiento": 60,
+    "efectos": [{"campo": "ignora_altura", "suma": 1}, {"campo": "velocidad_pct", "suma": 25}, {"campo": "armadura", "suma": 1}],
+    "atajo": "Q"
+  },
+  "fuego_bateria": {
+    "nombre": "Fuego de batería",
+    "descripcion": "Ordena una andanada de 8 granadas sobre la zona elegida.",
+    "tipo": "bombardeo",
+    "objetivo": "punto",
+    "alcance": 16,
+    "proyectiles": 8,
+    "danio": 35,
+    "tipo_danio": "explosivo",
+    "radio": 1.2,
+    "dispersion": 3,
+    "duracion": 2,
+    "enfriamiento": 50,
+    "atajo": "Q"
+  },
+  "primeros_auxilios": {
+    "nombre": "Primeros auxilios",
+    "descripcion": "Cura 100 de vida a la tropa cercana.",
+    "tipo": "curar_area",
+    "objetivo": "ninguno",
+    "radio": 4,
+    "cantidad": 100,
+    "enfriamiento": 30,
+    "atajo": "Q"
+  },
+  "ultimo_cartucho": {
+    "nombre": "Hasta quemar el último cartucho",
+    "descripcion": "Durante 10 s las tropas cercanas no pueden caer y disparan un 25 % más rápido.",
+    "tipo": "potenciar_area",
+    "objetivo": "ninguno",
+    "radio": 7,
+    "duracion": 10,
+    "enfriamiento": 90,
+    "efectos": [{"campo": "inmortal", "suma": 1}, {"campo": "ataque_vel_pct", "suma": 25}],
+    "atajo": "Q"
+  },
+  "emboscada": {
+    "nombre": "Emboscada",
+    "descripcion": "Oculta a las tropas cercanas durante 15 s (salvo ante detectores).",
+    "tipo": "potenciar_area",
+    "objetivo": "ninguno",
+    "radio": 6,
+    "duracion": 15,
+    "enfriamiento": 60,
+    "efectos": [{"campo": "camuflaje", "suma": 1}],
+    "atajo": "Q"
+  },
+  "viva_el_peru": {
+    "nombre": "¡Viva el Perú!",
+    "descripcion": "+30 % de daño a las tropas cercanas durante 8 s.",
+    "tipo": "potenciar_area",
+    "objetivo": "ninguno",
+    "radio": 7,
+    "duracion": 8,
+    "enfriamiento": 45,
+    "efectos": [{"campo": "danio_pct", "suma": 30}],
+    "atajo": "Q"
+  },
+  "espolonazo": {
+    "nombre": "Espolonazo",
+    "descripcion": "Embiste con el espolón a un buque enemigo cercano: 300 de daño.",
+    "tipo": "golpe",
+    "objetivo": "unidad_enemiga",
+    "alcance": 1.5,
+    "danio": 300,
+    "solo_naval": true,
+    "enfriamiento": 40,
+    "atajo": "Q"
+  },
+  "al_abordaje": {
+    "nombre": "¡Al abordaje!",
+    "descripcion": "Aborda un buque enemigo cercano: 250 de daño.",
+    "tipo": "golpe",
+    "objetivo": "unidad_enemiga",
+    "alcance": 1.5,
+    "danio": 250,
+    "solo_naval": true,
+    "enfriamiento": 40,
+    "atajo": "Q"
+  },
+  "defensa_alto": {
+    "nombre": "Defensa del Alto",
+    "descripcion": "+3 de armadura a las tropas cercanas durante 12 s.",
+    "tipo": "potenciar_area",
+    "objetivo": "ninguno",
+    "radio": 8,
+    "duracion": 12,
+    "enfriamiento": 60,
+    "efectos": [{"campo": "armadura", "suma": 3}],
+    "atajo": "Q"
+  },
+  "rendirme_yo": {
+    "nombre": "¿Rendirme yo?",
+    "descripcion": "Durante 10 s no puede caer y duplica su daño.",
+    "tipo": "potenciar_propio",
+    "objetivo": "ninguno",
+    "duracion": 10,
+    "enfriamiento": 60,
+    "efectos": [{"campo": "inmortal", "suma": 1}, {"campo": "danio_pct", "suma": 100}],
+    "atajo": "Q"
+  },
+  "contraataque": {
+    "nombre": "Contraataque",
+    "descripcion": "La infantería cercana gana +30 % de velocidad y +25 % de daño durante 10 s.",
+    "tipo": "potenciar_area",
+    "objetivo": "ninguno",
+    "radio": 7,
+    "duracion": 10,
+    "enfriamiento": 50,
+    "efectos": [{"campo": "velocidad_pct", "suma": 30, "objetivo": {"clases": ["infanteria"]}}, {"campo": "danio_pct", "suma": 25, "objetivo": {"clases": ["infanteria"]}}],
+    "atajo": "Q"
+  },
+  "ambulancia": {
+    "nombre": "Ambulancia",
+    "descripcion": "Cura 120 de vida a la tropa cercana.",
+    "tipo": "curar_area",
+    "objetivo": "ninguno",
+    "radio": 5,
+    "cantidad": 120,
+    "enfriamiento": 35,
+    "atajo": "Q"
+  },
+  "marcha_desierto": {
+    "nombre": "Marcha al desierto",
+    "descripcion": "+40 % de velocidad a las tropas cercanas durante 12 s.",
+    "tipo": "potenciar_area",
+    "objetivo": "ninguno",
+    "radio": 9,
+    "duracion": 12,
+    "enfriamiento": 60,
+    "efectos": [{"campo": "velocidad_pct", "suma": 40}],
+    "atajo": "Q"
+  },
+  "carga_caballeria": {
+    "nombre": "Carga de caballería",
+    "descripcion": "La caballería cercana gana +40 % de cadencia y +20 % de daño durante 8 s.",
+    "tipo": "potenciar_area",
+    "objetivo": "ninguno",
+    "radio": 8,
+    "duracion": 8,
+    "enfriamiento": 45,
+    "efectos": [{"campo": "ataque_vel_pct", "suma": 40, "objetivo": {"clases": ["caballeria"]}}, {"campo": "danio_pct", "suma": 20, "objetivo": {"clases": ["caballeria"]}}],
+    "atajo": "Q"
+  },
+  "resistencia_morro": {
+    "nombre": "Resistencia en el Morro",
+    "descripcion": "+4 de armadura a las tropas cercanas durante 12 s.",
+    "tipo": "potenciar_area",
+    "objetivo": "ninguno",
+    "radio": 7,
+    "duracion": 12,
+    "enfriamiento": 60,
+    "efectos": [{"campo": "armadura", "suma": 4}],
+    "atajo": "Q"
+  },
+  "rescate_naufragos": {
+    "nombre": "Rescate de náufragos",
+    "descripcion": "Cura 150 de vida a buques y tropas cercanos.",
+    "tipo": "curar_area",
+    "objetivo": "ninguno",
+    "radio": 6,
+    "cantidad": 150,
+    "incluye_naval": true,
+    "enfriamiento": 40,
+    "atajo": "Q"
+  }
+}

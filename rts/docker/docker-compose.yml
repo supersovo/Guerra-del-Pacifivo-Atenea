@@ -1,0 +1,18 @@
+# Servidor dedicado con datos persistentes (cuentas, escalafón y repeticiones).
+#   cd rts/docker && docker compose up -d
+services:
+  salitre:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    image: salitre-servidor
+    container_name: salitre
+    restart: unless-stopped
+    ports:
+      - "47800:47800/tcp"
+    volumes:
+      - salitre-datos:/datos
+    command: ["--nombre", "Servidor del curso", "--sin-lan"]
+
+volumes:
+  salitre-datos:
