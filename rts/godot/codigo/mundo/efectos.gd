@@ -7,6 +7,8 @@ const Modelos = preload("res://codigo/mundo/modelos.gd")
 
 const MAX_EFECTOS := 900
 
+var limite := MAX_EFECTOS      # menos con la calidad gráfica baja
+
 var sangre := true
 var viento := Vector3.ZERO       # hacia dónde corre el humo (unidades por segundo)
 var _vivos: Array = []          # [nodo, edad, vida, tipo, datos]
@@ -84,7 +86,7 @@ func _bola(tipo_mat: String, pos: Vector3, radio: float) -> MeshInstance3D:
 
 
 func _agregar(nodo: Node3D, vida: float, tipo: String, datos := {}) -> void:
-	if _vivos.size() >= MAX_EFECTOS:
+	if _vivos.size() >= limite:
 		var viejo: Array = _vivos.pop_front()
 		viejo[0].queue_free()
 	_vivos.append([nodo, 0.0, vida, tipo, datos])

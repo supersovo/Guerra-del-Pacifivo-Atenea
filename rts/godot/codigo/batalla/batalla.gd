@@ -9,7 +9,10 @@
 ##   flechas o bordes             mover la cámara; rueda: acercar; Ctrl+rueda: girar; Inicio: girar al norte
 ##   botón central                arrastrar el mapa
 ##   F1 trabajador ocioso · F2 todo el ejército · Espacio último aviso · Alt barras de vida
-##   F3 pausa · F10 menú
+##   F3 pausa · F10 menú · Intro conversar (Mayús+Intro: al equipo)
+##
+## Al terminar, el cartel lleva al parte de guerra; la batalla de una campaña queda anotada
+## en su escalafón y la escaramuza en el historial del perfil.
 extends Node3D
 
 const Estado = preload("res://codigo/batalla/estado.gd")
@@ -22,6 +25,8 @@ const Modelos = preload("res://codigo/mundo/modelos.gd")
 const Hud = preload("res://codigo/ui/hud.gd")
 const Tarjeta = preload("res://codigo/ui/tarjeta.gd")
 const Tema = preload("res://codigo/ui/tema.gd")
+const Campanas = preload("res://codigo/datos/campanas.gd")
+const ControlesSonido = preload("res://codigo/ui/controles_sonido.gd")
 
 const DOBLE_CLIC := 0.35
 const MARGEN_BORDE := 6.0
@@ -59,6 +64,7 @@ var _t_remolino := 6.0
 var _ultima_venta := {}           # id del cuartel -> momento del último $ (uno cada tanto)
 var _combate: Array = []          # [punto, momento] de los disparos y explosiones recientes
 var _demo := {"fase": "", "t": 0.0}
+var _raton_encerrado := false
 
 
 func _ready() -> void:
@@ -67,13 +73,17 @@ func _ready() -> void:
 	var mapa: Dictionary = est.mapa
 	ter = Terreno.new(est.terreno, est.niveles, est.w, est.h, cat.colores_terreno, mapa.get("llegada") == "tren",
 			int(Juego.inicio.get("semilla", 7)))
-	add_child(Ambiente.crear(mapa.get("ambiente", "desierto"), est.w, est.h))
+	var amb := Ambiente.crear(mapa.get("ambiente", "desierto"), est.w, est.h)
+	add_child(amb)
 	add_child(ter.construir())
 	ter.actualizar_niebla(est.vis, est.explorado)
 	tropas = Tropas.new(est, ter)
 	add_child(tropas)
 	efx = Efectos.new()
 	add_child(efx)
+	efx.sangre = bool(Juego.config.leer("sangre"))
+	_calidad(amb)
+	Sonido.musica("campana")
 	camara = Camara.new()
 	add_child(camara)
 	camara.configurar(ter, est.w, est.h)
@@ -104,12 +114,48 @@ func _ready() -> void:
 		hud.mensaje("El cuartel general viene %s." % como, Tema.BRONCE_CLARO, 9.0)
 	if Juego.prueba_humo:
 		print("PRUEBA_HUMO: batalla en %s (%dx%d), jugador %d" % [mapa.get("id"), est.w, est.h, est.yo])
+	if est.espectador and not Juego.inicio.get("repeticion"):
+		hud.mensaje("Modo espectador: +/- cambian la velocidad de la repetición; aquí solo se mira.", Tema.CREMA)
 	if Juego.inicio.get("repeticion"):
 		hud.mensaje("Repetición: + y - cambian la velocidad, P la detiene.", Tema.CREMA, 8.0)
 		if Juego.captura != "":
 			# se adelanta hasta el momento pedido y se captura donde haya combate
 			_demo["fase"] = "adelantar"
 			_vel_rep(8.0)
+
+
+## Calidad gráfica de las opciones: sombras del sol, suavizado de bordes y cantidad de humo.
+func _calidad(amb: Node) -> void:
+	var calidad: String = Juego.config.leer("calidad")
+	var sol: DirectionalLight3D = null
+	for n in amb.find_children("*", "DirectionalLight3D", true, false):
+		sol = n
+	match calidad:
+		"media":
+			if sol != null:
+				sol.directional_shadow_mode = DirectionalLight3D.SHADOW_ORTHOGONAL
+			RenderingServer.directional_shadow_atlas_set_size(2048, true)
+			efx.limite = 600
+		"baja":
+			if sol != null:
+				sol.shadow_enabled = false
+			get_viewport().msaa_3d = Viewport.MSAA_DISABLED
+			efx.limite = 300
+
+
+func _exit_tree() -> void:
+	if _raton_encerrado:
+		Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+
+
+## Durante la batalla el puntero no sale de la ventana (basta llevarlo al borde para mover la
+## cámara); en el menú, al terminar o con otra ventana delante queda libre.
+func _encerrar_raton() -> void:
+	var quiere: bool = bool(Juego.config.leer("encerrar_raton")) and fin == null and not hud.hay_cartel() \
+			and get_window().has_focus() and not Juego.en_prueba()
+	if quiere != _raton_encerrado:
+		_raton_encerrado = quiere
+		Input.mouse_mode = Input.MOUSE_MODE_CONFINED if quiere else Input.MOUSE_MODE_VISIBLE
 
 
 func _preparar_obra() -> void:
@@ -140,7 +186,7 @@ func _process(delta: float) -> void:
 	if Juego.conexion.estado == "error" and fin == null:
 		fin = {"abortada": true}
 		hud.mostrar_cartel("Se perdió la conexión", Juego.conexion.error,
-				[["Volver al menú", _volver_menu]])
+				[["Volver al menú", func() -> void: Juego.perdio_conexion("Se perdió la conexión con el servidor.")]])
 	est.interpolar()
 	if est.actualizar_vision():
 		ter.actualizar_niebla(est.vis, est.explorado)
@@ -174,8 +220,11 @@ func _process(delta: float) -> void:
 	_vista_en_el_minimapa(conjunto)
 	_actualizar_obra()
 	hud.actualizar(est, seleccion, slots, modo)
+	_encerrar_raton()
 	if Juego.prueba_humo:
 		_prueba_humo(delta)
+	elif Juego.recorrido in ["campana", "multijugador"]:
+		_rendicion_de_prueba(delta)
 	if _demo["fase"] != "":
 		_captura_repeticion(delta)
 
@@ -198,8 +247,13 @@ func _mensaje_red(m: Dictionary) -> void:
 		"fin":
 			_fin(m)
 		"inicio":
-			Juego.inicio = m
-			Juego.ir_a("res://escenas/batalla.tscn")
+			Juego.a_la_batalla(m, Juego.origen, Juego.info)
+		"sala":
+			# al terminar, el servidor devuelve a los jugadores a su sala de espera
+			Juego.sala_actual = m
+			Juego.en_sala = true
+		"lobby":
+			Juego.lobby = m
 
 
 func _centrar_inicio() -> void:
@@ -309,9 +363,9 @@ func _resaltar() -> void:
 
 
 func _desplazar(delta: float) -> void:
-	if hud.hay_cartel():
+	if hud.hay_cartel() or hud.chat_abierto():
 		return
-	var v: float = camara.paso() * delta
+	var v: float = camara.paso() * delta * float(Juego.config.leer("velocidad_desplazamiento"))
 	var d := Vector2.ZERO
 	var ctrl := Input.is_key_pressed(KEY_CTRL)
 	if Input.is_key_pressed(KEY_LEFT):
@@ -329,7 +383,8 @@ func _desplazar(delta: float) -> void:
 	if Input.is_key_pressed(KEY_DOWN):
 		d.y -= 1
 	# los bordes de la ventana
-	if arrastre == null and paneo == null and get_window().has_focus() and not Juego.prueba_humo:
+	if arrastre == null and paneo == null and get_window().has_focus() and not Juego.en_prueba() \
+			and bool(Juego.config.leer("desplazar_con_borde")) and not hud.chat_abierto():
 		var r := get_viewport().get_visible_rect()
 		var p := get_viewport().get_mouse_position()
 		if r.has_point(p):
@@ -352,6 +407,22 @@ func _px(x: float, y: float) -> Vector3:
 	var p := Vector3(x / 32.0, 0, y / 32.0)
 	p.y = ter.altura_en(p.x, p.z)
 	return p
+
+
+## Un efecto de sonido en ese punto del mapa: más fuerte cuanto más cerca del centro de la vista.
+func _suena(nombre: String, p: Vector3, minimo_ms := 40, volumen := 1.0) -> void:
+	var vista := get_viewport().get_visible_rect().size
+	var ancho: float = 2.0 * camara.distancia * tan(deg_to_rad(camara.cam.fov) / 2.0) * vista.x / maxf(1.0, vista.y)
+	Sonido.en_mapa(nombre, p, camara.objetivo, ancho, minimo_ms, volumen)
+
+
+## Nombre del veterano («Cabo Juan Soto, Atacama») o, sin semilla, el de su unidad.
+func _veterano(dueno: int, idx: int, grado: int, semilla: int) -> String:
+	var t: Variant = cat.tipo(idx)
+	if t == null:
+		return "?"
+	var quien: String = Juego.nombres.nombre(cat, est.faccion(dueno), t, grado, semilla)
+	return quien if quien != "" else _nombre(dueno, idx)
 
 
 func _nombre(dueno: int, idx: int) -> String:
@@ -384,6 +455,9 @@ func _evento(ev: Array) -> void:
 				efx.disparo(desde, hacia - desde, tipo)
 				if not ev[5]:
 					efx.impacto(hacia + Vector3(randf_range(-0.12, 0.12), 0, randf_range(-0.12, 0.12)))
+			if desde != null and o != null:
+				var sonido: String = {"fusil": "fusil", "metralla": "gatling", "sable": "sable"}.get(tipo, "fusil")
+				_suena(sonido, desde, 60 if sonido == "fusil" else 120, 0.5 if sonido == "fusil" else 0.7)
 		"pro":
 			var a = est.ents.get(int(ev[2]))
 			var x0 := float(ev[3])
@@ -401,6 +475,7 @@ func _evento(ev: Array) -> void:
 			efx.lanzar(desde, hasta, dur, tipo)
 			if tipo != "dinamita":
 				efx.disparo(desde - Vector3(0, 0.42, 0), hasta - desde, "explosivo")
+				_suena("canon", desde, 150, 0.8)
 			if a != null:
 				a.ultimo_disparo = est.reloj()
 		"exp":
@@ -411,6 +486,7 @@ func _evento(ev: Array) -> void:
 			else:
 				efx.explosion(p, r, str(ev[5]))
 			_combate.append([p, est.reloj()])
+			_suena("explosion", p, 90)
 		"mue":
 			var idx := int(ev[3])
 			var dueno := int(ev[4])
@@ -422,11 +498,15 @@ func _evento(ev: Array) -> void:
 			if tipo["edificio"]:
 				for dx in [-0.6, 0.0, 0.6]:
 					efx.explosion(p + Vector3(dx, 0, dx / 3.0), 1.0)
+				_suena("explosion", p, 60)
 				return
 			var fac: String = est.faccion(dueno)
 			var grado: int = int(ev[8]) if ev.size() > 8 else 0
 			if grado and dueno == est.yo:
-				hud.mensaje("Cayó %s (veterano de grado %d)." % [_nombre(dueno, idx), grado], Color8(230, 120, 90), 6.0)
+				# cayó un veterano propio: su experiencia se pierde
+				hud.mensaje("Cayó %s (%s)." % [_veterano(dueno, idx, grado, int(ev[9]) if ev.size() > 9 else 0),
+						cat.grado(grado)["nombre"]], Color8(230, 120, 90), 6.0)
+				Sonido.voz("veterano_caido", 2)
 			if tipo["biologica"] and explosion:
 				# artillería, dinamita o mina: el cuerpo vuela en pedazos
 				efx.explosion(p, 0.5)
@@ -451,19 +531,37 @@ func _evento(ev: Array) -> void:
 				efx.mancha_sangre(p, 0.18)
 			var grado: int = int(ev[8]) if ev.size() > 8 else 0
 			if grado and int(ev[5]) == est.yo:
-				hud.mensaje("¡Herido %s! Los camilleros van primero por los veteranos." % _nombre(int(ev[5]), int(ev[4])),
-						NARANJA, 6.0)
+				hud.mensaje("¡Herido %s! Los camilleros van primero por los veteranos." % _veterano(int(ev[5]), int(ev[4]),
+						grado, int(ev[9]) if ev.size() > 9 else 0), NARANJA, 6.0)
+				Sonido.voz("herido_veterano", 2)
 		"ascenso":
 			var o = est.ents.get(int(ev[2]))
 			var grado := int(ev[3])
 			if o != null:
 				efx.letrero(tropas.punto(o) + Vector3(0, 0.9, 0), "▲".repeat(clampi(grado, 1, 5)), Color8(240, 206, 90))
 			if int(ev[5]) == est.yo:
-				hud.mensaje("¡Ascenso! %s: grado %d" % [_nombre(int(ev[5]), int(ev[4])), grado], Color8(240, 206, 90), 5.0)
+				var quien := ""
+				if o != null and typeof(o.ex) == TYPE_DICTIONARY and o.ex.has("n"):
+					quien = Juego.nombres.nombre(cat, est.faccion(int(ev[5])), cat.tipo(int(ev[4])), grado, int(o.ex["n"]))
+				hud.mensaje("¡Ascenso! %s: %s%s" % [_nombre(int(ev[5]), int(ev[4])), cat.grado(grado)["nombre"],
+						(" — " + quien) if quien != "" else ""], Color8(240, 206, 90), 5.0)
+				Sonido.voz(["ascenso_%d" % grado], 2)
 		"recogido", "carga", "emplaza":
 			var o = est.ents.get(int(ev[3]) if k == "recogido" else int(ev[2]))
 			if o != null:
 				efx.polvo(tropas.punto(o))
+				if k == "carga":
+					_suena("sable", tropas.punto(o), 200)
+		"repara", "obra":
+			var o = est.ents.get(int(ev[3]) if k == "repara" else int(ev[2]))
+			if o != null:
+				_suena("martillo", tropas.punto(o), 300, 0.4 if k == "repara" else 0.5)
+		"desmontando":
+			var o = est.ents.get(int(ev[2]))
+			if o != null:
+				_suena("martillo", tropas.punto(o), 300, 0.5)
+				if o.dueno == est.yo:
+					Sonido.voz("desmontar_ambulancia", 1)
 		"ingresa":
 			var o = est.ents.get(int(ev[2]))
 			if o != null:
@@ -475,6 +573,8 @@ func _evento(ev: Array) -> void:
 					efx.polvo(tropas.punto(o) + Vector3((j % 4 - 1.5) * 0.8, 0, (j / 4 - 0.5) * 0.6), 2)
 				if o.dueno == est.yo:
 					hud.mensaje("¡Llegó el cuartel general! Los trabajadores salen a la faena.", Tema.CREMA, 6.0)
+					Sonido.voz("llegada", 2)
+				_suena("silbato" if str(ev[4]) == "tren" else "martillo", tropas.punto(o), 400, 0.8)
 		"recuperado":
 			var o = est.ents.get(int(ev[2]))
 			if o != null:
@@ -482,6 +582,7 @@ func _evento(ev: Array) -> void:
 				if o.dueno == est.yo:
 					var donde := "en la ambulancia" if o.es_unidad() else "en el hospital"
 					hud.mensaje("Vuelve a filas, curado %s: %s" % [donde, _nombre(est.yo, int(ev[4]))], Color8(150, 220, 140), 4.0)
+					Sonido.voz("recuperado", 0)
 		"monta", "desmonta":
 			_reemplazar(int(ev[2]), int(ev[3]))
 			var o = est.ents.get(int(ev[3]))
@@ -505,23 +606,40 @@ func _evento(ev: Array) -> void:
 			if t != null and t.get("desmonta_en"):
 				hud.mensaje("%s montado: los camilleros salen a buscar a los heridos." % _nombre(est.yo, int(ev[3])),
 						Tema.BRONCE_CLARO)
+				if not Sonido.voz("hospital_montado", 2):
+					Sonido.toque("obra")
 			else:
 				hud.mensaje("Obra terminada: %s" % _nombre(est.yo, int(ev[3])), Tema.BRONCE_CLARO)
+				if not Sonido.voz("obra", 2):
+					Sonido.toque("obra")
 		"lista":
+			# la unidad recién formada se presenta con su voz (o, sin voces, el toque de corneta)
 			hud.mensaje("Lista: %s" % _nombre(est.yo, int(ev[3])), Tema.CREMA, 4.0)
+			var t: Variant = cat.tipo(int(ev[3]))
+			if t == null or not Sonido.voz(["lista_" + str(t["id"]), "lista"], 2):
+				Sonido.toque("lista")
 		"investigado":
 			var i := int(ev[2])
 			if i >= 0 and i < cat.datos["mejoras"].size():
 				hud.mensaje("Investigación completa: %s" % cat.datos["mejoras"][i]["nombre"], Tema.BRONCE_CLARO)
+			if not Sonido.voz("investigado", 2):
+				Sonido.toque("investigado")
 		"pob":
 			hud.mensaje("Hace falta otro Depósito de Intendencia para mantener más tropa.", NARANJA)
+			Sonido.voz("pob", 2)
 		"ata":
 			ultimo_aviso = Vector3(float(ev[2]) / 32.0, 0, float(ev[3]) / 32.0)
 			hud.minimapa.aviso(ultimo_aviso, ROJO_AVISO)
 			var txt := "¡Atacan a nuestros trabajadores!" if ev[4] else "¡Nuestras tropas están bajo ataque!"
 			hud.mensaje(txt + " (Espacio para ir)", ROJO_AVISO)
+			if not Sonido.voz("ataque_trabajadores" if ev[4] else "ataque_tropas", 3):
+				Sonido.toque("ataque")
 		"err":
-			hud.mensaje(str(ev[2]), ROJO_AVISO, 4.0)
+			var texto_err := str(ev[2])
+			hud.mensaje(texto_err, ROJO_AVISO, 4.0)
+			var falta := texto_err.begins_with("Falta")
+			if not (falta and Sonido.voz("falta_agua" if texto_err.begins_with("Falta agua") else "falta_dinero", 2)):
+				Sonido.ui("clic")
 		"revela":
 			est.revelar(float(ev[2]), float(ev[3]), float(ev[4]))
 		"hab":
@@ -536,6 +654,7 @@ func _evento(ev: Array) -> void:
 							efx.polvo(tropas.punto(c))
 					if est.aliado(c.dueno):
 						hud.mensaje(hab["nombre"], Tema.BRONCE_CLARO, 3.0)
+					Sonido.toque("lista")
 		"sabotaje":
 			var o = est.ents.get(int(ev[2]))
 			if o != null:
@@ -553,6 +672,7 @@ func _evento(ev: Array) -> void:
 			efx.marca(_px(float(ev[3]), float(ev[4])), col)
 			hud.minimapa.aviso(_px(float(ev[3]), float(ev[4])), col, 5.0)
 			hud.mensaje("%s marcó un punto en el mapa." % est.jugadores[pj]["nombre"], col, 4.0)
+			Sonido.ui("clic")
 		"derrota":
 			var pj := int(ev[2])
 			hud.mensaje("%s ha sido derrotado." % est.jugadores[pj]["nombre"], NARANJA, 10.0)
@@ -565,9 +685,11 @@ func _evento(ev: Array) -> void:
 					+ "llévele una carreta de agua o vuelva a un molino.") if k == "sed" else \
 					"¡Golpe de calor! La tropa sin agua pierde vida al sol de la pampa."
 			hud.mensaje(txt + " (Espacio para ir)", Color8(240, 150, 60), 8.0)
+			Sonido.voz(k, 2)
 		"formacion":
 			var f: Variant = cat.formacion(int(ev[2]))
 			hud.mensaje("Formación: %s (%d)" % [f["nombre"] if f != null else "Sin formación", int(ev[3])], Tema.CREMA, 3.0)
+			Sonido.voz("formacion_" + (str(f["id"]) if f != null else "ninguna"), 1)
 
 
 func _vel_rep(factor: float) -> void:
@@ -661,6 +783,7 @@ func _reemplazar(viejo: int, nuevo: int) -> void:
 func _fin(m: Dictionary) -> void:
 	fin = m
 	modo = null
+	hud.cerrar_chat()
 	var titulo := ""
 	var mi_equipo: Variant = est.equipos[est.yo] if not est.espectador else null
 	if m.get("abortada"):
@@ -675,17 +798,89 @@ func _fin(m: Dictionary) -> void:
 		titulo = "Victoria de " + ", ".join(gan)
 	elif int(m["ganador"]) == int(mi_equipo):
 		titulo = "¡Victoria!"
+		Sonido.toque("victoria")
+		Sonido.voz("victoria", 3)
 	else:
 		titulo = "Derrota"
+		Sonido.toque("derrota")
+		Sonido.voz("derrota", 3)
+	Juego.fin = m
+	Juego.parte = {"jugadores": est.jugadores, "mapa": est.mapa.get("nombre", "")}
+	Juego.resumen_campana = null
+	if not est.espectador:
+		if Juego.origen == "campana":
+			_anotar_campana(m, mi_equipo)
+		elif Juego.origen == "escaramuza":
+			_anotar_escaramuza(m, mi_equipo)
 	var minutos := int(m.get("ticks", est.tick)) / (16 * 60)
-	hud.mostrar_cartel(titulo, "Duración: %d minutos" % minutos, [["Volver al menú", _volver_menu]])
-	if Juego.prueba_humo:
+	hud.mostrar_cartel(titulo, "Duración: %d minutos" % minutos, [["Ver el parte de guerra", _ir_al_parte, "principal"]])
+	if Juego.prueba_humo or Juego.recorrido != "":
 		print("PRUEBA_HUMO: fin de la batalla: ", titulo)
 
 
-func _volver_menu() -> void:
-	Juego.terminar()
-	Juego.ir_a("res://escenas/menu.tscn")
+## Campaña: los veteranos sobrevivientes forman el nuevo escalafón (se guarda al instante).
+func _anotar_campana(m: Dictionary, mi_equipo: Variant) -> void:
+	var cid := int(Juego.info.get("campana_id", -1))
+	var campana: Variant = Juego.campanas.get(Juego.info.get("campana", "salitre"))
+	var estado: Variant = Juego.perfil.campana(cid) if cid >= 0 else null
+	if campana == null or estado == null or estado.get("terminada", false):
+		return
+	var res := {}
+	for r in m.get("resultados", []):
+		res[int(r["indice"])] = r
+	var propio: Variant = res.get(est.yo)
+	var rival: Variant = null
+	for i in res:
+		if i != est.yo and res[i].get("es_ia", false):
+			rival = res[i]
+			break
+	var victoria: bool = not m.get("abortada", false) and m.get("ganador") != null and mi_equipo != null \
+			and int(m["ganador"]) == int(mi_equipo)
+	Juego.resumen_campana = Campanas.aplicar_batalla(cat, campana, estado, propio, rival, victoria,
+			float(m.get("ticks", 0)) / 16.0 / 60.0)
+	Juego.perfil.guardar_campana(cid, estado)
+
+
+## Escaramuza: queda en el historial del perfil (la portada muestra victorias y derrotas).
+func _anotar_escaramuza(m: Dictionary, mi_equipo: Variant) -> void:
+	var resultado := "tablas"
+	if m.get("ganador") != null:
+		resultado = "victoria" if mi_equipo != null and int(m["ganador"]) == int(mi_equipo) else "derrota"
+	var yo: Dictionary = {}
+	for r in m.get("resultados", []):
+		if int(r["indice"]) == est.yo:
+			yo = r
+	var rivales: Array = []
+	for r in Juego.info.get("rivales", []):
+		rivales.append("%s/%s" % [r["faccion"], r.get("dificultad", "")])
+	var e: Dictionary = yo.get("est", {})
+	Juego.perfil.registrar_escaramuza(str(est.mapa.get("id", "")), est.faccion(est.yo), ", ".join(rivales), resultado,
+			snappedf(float(m.get("ticks", 0)) / 16.0 / 60.0, 0.1), int(e.get("enemigos_abatidos", 0)),
+			int(e.get("unidades_perdidas", 0)))
+
+
+func _ir_al_parte() -> void:
+	Juego.ir_al_menu("parte")
+
+
+## Sale de la batalla: las locales vuelven a su pantalla (y se cierra el servidor privado);
+## en red, a la sala si la partida terminó o al salón si se abandona en pleno combate.
+func abandonar() -> void:
+	if Juego.conexion.conectado():
+		Juego.conexion.enviar({"t": "abandonar"})
+	match Juego.origen:
+		"escaramuza", "repeticion":
+			Juego.ir_al_menu("portada")
+		"campana":
+			Juego.cerrar_red()
+			Juego.servidor.detener()
+			Juego.ir_al_menu("campana", {"resumen": Juego.resumen_campana if fin != null else null})
+		_:
+			Juego.ir_al_menu("sala" if fin != null and Juego.en_sala else "salon")
+
+
+func _local() -> bool:
+	return Juego.origen in ["escaramuza", "repeticion", "campana"]
 
 
 # ----------------------------------------------------------------------
@@ -725,6 +920,7 @@ func activar_boton(i: int, cola := false) -> void:
 					("%s: %s" % [b["texto"], b["falta"]])
 			hud.mensaje(txt, ROJO_AVISO, 3.0)
 		return
+	Sonido.ui("clic")
 	var unidades := _ids_unidades_propias()
 	var edificios := _ids_edificios_propios()
 	match b["accion"]:
@@ -737,6 +933,8 @@ func activar_boton(i: int, cola := false) -> void:
 			if cmd["c"] in ["habilidad", "descargar"]:
 				u.append_array(edificios)
 			cmd["u"] = u
+			if cmd["c"] == "replegar" and not unidades.is_empty():
+				Sonido.voz("replegar", 1)
 			cmd["e"] = edificios.slice(0, 1) if cmd["c"] == "cancelar" and not edificios.is_empty() else edificios
 			cmd["cola"] = cola
 			enviar(cmd)
@@ -759,6 +957,10 @@ func _orden_objetivo(p: Vector3, ent, cola: bool) -> void:
 	var py := int(p.z * 32.0)
 	var t: Variant = ent.id if ent != null else null
 	var color := Color8(90, 230, 90)
+	var momento: Variant = {"mover": "mover", "patrullar": "mover", "descargar": "mover", "atacar": "atacar",
+			"recolectar": "trabajar", "reparar": "trabajar"}.get(dato)
+	if momento != null and not unidades.is_empty():
+		_voz_de_tropa(momento, unidades)
 	match dato:
 		"mover":
 			enviar({"c": "mover", "u": unidades, "x": px, "y": py, "cola": cola})
@@ -796,11 +998,17 @@ func orden_derecha(p: Vector3, ent, cola: bool) -> void:
 	if not unidades.is_empty():
 		var cmd := {"c": "inteligente", "u": unidades, "x": int(p.x * 32.0), "y": int(p.z * 32.0), "cola": cola}
 		var color := Color8(90, 230, 90)
+		var momento := "mover"
 		if ent != null and (not ent.fantasma or ent.es_recurso() or ent.es_edificio()):
 			cmd["t"] = ent.id
 			if not est.aliado(ent.dueno) and not ent.es_recurso():
 				color = Color8(230, 70, 60)
+				momento = "atacar"
+			elif ent.es_recurso() or ent.es_edificio():
+				momento = "trabajar"
 		enviar(cmd)
+		_voz_de_tropa(momento, unidades)
+		Sonido.ui("clic")
 		efx.marca(p, color)
 	elif not edificios.is_empty():
 		enviar({"c": "reunion", "e": edificios, "x": int(p.x * 32.0), "y": int(p.z * 32.0),
@@ -872,6 +1080,55 @@ func seleccionar(ids: Array, agregar := false) -> void:
 		seleccion = ids.duplicate()
 	submenu = null
 	modo = null
+	if not ids.is_empty():
+		_voz_de_tropa("seleccion", seleccion)
+
+
+## Qué voces le tocan a una unidad al seleccionarla o al darle una orden.
+static func grupo_voz(tipo: Dictionary) -> String:
+	var tid: String = tipo["id"]
+	if tid in ["trabajador", "cantinera", "espia"]:
+		return tid
+	if tipo.get("monta"):
+		return "ambulancia"
+	if int(tipo.get("estanque", 0)) > 0:
+		return "carreta"
+	if tipo.get("forma") == "heroina":
+		return "heroina"
+	if tipo.get("clase") in ["caballeria", "artilleria", "naval"]:
+		return tipo["clase"]
+	return "infanteria"
+
+
+## Responde la tropa propia: momento es "seleccion", "mover", "atacar" o "trabajar". Habla el
+## grupo más numeroso (infantería, caballería, artillería, buques, trabajadores...). Fuera de los
+## trabajadores, una faena es una marcha.
+func _voz_de_tropa(momento: String, ids: Array) -> void:
+	var cuenta := {}
+	var orden: Array = []
+	for i in ids:
+		var e = est.ents.get(i)
+		if e == null or not est.propio(e) or not e.es_unidad():
+			continue
+		var g := grupo_voz(e.tipo)
+		if not cuenta.has(g):
+			cuenta[g] = 0
+			orden.append(g)
+		cuenta[g] += 1
+	if orden.is_empty():
+		return
+	var g: String = orden[0]
+	for x in orden:
+		if cuenta[x] > cuenta[g]:
+			g = x
+	var claves: Array = []
+	if momento == "trabajar":
+		claves = ["trabajar"] if g == "trabajador" else (["montar_ambulancia"] if g == "ambulancia" else ["mover_" + g])
+	elif momento == "atacar" and g in ["ambulancia", "carreta"]:
+		claves = ["mover_" + g]     # la ambulancia y la carreta no combaten: acompañan
+	else:
+		claves = [momento + "_" + g]
+	Sonido.voz(claves, 0 if momento == "seleccion" else 1)
 
 
 func _seleccion_caja(a: Vector2, b: Vector2, agregar: bool) -> void:
@@ -1028,8 +1285,10 @@ func _actualizar_obra() -> void:
 
 func _unhandled_input(ev: InputEvent) -> void:
 	if fin != null or hud.hay_cartel():
-		if ev is InputEventKey and ev.pressed and ev.keycode == KEY_ESCAPE and fin == null:
+		if ev is InputEventKey and ev.pressed and (ev.keycode == KEY_ESCAPE or ev.keycode == KEY_F10) and fin == null:
 			hud.cerrar_cartel()
+		return
+	if hud.chat_abierto() and ev is InputEventKey:
 		return
 	if ev is InputEventKey and ev.pressed and not ev.echo:
 		_tecla(ev)
@@ -1115,6 +1374,9 @@ func _todas_propias() -> bool:
 
 func _tecla(ev: InputEventKey) -> void:
 	var k := ev.keycode
+	if k == KEY_ENTER or k == KEY_KP_ENTER:
+		hud.abrir_chat(ev.shift_pressed)
+		return
 	if k == KEY_F10:
 		abrir_menu()
 		return
@@ -1207,7 +1469,7 @@ func _tecla(ev: InputEventKey) -> void:
 	if k == KEY_MINUS or k == KEY_KP_SUBTRACT:
 		camara.acercar(1.0 / 1.15)
 		return
-	if k == KEY_F3:
+	if k == KEY_F3 and _local():
 		Juego.conexion.enviar({"t": "pausa"})
 		return
 	if k == KEY_G and ev.alt_pressed:
@@ -1231,15 +1493,18 @@ func abrir_menu() -> void:
 	if fin != null:
 		return
 	rendicion_confirmar = false
-	var opciones: Array = [["Continuar", hud.cerrar_cartel]]
+	var opciones: Array = [["Continuar", hud.cerrar_cartel, "principal"]]
 	if not est.espectador:
 		opciones.append(["Rendirse", _rendirse])
+	if _local() and not est.espectador:
 		opciones.append(["Pausa (F3)", func() -> void:
 			Juego.conexion.enviar({"t": "pausa"})
 			hud.cerrar_cartel()])
-	opciones.append(["Abandonar y volver al menú", _volver_menu])
-	hud.mostrar_cartel("Cuartel de campaña", "Alt: barras de vida · Ctrl+rueda o Ctrl+flechas: girar la cámara · " +
-			"Inicio: mirar al norte · Alt+G: señal en el mapa", opciones)
+	opciones.append(["Abandonar y volver al menú", abandonar, "madera"])
+	# el volumen se ajusta sin salir de la batalla
+	hud.mostrar_cartel("Cuartel de campaña", "F12: captura · Alt+Enter: pantalla completa · Alt+G: señal en el mapa · " +
+			"Alt: barras de vida · Ctrl+rueda: girar la cámara · Inicio: mirar al norte · Opciones del menú principal: " +
+			"pantalla, cámara y combate", opciones, ControlesSonido.new(290.0))
 
 
 func _rendirse() -> void:
@@ -1255,7 +1520,7 @@ func _rendirse() -> void:
 # Dibujo sobre la vista: barras de vida, recuadro de selección, puntos de reunión
 
 func dibujar_superpuesto(lienzo: Control) -> void:
-	var todas := Input.is_key_pressed(KEY_ALT)
+	var todas := Input.is_key_pressed(KEY_ALT) or bool(Juego.config.leer("barras_siempre"))
 	var conjunto := {}
 	for i in seleccion:
 		conjunto[i] = true
@@ -1448,7 +1713,62 @@ func _prueba_humo(delta: float) -> void:
 				if ruta != "" and DisplayServer.get_name() != "headless":
 					get_viewport().get_texture().get_image().save_png(ruta)
 					print("PRUEBA_HUMO: captura en ", ruta)
-				_terminar_prueba(true, "")
+				# la conversación y el menú con el volumen, y después la rendición y el parte de guerra
+				hud.abrir_chat(false)
+				if not hud.chat_abierto():
+					_terminar_prueba(false, "no se abre la conversación")
+					return
+				hud.campo_chat.text_submitted.emit("¡Viva la patria!")
+				abrir_menu()
+				if hud.boton_del_cartel("Rendirse") == null or hud.cartel.find_children("*", "HSlider", true, false).size() != 4:
+					_terminar_prueba(false, "el menú de la batalla no trae el volumen")
+					return
+				print("PRUEBA_HUMO: menú de la batalla con el volumen")
+				Juego.foto("menu_de_la_batalla")
+				_fase("rendicion")
+		"rendicion", "esperar_fin", "al_parte":
+			_rendicion_de_prueba(0.0)      # el reloj de la fase ya avanzó arriba
+
+
+## Rendición de prueba (la prueba de humo, la campaña y el multijugador): abre el menú, se rinde
+## (dos veces, para confirmar), espera el fin y pasa al parte de guerra; allí sigue el recorrido.
+func _rendicion_de_prueba(delta: float) -> void:
+	_prueba["t"] += delta
+	var t: float = _prueba["t"]
+	match _prueba["fase"]:
+		"esperar":
+			if t > 3.0 and (_propios(func(e) -> bool: return e.es_edificio()).size() > 0 or t > 30.0):
+				_fase("rendicion")
+		"rendicion":
+			if t < 0.3:
+				return
+			abrir_menu()
+			var b: Button = hud.boton_del_cartel("Rendirse")
+			if b == null:
+				_terminar_prueba(false, "el menú no ofrece rendirse")
+				return
+			b.pressed.emit()
+			b = hud.boton_del_cartel("Rendirse")
+			if b == null:
+				abrir_menu()
+				b = hud.boton_del_cartel("Rendirse")
+			b.pressed.emit()
+			print("PRUEBA_HUMO: rendición pedida")
+			_fase("esperar_fin")
+		"esperar_fin":
+			if fin != null:
+				print("PRUEBA_HUMO: la batalla terminó")
+				_fase("al_parte")
+			elif t > 40.0:
+				_terminar_prueba(false, "no llega el fin tras la rendición")
+		"al_parte":
+			if t > 1.0:
+				var b: Button = hud.boton_del_cartel("Ver el parte de guerra")
+				if b == null:
+					_terminar_prueba(false, "el cartel del fin no lleva al parte de guerra")
+					return
+				_fase("fin")
+				b.pressed.emit()
 
 
 func _fase(nueva: String) -> void:

@@ -1,7 +1,10 @@
-## Menú principal: el diorama de fondo, el título y la escaramuza contra la IA.
+## Menú del juego: el diorama de la pampa girando de fondo, el título y una pantalla a la vez
+## encima (portada, escaramuza, campaña, multijugador, repeticiones, archivo, opciones, parte de
+## guerra...), como las escenas de salitre/cliente/escenas/.
 ##
-## Al comenzar se lanza el servidor privado (el mismo servidor del juego, en Python),
-## se conecta, saluda y pide la partida rápida; con el mensaje «inicio» pasa a la batalla.
+## El menú lleva los mensajes del servidor a la pantalla que los usa (el salón, la sala, la
+## espera de la partida); si una pantalla cambia a otra o a la batalla en medio de un lote, lo
+## que falta queda para la siguiente.
 extends Control
 
 const Tema = preload("res://codigo/ui/tema.gd")
@@ -9,45 +12,180 @@ const Terreno = preload("res://codigo/mundo/terreno.gd")
 const Ambiente = preload("res://codigo/mundo/ambiente.gd")
 const Modelos = preload("res://codigo/mundo/modelos.gd")
 
-const NACIONES := ["chile", "peru", "bolivia", "argentina"]
+const PANTALLAS := {
+	"portada": preload("res://codigo/ui/pantallas/portada.gd"),
+	"escaramuza": preload("res://codigo/ui/pantallas/escaramuza.gd"),
+	"cargando": preload("res://codigo/ui/pantallas/cargando.gd"),
+	"campana": preload("res://codigo/ui/pantallas/campana.gd"),
+	"repeticiones": preload("res://codigo/ui/pantallas/repeticiones.gd"),
+	"archivo": preload("res://codigo/ui/pantallas/archivo.gd"),
+	"opciones": preload("res://codigo/ui/pantallas/opciones.gd"),
+	"parte": preload("res://codigo/ui/pantallas/parte.gd"),
+	"conectar": preload("res://codigo/ui/pantallas/conectar.gd"),
+	"salon": preload("res://codigo/ui/pantallas/salon.gd"),
+	"sala": preload("res://codigo/ui/pantallas/sala.gd"),
+}
 const FONDO := "pampa_del_tamarugal"
 
-var mapas: Array = []
-var sel_mapa: OptionButton
-var sel_nacion: OptionButton
-var sel_rival: OptionButton
-var sel_dificultad: OptionButton
-var sel_velocidad: OptionButton
-var txt_nombre: LineEdit
-var btn_comenzar: Button
-var lbl_estado: Label
-var lbl_mapa: Label
+var pantalla: Control = null
+var nombre_pantalla := ""
+var recorrido: Node = null
 var _fondo: Node3D
 var _camara: Camera3D
 var _giro := 0.0
 var _centro := Vector3.ZERO
-var _radio := 30.0
-var _fase := ""                 # "" | servidor | conectar | saludar | pedir | esperar
+var _radio := 13.0
+var _velo: ColorRect
+var _titulo: Label
+var _subtitulo: Label
+var _version: Label
+var _homenaje: Label
 var _t := 0.0
-var _intentos := 0
-var _pedido: Dictionary = {}
 
 
 func _ready() -> void:
 	theme = Juego.tema
 	set_anchors_preset(Control.PRESET_FULL_RECT)
 	_armar_fondo()
-	_armar_panel()
-	if Juego.repeticion != "":
-		call_deferred("_comenzar", {"t": "ver_repeticion", "nombre": Juego.repeticion})
+	_armar_marco()
+	var inicial := Juego.pantalla_pedida if Juego.pantalla_pedida != "" else "portada"
+	var a := Juego.pantalla_args
+	Juego.pantalla_pedida = ""
+	Juego.pantalla_args = {}
+	if Juego.repeticion != "" and Juego.inicio.is_empty():
+		abrir("cargando", {"pedido": {"t": "ver_repeticion", "nombre": Juego.repeticion}, "origen": "repeticion"})
 		return
-	if Juego.prueba_humo:
-		print("PRUEBA_HUMO: menú listo, %d mapas" % mapas.size())
-		for i in mapas.size():
-			if mapas[i]["id"] == Juego.mapa_prueba:
-				sel_mapa.select(i)
-		sel_velocidad.select(maxi(0, Juego.catalogo.datos["velocidades"].find("muy_rapida")))
-		call_deferred("_comenzar")
+	if Juego.conectar_a != "" and Juego.recorrido == "" and inicial == "portada":
+		# --conectar=host:puerto (como en el cliente de Python): directo a ese servidor
+		abrir("conectar", {"direccion": Juego.conectar_a, "conectar": str(Juego.config.leer("nombre")).length() >= 3})
+		Juego.conectar_a = ""
+	else:
+		abrir(inicial, a)
+	if Juego.prueba_humo or Juego.recorrido != "":
+		recorrido = load("res://pruebas/recorrido.gd").new()
+		recorrido.menu = self
+		add_child(recorrido)
+
+
+## Abre una pantalla en lugar de la que se ve.
+func abrir(nombre: String, a := {}) -> void:
+	if pantalla != null:
+		pantalla.queue_free()
+	var p: Control = PANTALLAS[nombre].new()
+	p.menu = self
+	p.args = a
+	p.name = nombre.capitalize()
+	pantalla = p
+	nombre_pantalla = nombre
+	add_child(p)
+	var con_titulo: bool = p.get("titulo") if p.get("titulo") != null else true
+	_titulo.visible = con_titulo
+	_subtitulo.visible = con_titulo
+	_version.visible = con_titulo
+	var velo: float = p.get("velo") if p.get("velo") != null else 0.0
+	_velo.color = Color(Color8(30, 20, 12), velo)
+	_homenaje.visible = nombre == "portada"
+	Sonido.musica(p.musica)
+	if Juego.prueba_humo or Juego.recorrido != "":
+		print("PANTALLA: ", nombre)
+
+
+func _unhandled_input(ev: InputEvent) -> void:
+	if ev is InputEventKey and ev.pressed and not ev.echo and ev.keycode == KEY_ESCAPE and pantalla != null:
+		get_viewport().set_input_as_handled()
+		pantalla.escape()
+
+
+func _process(delta: float) -> void:
+	_giro += delta * 0.05
+	_colocar_camara()
+	_t += delta
+	# --captura sin prueba ni repetición: una imagen del menú y salir
+	if Juego.captura != "" and not Juego.prueba_humo and Juego.repeticion == "" and Juego.recorrido == "":
+		if _t > 3.0 and DisplayServer.get_name() != "headless":
+			get_viewport().get_texture().get_image().save_png(Juego.captura)
+			print("Captura en ", Juego.captura)
+			Juego.salir(0)
+		return
+	_red()
+
+
+## Los mensajes del servidor para la pantalla que los usa.
+func _red() -> void:
+	if pantalla == null or not pantalla.usa_red:
+		return
+	var con = Juego.conexion
+	if con.estado == "desconectado":
+		return
+	var msgs: Array = con.sondear()
+	for k in msgs.size():
+		var antes := pantalla
+		var escenas := Juego.cambios_de_escena
+		pantalla.mensaje(msgs[k])
+		if pantalla != antes or Juego.cambios_de_escena != escenas:
+			# lo que llegó detrás lo atiende la pantalla nueva (o la batalla)
+			var resto := msgs.slice(k + 1)
+			resto.append_array(con.pendientes)
+			con.pendientes = resto
+			return
+	if con.estado == "error" and pantalla.usa_red and not pantalla.get("atiende_errores"):
+		Juego.perdio_conexion("Se perdió la conexión con el servidor: " + con.error)
+
+
+# ----------------------------------------------------------------------
+# Título, versión y velo
+
+func _armar_marco() -> void:
+	var f: Dictionary = Juego.fuentes
+	_velo = ColorRect.new()
+	_velo.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_velo.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_velo.color = Color(0, 0, 0, 0)
+	add_child(_velo)
+	_titulo = _rotulo("Guerra del Pacífico", f["titulo"], 58, Color8(250, 240, 214), 22)
+	_subtitulo = _rotulo("Salitre y Pólvora  ·  1879-1884", f["titulo"], 28, Color8(246, 226, 180), 90)
+	var cat = Juego.catalogo
+	_version = Tema.etiqueta("Salitre y Pólvora %s · cliente 3D (Godot %s)" % [cat.version,
+			Engine.get_version_info()["string"].split(" ")[0]], f["cuerpo"], 14, Color8(250, 240, 220))
+	_sombra(_version, 1)
+	_version.anchor_left = 1.0
+	_version.anchor_right = 1.0
+	_version.anchor_top = 1.0
+	_version.anchor_bottom = 1.0
+	_version.offset_left = -700
+	_version.offset_right = -10
+	_version.offset_top = -24
+	_version.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	add_child(_version)
+	_homenaje = Tema.etiqueta("Homenaje a los combatientes de Chile, Perú y Bolivia (1879-1884)", f["cursiva"], 14,
+			Color8(250, 240, 220))
+	_sombra(_homenaje, 1)
+	_homenaje.anchor_top = 1.0
+	_homenaje.anchor_bottom = 1.0
+	_homenaje.offset_left = 10
+	_homenaje.offset_top = -24
+	add_child(_homenaje)
+
+
+func _rotulo(t: String, fuente: Font, tam: int, color: Color, y: float) -> Label:
+	var l := Tema.etiqueta(t, fuente, tam, color)
+	l.anchor_left = 0.0
+	l.anchor_right = 1.0
+	l.offset_top = y
+	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	l.add_theme_color_override("font_shadow_color", Color8(40, 20, 10))
+	l.add_theme_constant_override("shadow_offset_x", 3)
+	l.add_theme_constant_override("shadow_offset_y", 3)
+	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(l)
+	return l
+
+
+static func _sombra(l: Label, d: int) -> void:
+	l.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.85))
+	l.add_theme_constant_override("shadow_offset_x", d)
+	l.add_theme_constant_override("shadow_offset_y", d)
+	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
 
 
 # ----------------------------------------------------------------------
@@ -61,7 +199,7 @@ func _armar_fondo() -> void:
 	add_child(vista)
 	var sv := SubViewport.new()
 	sv.own_world_3d = true
-	sv.msaa_3d = Viewport.MSAA_2X
+	sv.msaa_3d = Viewport.MSAA_2X if Juego.config.leer("calidad") != "baja" else Viewport.MSAA_DISABLED
 	vista.add_child(sv)
 	_fondo = Node3D.new()
 	sv.add_child(_fondo)
@@ -126,7 +264,6 @@ func _armar_fondo() -> void:
 	_camara.far = 800.0
 	_fondo.add_child(_camara)
 	_camara.current = true
-	_radio = 13.0
 	_colocar_camara()
 
 
@@ -136,223 +273,3 @@ func _colocar_camara() -> void:
 	var incl := deg_to_rad(34.0)
 	var dir := Vector3(sin(_giro) * cos(incl), sin(incl), cos(_giro) * cos(incl))
 	_camara.look_at_from_position(_centro + dir * _radio, _centro + Vector3(0, 0.5, 0), Vector3.UP)
-
-
-# ----------------------------------------------------------------------
-# Panel
-
-func _armar_panel() -> void:
-	var f: Dictionary = Juego.fuentes
-	var cat = Juego.catalogo
-	var titulo := Tema.etiqueta("Guerra del Pacífico", f["titulo"], 64, Tema.CREMA)
-	titulo.position = Vector2(48, 30)
-	titulo.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.85))
-	titulo.add_theme_constant_override("shadow_offset_x", 3)
-	titulo.add_theme_constant_override("shadow_offset_y", 3)
-	add_child(titulo)
-	var sub := Tema.etiqueta("Salitre y Pólvora · 1879-1884", f["cursiva"], 26, Tema.BRONCE_CLARO)
-	sub.position = Vector2(52, 108)
-	sub.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.85))
-	sub.add_theme_constant_override("shadow_offset_x", 2)
-	sub.add_theme_constant_override("shadow_offset_y", 2)
-	add_child(sub)
-
-	var panel := PanelContainer.new()
-	panel.anchor_left = 1.0
-	panel.anchor_right = 1.0
-	panel.anchor_top = 0.0
-	panel.anchor_bottom = 1.0
-	panel.offset_left = -440
-	panel.offset_right = -36
-	panel.offset_top = 36
-	panel.offset_bottom = -36
-	panel.add_theme_stylebox_override("panel", Tema.caja(Color(Tema.PERGAMINO, 0.95), Tema.BRONCE, 3, 6, 20))
-	add_child(panel)
-	var caja := VBoxContainer.new()
-	caja.add_theme_constant_override("separation", 6)
-	panel.add_child(caja)
-	var cab := Tema.etiqueta("Escaramuza", f["titulo"], 34, Tema.TINTA)
-	caja.add_child(cab)
-	var expl := Tema.etiqueta("Contra la IA, en un servidor privado de este equipo.", f["cursiva"], 16, Tema.TINTA_SUAVE)
-	caja.add_child(expl)
-
-	mapas = Juego.mapas_disponibles()
-	sel_mapa = _opcion(caja, "Campo de batalla")
-	for m in mapas:
-		sel_mapa.add_item("%s (%d)" % [m["nombre"], m["jugadores"]])
-	sel_mapa.item_selected.connect(func(_i: int) -> void: _mostrar_mapa())
-	lbl_mapa = Tema.etiqueta("", f["cursiva"], 15, Tema.TINTA_SUAVE)
-	lbl_mapa.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	lbl_mapa.custom_minimum_size = Vector2(360, 0)
-	caja.add_child(lbl_mapa)
-	sel_nacion = _opcion(caja, "Su nación")
-	sel_rival = _opcion(caja, "Nación rival")
-	for n in NACIONES:
-		sel_nacion.add_item(cat.facciones[n]["nombre"])
-		sel_rival.add_item(cat.facciones[n]["nombre"])
-	sel_rival.select(1)
-	sel_dificultad = _opcion(caja, "Dificultad de la IA")
-	var difs: Dictionary = cat.datos["dificultades"]
-	for d in difs:
-		sel_dificultad.add_item(difs[d])
-	sel_dificultad.select(maxi(0, difs.keys().find("normal")))
-	sel_velocidad = _opcion(caja, "Velocidad")
-	var nombres_vel := {"normal": "Normal", "rapida": "Rápida", "muy_rapida": "Muy rápida"}
-	for v in cat.datos["velocidades"]:
-		sel_velocidad.add_item(nombres_vel.get(v, v))
-	var l := Tema.etiqueta("Su nombre", f["negrita"], 17, Tema.TINTA)
-	caja.add_child(l)
-	txt_nombre = LineEdit.new()
-	txt_nombre.text = Juego.nombre_jugador
-	txt_nombre.max_length = 20
-	caja.add_child(txt_nombre)
-	var hueco := Control.new()
-	hueco.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	caja.add_child(hueco)
-	lbl_estado = Tema.etiqueta("", f["cursiva"], 16, Tema.ROJO)
-	lbl_estado.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	lbl_estado.custom_minimum_size = Vector2(360, 0)
-	caja.add_child(lbl_estado)
-	btn_comenzar = Button.new()
-	btn_comenzar.text = "¡A la carga!"
-	btn_comenzar.custom_minimum_size = Vector2(0, 48)
-	btn_comenzar.add_theme_font_size_override("font_size", 22)
-	btn_comenzar.pressed.connect(_comenzar)
-	caja.add_child(btn_comenzar)
-	var salir := Button.new()
-	salir.text = "Salir"
-	salir.custom_minimum_size = Vector2(0, 38)
-	salir.pressed.connect(func() -> void: Juego.salir(0))
-	caja.add_child(salir)
-	var ver := Tema.etiqueta("Versión %s · cliente 3D en desarrollo (Godot %s)" % [cat.version,
-			Engine.get_version_info()["string"]], f["cuerpo"], 15, Tema.CREMA)
-	ver.anchor_top = 1.0
-	ver.anchor_bottom = 1.0
-	ver.offset_left = 52
-	ver.offset_top = -40
-	ver.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.85))
-	ver.add_theme_constant_override("shadow_offset_x", 1)
-	ver.add_theme_constant_override("shadow_offset_y", 1)
-	add_child(ver)
-	for i in mapas.size():
-		if mapas[i]["id"] == "pampa_del_tamarugal":
-			sel_mapa.select(i)
-	_mostrar_mapa()
-
-
-func _opcion(caja: VBoxContainer, texto: String) -> OptionButton:
-	caja.add_child(Tema.etiqueta(texto, Juego.fuentes["negrita"], 17, Tema.TINTA))
-	var o := OptionButton.new()
-	o.fit_to_longest_item = false
-	caja.add_child(o)
-	return o
-
-
-func _mostrar_mapa() -> void:
-	var i := sel_mapa.selected
-	if i >= 0 and i < mapas.size():
-		lbl_mapa.text = mapas[i]["descripcion"]
-
-
-# ----------------------------------------------------------------------
-# Comienzo: servidor privado, conexión, saludo y partida rápida
-
-## Pide la partida al servidor privado: la escaramuza elegida o lo que se indique (por
-## ejemplo, ver una repetición).
-func _comenzar(pedido: Dictionary = {}) -> void:
-	if _fase != "" or mapas.is_empty():
-		return
-	var cat = Juego.catalogo
-	var nombre := txt_nombre.text.strip_edges()
-	Juego.nombre_jugador = nombre if nombre.length() >= 3 else "Comandante"
-	var difs: Array = cat.datos["dificultades"].keys()
-	_pedido = pedido if not pedido.is_empty() else {"t": "partida_rapida", "mapa": mapas[sel_mapa.selected]["id"],
-			"faccion": NACIONES[sel_nacion.selected],
-			"rivales": [{"faccion": NACIONES[sel_rival.selected], "dificultad": difs[sel_dificultad.selected], "equipo": 2}],
-			"velocidad": cat.datos["velocidades"][sel_velocidad.selected]}
-	btn_comenzar.disabled = true
-	_estado("Preparando el campo de batalla...", Tema.TINTA)
-	if not Juego.servidor.iniciar(Juego.dir_rts):
-		_falla(Juego.servidor.error)
-		return
-	if Juego.prueba_humo:
-		print("PRUEBA_HUMO: servidor privado en el puerto %d (pid %d)" % [Juego.servidor.puerto, Juego.servidor.pid])
-	_fase = "conectar"
-	_t = 0.0
-	_intentos = 0
-
-
-func _estado(texto: String, color: Color) -> void:
-	lbl_estado.text = texto
-	lbl_estado.add_theme_color_override("font_color", color)
-
-
-func _falla(motivo: String) -> void:
-	_fase = ""
-	btn_comenzar.disabled = false
-	Juego.conexion.cerrar()
-	Juego.servidor.detener()
-	_estado(motivo, Tema.ROJO)
-	if Juego.prueba_humo:
-		print("PRUEBA_HUMO: FALLA: " + motivo)
-		Juego.salir(2)
-
-
-func _process(delta: float) -> void:
-	_giro += delta * 0.05
-	_colocar_camara()
-	# --captura sin prueba ni repetición: una imagen del menú y salir
-	if Juego.captura != "" and not Juego.prueba_humo and Juego.repeticion == "":
-		_t += delta
-		if _t > 3.0 and DisplayServer.get_name() != "headless":
-			get_viewport().get_texture().get_image().save_png(Juego.captura)
-			print("Captura en ", Juego.captura)
-			Juego.salir(0)
-		return
-	if _fase == "":
-		return
-	_t += delta
-	var con = Juego.conexion
-	match _fase:
-		"conectar":
-			if not Juego.servidor.vivo():
-				_falla("El servidor del juego se cerró al comenzar. ¿Está instalado Python 3 con el juego? " +
-						"(Defina SALITRE_PYTHON con la ruta del intérprete.)")
-				return
-			if _t >= 0.4:
-				_t = 0.0
-				_intentos += 1
-				if _intentos > 60:
-					_falla("No se pudo conectar con el servidor del juego.")
-					return
-				con.conectar("127.0.0.1", Juego.servidor.puerto)
-				_fase = "saludar"
-		"saludar":
-			con.sondear()
-			if con.estado == "error":
-				_fase = "conectar"       # todavía no escucha: se vuelve a intentar
-				return
-			if con.conectado():
-				var cat = Juego.catalogo
-				con.saludar(Juego.nombre_jugador, cat.huella, cat.version, cat.protocolo)
-				_fase = "esperar"
-				_t = 0.0
-		"esperar":
-			for m in con.sondear():
-				match m.get("t"):
-					"bienvenida":
-						Juego.bienvenida = m
-						con.enviar(_pedido)
-						_estado("Formando las tropas...", Tema.TINTA)
-					"error":
-						_falla(str(m.get("msg", "El servidor rechazó la partida.")))
-						return
-					"inicio":
-						Juego.inicio = m
-						_fase = ""
-						Juego.ir_a("res://escenas/batalla.tscn")
-						return
-			if con.estado == "error":
-				_falla("Se cortó la conexión con el servidor: " + con.error)
-			elif _t > 30.0:
-				_falla("El servidor no respondió a tiempo.")

@@ -14,6 +14,9 @@ const RUMBOS := ["E", "ESE", "SE", "SSE", "S", "SSO", "SO", "OSO", "O", "ONO", "
 signal boton_pulsado(indice: int)
 signal menu_pedido
 
+var campo_chat: LineEdit = null
+var chat_equipo := false
+
 var batalla                      # la escena de batalla (para leer el estado y la selección)
 var fuentes: Dictionary
 var superior: PanelContainer
@@ -296,7 +299,16 @@ func _parte(est, seleccion: Array) -> void:
 				lineas.append("[b]Arma[/b] %s, daño %d, alcance %.1f" % [cat.datos["nombres_ataque"].get(arma["tipo"], arma["tipo"]),
 						int(arma["danio"]), float(arma["alcance"])])
 			if ex.has("v"):
-				lineas.append("Veterano de grado %d%s" % [int(ex["v"]), (" — " + str(ex["n"])) if ex.has("n") else ""])
+				# hoja de servicio: grado, nombre y cuerpo; para los propios, lo que falta para el próximo grado
+				var g := int(ex["v"])
+				if g > 0:
+					var quien: String = Juego.nombres.nombre(cat, fac, e.tipo, g, int(ex.get("n", 0)))
+					lineas.append("[color=#7e5612][b]%s[/b]%s[/color]" % [cat.grado(g)["nombre"],
+							(" · " + quien) if quien != "" else ""])
+				else:
+					lineas.append("Recluta")
+				if ex.has("x") and g < cat.grado_maximo():
+					lineas.append("%d %% hacia %s" % [int(ex["x"]), cat.grado(g + 1)["nombre"]])
 			if ex.has("ag"):
 				lineas.append("Cantimplora: %d %%" % int(ex["ag"]))
 			if ex.has("fo") and int(ex["fo"]) > 0:
@@ -333,34 +345,111 @@ func _dibujar_lienzo() -> void:
 
 
 ## Cartel central (fin de la batalla, menú de campaña). Botones: [[texto, Callable], ...].
-func mostrar_cartel(titulo: String, texto: String, opciones: Array) -> void:
+## Cartel en el centro: título, texto y botones ([texto, acción, tipo]); con «extra», ese
+## bloque va a la derecha de los botones (el volumen del sonido en el menú de la batalla).
+func mostrar_cartel(titulo: String, texto: String, opciones: Array, extra: Control = null) -> void:
 	cerrar_cartel()
 	cartel = PanelContainer.new()
 	cartel.add_theme_stylebox_override("panel", Tema.caja(Color(Tema.PERGAMINO, 0.97), Tema.BRONCE, 3, 6, 24))
 	cartel.set_anchors_preset(Control.PRESET_CENTER)
 	cartel.grow_horizontal = Control.GROW_DIRECTION_BOTH
 	cartel.grow_vertical = Control.GROW_DIRECTION_BOTH
-	cartel.custom_minimum_size = Vector2(520, 0)
+	cartel.custom_minimum_size = Vector2(520 if extra == null else 680, 0)
 	get_child(0).add_child(cartel)
 	var caja := VBoxContainer.new()
 	caja.add_theme_constant_override("separation", 12)
 	cartel.add_child(caja)
-	var t := Tema.etiqueta(titulo, fuentes["titulo"], 40, Tema.ROJO)
+	var t := Tema.etiqueta(titulo, fuentes["titulo"], 40 if extra == null else 30, Tema.ROJO)
 	t.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	caja.add_child(t)
-	if texto != "":
-		var l := Tema.etiqueta(texto, fuentes["cursiva"], 18, Tema.TINTA)
-		l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		caja.add_child(l)
+	var cuerpo: Control = caja
+	if extra != null:
+		var fila := HBoxContainer.new()
+		fila.add_theme_constant_override("separation", 28)
+		caja.add_child(fila)
+		var izq := VBoxContainer.new()
+		izq.add_theme_constant_override("separation", 10)
+		fila.add_child(izq)
+		var raya := ColorRect.new()
+		raya.color = Color8(150, 120, 84)
+		raya.custom_minimum_size = Vector2(1, 0)
+		fila.add_child(raya)
+		var der := VBoxContainer.new()
+		der.add_theme_constant_override("separation", 8)
+		fila.add_child(der)
+		der.add_child(Tema.etiqueta("Sonido", fuentes["titulo"], 22, Tema.TINTA))
+		var hueco := Control.new()
+		hueco.custom_minimum_size = extra.size
+		hueco.add_child(extra)
+		der.add_child(hueco)
+		cuerpo = izq
 	for op in opciones:
 		var b := Button.new()
 		b.text = op[0]
-		b.custom_minimum_size = Vector2(300, 42)
+		b.custom_minimum_size = Vector2(280 if extra != null else 300, 42)
 		b.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 		b.focus_mode = Control.FOCUS_NONE
+		if op.size() > 2 and op[2] != "normal":
+			b.theme_type_variation = "Boton" + str(op[2]).capitalize()
+		b.pressed.connect(func() -> void: Sonido.ui("clic"))
 		b.pressed.connect(op[1])
-		caja.add_child(b)
+		b.name = str(op[0])
+		cuerpo.add_child(b)
+	if texto != "":
+		var l := Tema.etiqueta(texto, fuentes["cursiva"] if extra == null else fuentes["cuerpo"], 18 if extra == null else 14,
+				Tema.TINTA if extra == null else Tema.TINTA_SUAVE)
+		l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		l.custom_minimum_size = Vector2(460 if extra == null else 620, 0)
+		caja.add_child(l)
+		if extra == null:
+			caja.move_child(l, 1)
+
+
+## Conversación: Intro abre el campo (Mayús+Intro, solo al equipo); Intro envía, Esc cierra.
+func abrir_chat(equipo: bool) -> void:
+	if campo_chat == null:
+		campo_chat = LineEdit.new()
+		campo_chat.max_length = 200
+		campo_chat.anchor_top = 1.0
+		campo_chat.anchor_bottom = 1.0
+		campo_chat.offset_left = 12
+		campo_chat.offset_right = 560
+		campo_chat.offset_top = -ALTO_INF - 46
+		campo_chat.offset_bottom = -ALTO_INF - 14
+		campo_chat.text_submitted.connect(func(t: String) -> void:
+			var limpio := t.strip_edges()
+			if limpio != "" and Juego.conexion.conectado():
+				Juego.conexion.enviar({"t": "chat", "texto": limpio, "canal": "equipo" if chat_equipo else "todos"})
+			cerrar_chat())
+		campo_chat.gui_input.connect(func(ev: InputEvent) -> void:
+			if ev is InputEventKey and ev.pressed and ev.keycode == KEY_ESCAPE:
+				cerrar_chat()
+				campo_chat.accept_event())
+		get_child(0).add_child(campo_chat)
+	chat_equipo = equipo
+	campo_chat.placeholder_text = ("Mensaje a su equipo" if equipo else "Mensaje para todos") + \
+			" (Intro: enviar · Esc: cerrar)"
+	campo_chat.text = ""
+	campo_chat.visible = true
+	campo_chat.grab_focus()
+
+
+func cerrar_chat() -> void:
+	if campo_chat != null:
+		campo_chat.release_focus()
+		campo_chat.visible = false
+
+
+func chat_abierto() -> bool:
+	return campo_chat != null and campo_chat.visible
+
+
+## El botón del cartel con ese texto (para las pruebas).
+func boton_del_cartel(texto: String) -> Button:
+	if cartel == null:
+		return null
+	return cartel.find_child(texto, true, false) as Button
 
 
 func cerrar_cartel() -> void:

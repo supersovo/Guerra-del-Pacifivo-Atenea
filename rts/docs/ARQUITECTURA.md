@@ -330,25 +330,35 @@ los de Python, y el cliente de pygame se mantiene hasta que el nuevo lo iguale.
 El plan va por fases: 1) cabeza de puente (red, diorama, tropas, selección,
 órdenes y escaramuza: hecha); 2) figuras animadas y agrupadas, guarnición a la
 vista, efectos, niebla suave y minimapa (hecha); 3) toda la interfaz: menús,
-campaña, multijugador, archivo y sonido; 4) ejecutables para Windows, macOS y
-Linux con el servidor adentro.
+campaña, multijugador, archivo, opciones y sonido (hecha); 4) ejecutables para
+Windows, macOS y Linux con el servidor adentro.
 
 ```
 godot/
-├── project.godot          escena inicial, autocarga «Juego», ventana, sombras
+├── project.godot          escena inicial, autocargas «Sonido» y «Juego», ventana, sombras
 ├── datos/catalogo.json    catálogo en el orden de la red (lo genera herramientas/exportar_godot.py)
 ├── codigo/
-│   ├── juego.gd           autocarga: catálogo, carpetas, fuentes, tema, conexión y servidor privado
+│   ├── juego.gd           autocarga: catálogo, carpetas, fuentes, tema, configuración, perfil, campañas,
+│   │                      la red entre pantallas (salón, sala, conversación), la batalla en curso y avisos
+│   ├── sonido.gd          autocarga: efectos sintetizados, voces de la tropa, música con fundidos, buses
 │   ├── red/               protocolo.gd (largo + formato + JSON/zlib), conexion.gd (TCP sin bloquear),
-│   │                      servidor_local.gd (lanza «python -m salitre --servidor --local --padre PID»)
-│   ├── datos/catalogo.gd  tipos por índice de red, banderas, uniformes, costos con las ventajas de cada nación
+│   │                      servidor_local.gd (el privado «--local» o el abierto «Crear servidor»),
+│   │                      busqueda_lan.gd (UDP 47801, como servidor/descubrimiento.py)
+│   ├── datos/             catalogo.gd, rutas.gd (carpetas del usuario), config.gd (config_3d.json),
+│   │                      perfil.gd (perfil_3d.json), campanas.gd y nombres.gd (como contenido/*.py),
+│   │                      repeticiones.gd (gzip + JSON), mapas.gd (del juego y del usuario, vistas previas)
 │   ├── batalla/           estado.gd (espejo con interpolación y fantasmas), vision.gd (niebla, igual a
-│   │                      sim/vision.py), batalla.gd (la escena: eventos, órdenes, selección, obras)
+│   │                      sim/vision.py), batalla.gd (la escena: eventos, sonidos, órdenes, voces, fin)
 │   ├── mundo/             terreno.gd, modelos.gd, tropas.gd, efectos.gd, camara_rts.gd, ambiente.gd
-│   └── ui/                tema.gd, hud.gd (panel de mando), tarjeta.gd (puerto de cliente/juego/tarjeta.py), menu.gd
+│   └── ui/                tema.gd (pergamino, madera, botones con relieve), hud.gd, tarjeta.gd, minimapa.gd,
+│                          menu.gd (diorama de fondo y una pantalla a la vez), pantallas/ (portada,
+│                          escaramuza, cargando, campana, repeticiones, archivo, opciones, parte, conectar,
+│                          salon, sala), marco.gd, boton.gd, retrato.gd (vista 3D), banderas.gd,
+│                          controles_sonido.gd, panel_chat.gd
 ├── escenas/               menu.tscn y batalla.tscn (un nodo con su guion)
 ├── sombreadores/          terreno, agua y modelos (colores en los vértices y niebla de guerra)
-└── pruebas/               correr.gd (pruebas sin pantalla) y vitrina.gd (capturas de los modelos)
+└── pruebas/               correr.gd (pruebas sin pantalla), recorrido.gd (recorridos del menú) y
+                           vitrina.gd (capturas de los modelos)
 ```
 
 - **Mismo catálogo, misma huella.** El servidor manda los tipos por su índice;
@@ -419,6 +429,35 @@ godot/
   yacimientos por su planta. Las órdenes son los mismos comandos del cliente de
   Python (`inteligente`, `mover`, `atacar`, `construir`…), con las posiciones
   en píxeles del juego; el lugar de las obras se valida como en `_lugar_obra`.
+- **La interfaz** (fase 3). `menu.tscn` deja el diorama de la pampa girando
+  de fondo y muestra una pantalla a la vez, con las mismas coordenadas que las
+  escenas del cliente de Python sobre un lienzo de 1280×720 centrado. El menú
+  reparte los mensajes del servidor a la pantalla que los usa (salón, sala,
+  parte de guerra) y, si una cambia a otra o a la batalla en medio de un lote,
+  devuelve lo que falta a la conexión (`Conexion.pendientes`). La autocarga
+  `Juego` guarda lo que pasa de una pantalla a otra: la bienvenida, el salón,
+  la sala, la conversación, el origen de la batalla (escaramuza, campaña,
+  repetición, multijugador) y su fin. Los paneles de pergamino y madera, los
+  botones con relieve y las casillas se generan por código (`tema.gd`).
+- **Campaña y perfil.** `campanas.gd` y `nombres.gd` son la misma lógica que
+  `contenido/campanas.py` y `contenido/nombres.py`; dos pruebas mandan
+  campañas enteras (también con fichas dañadas) y cientos de nombres a los dos
+  lados y exigen el mismo resultado. El perfil (`perfil_3d.json`) guarda los
+  servidores recientes, las escaramuzas y las campañas; JSON trae los números
+  como decimales, y `Rutas.enteros` los vuelve enteros antes de guardar (una
+  repetición recibida por la red se guarda así en gzip, y Python la lee igual).
+- **Archivo histórico.** Las fichas usan las mismas funciones que el archivo
+  del cliente de Python (`contenido/textos.py`: cifras, auras, habilidades y la
+  cronología), volcadas en el catálogo; cada unidad y cada obra se ve en un
+  retrato 3D que gira (`ui/retrato.gd`, una vista propia con luz de estudio) y
+  cada nación hace desfilar a su tropa con sus uniformes.
+- **Sonido.** `sonido.gd` sintetiza los mismos efectos que `cliente/sonido.py`
+  la primera vez que suenan (fusil, cañón, explosión, ametralladora, sable,
+  martillo, silbato, toques de corneta), toca las voces de
+  `recursos/sonidos/voces/` de a una y con prioridades, y la música con
+  fundidos; un bus de audio por volumen. Los efectos de la batalla suenan en
+  su lugar del mapa: el volumen baja con la distancia al centro de la vista y
+  el sonido sale del lado de la pantalla donde ocurre.
 - **Efectos**: fogonazos y nubes de pólvora negra (nubes de bordes suaves que
   miran a la cámara), granadas en vuelo con su parábola, explosiones con
   cráter, piques en el agua, polvo, bajas, sangre, curaciones y letreros (el $
@@ -467,16 +506,24 @@ ficticio de SDL):
   `SALITRE_GODOT`, además, las pruebas del propio cliente
   (`godot/pruebas/correr.gd`: protocolo y zlib de Python, lector por trozos,
   niebla, espejo, terreno, tarjeta, modelos, costos, partes animadas, grupos,
-  puestos de la guarnición, minimapa y niebla fundida), la niebla de Godot
-  comparada con la del servidor, una **batalla IA contra IA** vista entera
-  como espectador sin un error de guion y la **prueba de humo** de punta a
-  punta: menú, servidor privado, partida rápida contra la IA, trabajadores que
-  marchan, el minimapa que lleva la cámara, el cuartel que forma un
-  trabajador y lo cancela, y un depósito en obra.
+  puestos de la guarnición, minimapa, niebla fundida, configuración, perfil,
+  repeticiones en gzip, mapas y vistas previas, banderas y campaña), la niebla,
+  la **campaña** (sesenta batallas seguidas, con fichas dañadas) y los
+  **nombres de los veteranos** comparados con los de Python, una **batalla IA
+  contra IA** vista entera como espectador sin un error de guion, la **prueba
+  de humo** de punta a punta (menú, servidor privado, partida rápida contra la
+  IA, trabajadores que marchan, el minimapa que lleva la cámara, el cuartel que
+  forma un trabajador y lo cancela, un depósito en obra, la conversación, el
+  menú de la batalla con el volumen, la rendición, el parte de guerra y la
+  escaramuza anotada en el perfil) y tres **recorridos de la interfaz**
+  (`godot/pruebas/recorrido.gd`): todas las pantallas (cada mapa de la
+  escaramuza y cada ficha del archivo), una batalla de la campaña que queda en
+  el escalafón, y el multijugador contra un servidor dedicado (salón, sala con
+  un rival de la IA, batalla, parte de guerra, vuelta a la sala y al salón).
 
 La integración continua (`.github/workflows/rts.yml`) corre las pruebas en Linux,
-Windows y macOS, prueba el cliente 3D con Godot 4.7.2 (y guarda una captura de
-la batalla, dibujada por software), construye el instalador de Windows con una prueba de humo del
+Windows y macOS, prueba el cliente 3D con Godot 4.7.2 (y guarda capturas de
+la batalla y de cada pantalla, dibujadas por software), construye el instalador de Windows con una prueba de humo del
 ejecutable, la aplicación para macOS (universal: Intel y Apple Silicon, probada
 desde el `.dmg` en ambas arquitecturas cuando el equipo tiene Rosetta 2), la
 versión portátil para Linux y la imagen Docker del servidor.

@@ -14,6 +14,7 @@ config/icon="res://icono.svg"
 
 [autoload]
 
+Sonido="*res://codigo/sonido.gd"
 Juego="*res://codigo/juego.gd"
 
 [display]

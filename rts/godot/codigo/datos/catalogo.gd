@@ -14,6 +14,8 @@ var banderas: Dictionary = {}
 var especiales: Dictionary = {}
 var facciones: Dictionary = {}
 var colores_jugador: Array[Color] = []
+var nombres_color: Array[String] = []
+var veterania: Dictionary = {}
 var colores_terreno: Dictionary = {}
 var formaciones: Array = []
 var tipos_por_id: Dictionary = {}
@@ -38,7 +40,9 @@ func cargar(ruta := "res://datos/catalogo.json") -> bool:
 	facciones = d["facciones"]
 	formaciones = d["formaciones"]
 	for par in d["colores_jugador"]:
+		nombres_color.append(str(par[0]))
 		colores_jugador.append(_color(par[1]))
+	veterania = d["veterania"]
 	for k in d["colores_terreno"]:
 		colores_terreno[int(k)] = _color(d["colores_terreno"][k])
 	for i in tipos.size():
@@ -67,6 +71,22 @@ func nombre(faccion_id: String, tipo_id: String) -> String:
 		return propios[tipo_id]
 	var t: Dictionary = tipos_por_id.get(tipo_id, {})
 	return t.get("nombre", tipo_id)
+
+
+func nombre_color(i: int) -> String:
+	if nombres_color.is_empty():
+		return "?"
+	return nombres_color[posmod(i, nombres_color.size())]
+
+
+## Un grado de veteranía: {nombre, rango, umbral} (0 = recluta).
+func grado(n: int) -> Dictionary:
+	var grados: Array = veterania["grados"]
+	return grados[clampi(n, 0, grados.size() - 1)]
+
+
+func grado_maximo() -> int:
+	return int(veterania["maximo"])
 
 
 func color_jugador(i: int) -> Color:

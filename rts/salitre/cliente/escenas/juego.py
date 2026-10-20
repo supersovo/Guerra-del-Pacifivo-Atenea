@@ -66,7 +66,8 @@ class Juego(Escena):
         super().__init__(app)
         self.origen = origen
         self.info = info or {}
-        self.local = origen in ("escaramuza", "repeticion")
+        # partidas contra la IA en el servidor privado de este equipo (se pueden pausar)
+        self.local = origen in ("escaramuza", "repeticion", "campana")
         self.est = EstadoJuego(app.cat, inicio)
         lz = self.lz
         vista_rect = pygame.Rect(0, ALTO_SUP, lz.W, lz.H - ALTO_SUP - ALTO_INF + 6)
@@ -1206,6 +1207,13 @@ class Juego(Escena):
         from .portada import Portada
         if self.origen in ("escaramuza", "repeticion"):
             self.app.cambiar(Portada(self.app))
+        elif self.origen == "campana":
+            # la batalla de la campaña se puede volver a librar desde su pantalla
+            from .campana import Campana
+            self.app.cerrar_red()
+            self.app.detener_servidor_local()
+            self.app.cambiar(Campana(self.app, resumen=getattr(self.app, "resumen_campana", None)
+                                     if self.fin is not None else None))
         elif self.fin is not None and self.app.en_sala:
             from .sala import SalaEspera
             self.app.cambiar(SalaEspera(self.app))

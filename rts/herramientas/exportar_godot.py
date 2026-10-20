@@ -24,12 +24,13 @@ sys.path.insert(0, str(RAIZ))
 from salitre import PROTOCOLO, VERSION  # noqa: E402
 from salitre.cliente.graficos import paleta  # noqa: E402
 from salitre.contenido import catalogo as mod_cat  # noqa: E402
+from salitre.contenido import textos  # noqa: E402
 from salitre.ia.ia import DIFICULTADES  # noqa: E402
 from salitre.red import instantanea as I  # noqa: E402
 from salitre.sim import mapa as mod_mapa  # noqa: E402
 from salitre.sim import stats as mod_stats  # noqa: E402
 from salitre.servidor.servidor import VELOCIDADES  # noqa: E402
-from salitre.sim.constantes import AFP, EFP, SUB, TICKS, TILE, TILE_PX  # noqa: E402
+from salitre.sim.constantes import AFP, EFP, SUB, TICKS, TILE, TILE_PX, XPF  # noqa: E402
 
 DESTINO = RAIZ / "godot" / "datos" / "catalogo.json"
 
@@ -59,7 +60,7 @@ def _unidad(tu):
         "observador": _casillas(tu.observador), "monta": tu.monta, "habilidades": list(tu.habilidades),
         "atajo": tu.atajo, "poblacion": tu.poblacion, "costo": list(tu.costo), "produce_en": tu.produce_en,
         "requisitos": list(tu.requisitos), "construye": list(tu.construye), "tiempo": round(tu.tiempo / TICKS, 2),
-        "descripcion": tu.descripcion,
+        "descripcion": tu.descripcion, "valor": tu.valor, "veterania": tu.veterania,
     }
 
 
@@ -89,6 +90,24 @@ def _faccion(cat, f):
         "heroes": list(f.heroes),
         "stats": {tid: {"costo": list(v.costo), "vision": v.vision} for tid, v in st.items()},
     }
+
+
+def _archivo(cat):
+    """Lo que muestra el archivo histórico, con los mismos textos que el cliente de Python."""
+    unidades = {}
+    for tu in cat.unidades.values():
+        aura = textos.aura_unidad(tu)
+        unidades[tu.id] = {"sub": textos.subtitulo_unidad(cat, tu), "filas": textos.filas_unidad(cat, tu),
+                           "aura": list(aura) if aura else None,
+                           "habilidades": [list(h) for h in textos.habilidades_unidad(cat, tu)],
+                           "historia": tu.historia}
+    edificios = {te.id: {"sub": textos.subtitulo_edificio(te), "filas": textos.filas_edificio(cat, te),
+                         "historia": te.historia} for te in cat.edificios.values()}
+    facciones = {fid: {"descripcion": f.descripcion, "historia": f.historia,
+                       "bonificaciones": [[n, d] for n, d, _e in f.bonificaciones]}
+                 for fid, f in cat.facciones.items()}
+    return {"cronologia": [list(c) for c in textos.CRONOLOGIA], "facciones": facciones, "unidades": unidades,
+            "edificios": edificios}
 
 
 def exportar(cat=None):
@@ -128,6 +147,10 @@ def exportar(cat=None):
         "nombres_ataque": dict(cat.nombres_ataque),
         "nombres_armadura": dict(cat.nombres_armadura),
         "dificultades": {k: v["nombre"] for k, v in DIFICULTADES.items()},
+        "veterania": {"grados": [{"nombre": g.nombre, "rango": g.rango, "umbral": g.umbral}
+                                 for g in cat.veterania.grados],
+                      "maximo": cat.veterania.maximo, "xpf": XPF},
+        "archivo": _archivo(cat),
         "velocidades": list(VELOCIDADES),
     }
     return json.dumps(datos, ensure_ascii=False, indent=1) + "\n"

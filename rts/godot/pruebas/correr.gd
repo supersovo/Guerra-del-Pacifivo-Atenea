@@ -4,7 +4,9 @@
 ##
 ## Sale con 0 si todo pasa (o con el número de fallas). Con
 ## «-- --vision=entrada.json --salida=salida.json» calcula la niebla de un caso que arma
-## tests/test_godot.py con la simulación de Python, para comparar las dos.
+## tests/test_godot.py con la simulación de Python, para comparar las dos; lo mismo con
+## «--campanas=» (el escalafón de una campaña tras cada batalla) y «--nombres=» (los nombres
+## de los veteranos).
 extends SceneTree
 
 const Protocolo = preload("res://codigo/red/protocolo.gd")
@@ -16,6 +18,14 @@ const Modelos = preload("res://codigo/mundo/modelos.gd")
 const Tarjeta = preload("res://codigo/ui/tarjeta.gd")
 const Tropas = preload("res://codigo/mundo/tropas.gd")
 const Minimapa = preload("res://codigo/ui/minimapa.gd")
+const Campanas = preload("res://codigo/datos/campanas.gd")
+const Nombres = preload("res://codigo/datos/nombres.gd")
+const Config = preload("res://codigo/datos/config.gd")
+const Perfil = preload("res://codigo/datos/perfil.gd")
+const Rutas = preload("res://codigo/datos/rutas.gd")
+const Repeticiones = preload("res://codigo/datos/repeticiones.gd")
+const Mapas = preload("res://codigo/datos/mapas.gd")
+const Banderas = preload("res://codigo/ui/banderas.gd")
 
 var fallas := 0
 var pruebas := 0
@@ -26,18 +36,28 @@ func _initialize() -> void:
 	var args := OS.get_cmdline_user_args()
 	var entrada := ""
 	var salida := ""
+	var cruzada := ""
 	for a in args:
-		if a.begins_with("--vision="):
-			entrada = a.trim_prefix("--vision=")
-		elif a.begins_with("--salida="):
+		for modo in ["vision", "campanas", "nombres"]:
+			if a.begins_with("--%s=" % modo):
+				cruzada = modo
+				entrada = a.trim_prefix("--%s=" % modo)
+		if a.begins_with("--salida="):
 			salida = a.trim_prefix("--salida=")
-	if entrada != "":
+	if cruzada == "vision":
 		quit(_vision_cruzada(entrada, salida))
 		return
 	cat = Catalogo.new()
 	_ok(cat.cargar(), "se carga el catálogo")
+	if cruzada == "campanas":
+		quit(_campanas_cruzada(entrada, salida))
+		return
+	if cruzada == "nombres":
+		quit(_nombres_cruzada(entrada, salida))
+		return
 	for prueba in ["protocolo", "lector_por_trozos", "vision", "estado", "terreno", "tarjeta", "modelos", "lugar_costo",
-			"partes_animadas", "grupos", "guarnicion", "minimapa", "niebla_fundida"]:
+			"partes_animadas", "grupos", "guarnicion", "minimapa", "niebla_fundida", "enteros", "config", "perfil",
+			"repeticiones", "mapas_y_banderas", "campana"]:
 		call("_prueba_" + prueba)
 	print("%d comprobaciones, %d fallas" % [pruebas, fallas])
 	quit(mini(fallas, 100))
@@ -343,5 +363,200 @@ func _vision_cruzada(entrada: String, salida: String) -> int:
 	var v := Vision.calcular(niveles, w, h, obs)
 	var f := FileAccess.open(salida, FileAccess.WRITE)
 	f.store_string(JSON.stringify(Array(v)))
+	f.close()
+	return 0
+
+
+# ----------------------------------------------------------------------
+# Fase 3: configuración, perfil, repeticiones, mapas, banderas y campañas
+
+func _dir_datos() -> String:
+	return ProjectSettings.globalize_path("res://").rstrip("/").get_base_dir().path_join("datos")
+
+
+func _dir_prueba(nombre: String) -> String:
+	var d := ProjectSettings.globalize_path("user://").path_join("pruebas_%s_%d" % [nombre, randi() % 1000000])
+	DirAccess.make_dir_recursive_absolute(d)
+	return d
+
+
+func _borrar_dir(d: String) -> void:
+	for a in DirAccess.get_files_at(d):
+		DirAccess.remove_absolute(d.path_join(a))
+	DirAccess.remove_absolute(d)
+
+
+func _prueba_enteros() -> void:
+	var v: Variant = Rutas.enteros(JSON.parse_string('{"semilla": 1879, "x": [1, 2.5], "y": {"z": 3}}'))
+	_ok(v["semilla"] is int and v["semilla"] == 1879, "la semilla vuelve a ser entera")
+	_ok(v["x"][0] is int and v["x"][1] is float, "en las listas también, sin tocar los decimales")
+	_ok(v["y"]["z"] is int, "y en los diccionarios anidados")
+	_igual(JSON.stringify(v["x"]), "[1,2.5]", "se escribe como en Python")
+
+
+func _prueba_config() -> void:
+	var d := _dir_prueba("config")
+	# la primera vez se toma lo del cliente de Python (config.json), salvo la ventana
+	var f := FileAccess.open(d.path_join("config.json"), FileAccess.WRITE)
+	f.store_string(JSON.stringify({"nombre": "Prat", "volumen_musica": 0.25, "voces": false, "ventana": [800, 600],
+			"sangre": "no", "resolucion_interna": [1280, 720]}))
+	f.close()
+	var c := Config.new()
+	c.cargar(d)
+	_igual(c.leer("nombre"), "Prat", "el nombre viene del cliente de Python")
+	_igual(c.leer("volumen_musica"), 0.25, "y los volúmenes")
+	_igual(c.leer("voces"), false, "y las voces")
+	_igual(c.leer("ventana"), [1280, 720], "la ventana es propia del cliente 3D")
+	_igual(c.leer("sangre"), true, "un valor de otro tipo se descarta")
+	c.escribir("nombre", "Grau")
+	c.escribir("ventana", [1600, 900])
+	_ok(c.guardar(), "se guarda")
+	var c2 := Config.new()
+	c2.cargar(d)
+	_igual(c2.leer("nombre"), "Grau", "después se lee la propia")
+	_ok(c2.leer("ventana")[0] is int and c2.leer("ventana") == [1600, 900], "la ventana vuelve en enteros")
+	c2.restablecer()
+	_igual(c2.leer("nombre"), "Grau", "restablecer conserva el nombre")
+	_igual(c2.leer("volumen_musica"), 0.6, "y devuelve los volúmenes de fábrica")
+	_borrar_dir(d)
+
+
+func _prueba_perfil() -> void:
+	var d := _dir_prueba("perfil")
+	var p := Perfil.new()
+	p.cargar(d)
+	_igual(p.resumen()["jugadas"], 0, "un perfil nuevo está vacío")
+	p.registrar_escaramuza("pampa_del_tamarugal", "chile", "peru/normal", "victoria", 12.5, 30, 12)
+	p.registrar_escaramuza("morro_de_arica", "peru", "chile/dificil", "derrota", 8.0, 5, 40)
+	p.recordar_servidor("192.168.1.10:47800", "Escuela")
+	p.recordar_servidor("127.0.0.1:47800", "")
+	p.recordar_servidor("192.168.1.10:47800", "Escuela Militar")
+	var cid := p.crear_campana({"campana": "salitre", "faccion": "chile", "etapa": 0, "escalafon": []})
+	var p2 := Perfil.new()
+	p2.cargar(d)
+	var r := p2.resumen()
+	_ok(r["jugadas"] == 2 and r["victorias"] == 1 and r["derrotas"] == 1, "el historial de escaramuzas se conserva")
+	_igual(p2.escaramuzas()[0]["mapa"], "morro_de_arica", "la más nueva primero")
+	var sv := p2.servidores()
+	_ok(sv.size() == 2 and sv[0]["nombre"] == "Escuela Militar", "servidores recientes sin repetir, el último arriba")
+	var u := p2.ultima_campana("salitre")
+	_ok(u[0] == cid and u[1]["faccion"] == "chile", "la campaña en curso se recupera")
+	_ok(u[1]["etapa"] is int, "con los números enteros")
+	u[1]["etapa"] = 1
+	p2.guardar_campana(cid, u[1])
+	_igual(int(p2.campana(cid)["etapa"]), 1, "la campaña se actualiza")
+	p2.borrar_campana(cid)
+	_igual(p2.ultima_campana("salitre")[0], -1, "y se borra")
+	_borrar_dir(d)
+
+
+func _prueba_repeticiones() -> void:
+	var d := _dir_prueba("rep")
+	var datos := {"version": cat.version, "fecha": 1700000000.5, "mapa": {"nombre": "Pampa del Tamarugal"},
+			"semilla": 1879, "jugadores": [{"nombre": "Prat", "faccion": "chile"}, {"nombre": "IA", "faccion": "peru"}],
+			"comandos": [[16, 0, {"c": "mover", "x": 100}]], "fin": 9600, "ganador": 1}
+	_ok(Repeticiones.guardar_datos(JSON.parse_string(JSON.stringify(datos)), "20240101-120000-prueba", d) != "",
+			"se guarda una repetición recibida por la red")
+	_igual(Repeticiones.guardar_datos(datos, "../afuera", d), "", "un nombre que sale de la carpeta se rechaza")
+	var lista := Repeticiones.listar(d)
+	_igual(lista.size(), 1, "se lista")
+	if lista.size() == 1:
+		_igual(lista[0]["minutos"], 10.0, "con su duración")
+		_igual(lista[0]["jugadores"][0], "Prat (chile)", "y sus ejércitos")
+	var leida: Variant = Repeticiones.leer(d.path_join("20240101-120000-prueba.rep"))
+	_ok(leida != null and leida["semilla"] is float and int(leida["semilla"]) == 1879, "se lee el gzip de vuelta")
+	# lo que se guardó tiene los enteros como enteros (lo lee Python)
+	var texto := FileAccess.get_file_as_bytes(d.path_join("20240101-120000-prueba.rep")) \
+			.decompress_dynamic(-1, FileAccess.COMPRESSION_GZIP).get_string_from_utf8()
+	_ok('"semilla":1879' in texto and '"fin":9600' in texto, "los enteros se guardan como enteros")
+	_ok(Repeticiones.borrar("20240101-120000-prueba", d), "se borra")
+	_igual(Repeticiones.listar(d).size(), 0, "y ya no está")
+	_borrar_dir(d)
+
+
+func _prueba_mapas_y_banderas() -> void:
+	var dir_rts := ProjectSettings.globalize_path("res://").rstrip("/").get_base_dir()
+	var lista := Mapas.listar(dir_rts)
+	_ok(lista.size() >= 5, "se listan los mapas del juego")
+	var d: Variant = Mapas.buscar(dir_rts, "pampa_del_tamarugal")
+	_ok(d != null, "se carga un mapa por su id")
+	if d != null:
+		var tex := Mapas.previa(cat, d, 3)
+		_igual(tex.get_size(), Vector2(int(d["ancho"]) * 3, int(d["alto"]) * 3), "la vista previa tiene el tamaño del mapa")
+		var ini: Array = d["inicios"][0]
+		var img := tex.get_image()
+		_ok(img.get_pixel(int(ini[0]) * 3 + 3, int(ini[1]) * 3 + 3).r > 0.5, "los lugares de inicio se marcan en rojo")
+	for n in ["chile", "peru", "bolivia", "argentina"]:
+		var b := Banderas.imagen(n, 48, 32)
+		_igual(Vector2i(b.get_width(), b.get_height()), Vector2i(48, 32), "bandera de %s" % n)
+	var cl := Banderas.imagen("chile", 48, 32)
+	_ok(cl.get_pixel(30, 24).r > 0.7 and cl.get_pixel(30, 24).b < 0.3, "Chile: rojo abajo")
+	_ok(cl.get_pixel(4, 4).b > 0.5, "Chile: cantón azul")
+	_ok(cl.get_pixel(8, 8).r > 0.8 and cl.get_pixel(8, 8).g > 0.8, "Chile: la estrella blanca en el cantón")
+	var pe := Banderas.imagen("peru", 48, 32)
+	_ok(pe.get_pixel(24, 16).g > 0.9 and pe.get_pixel(4, 16).g < 0.2, "Perú: blanco al centro y rojo a los lados")
+
+
+func _prueba_campana() -> void:
+	var campanas := Campanas.cargar(_dir_datos())
+	_ok(campanas.has("salitre"), "se carga la campaña del Salitre")
+	if not campanas.has("salitre"):
+		return
+	var c: Campanas.Campana = campanas["salitre"]
+	_igual(c.etapas.size(), 4, "cuatro batallas")
+	_igual(c.etapas[0].rival("chile"), "peru", "Chile pelea contra el Perú en Dolores")
+	_igual(c.etapas[0].rival("peru"), "chile", "y el Perú contra Chile")
+	_igual(c.medalla(100), "Medalla de oro de la campaña", "con cien honores, la de oro")
+	_igual(c.medalla(3), "Medalla de bronce de la campaña", "con pocos, la de bronce")
+	var est := Campanas.nuevo_estado(c, "chile")
+	var propio := {"veteranos": [{"tipo": "infante", "grado": 2, "xp": 5000, "nombre": 77, "bajas": 3},
+			{"tipo": "infante", "grado": 0, "xp": 10}, {"tipo": "trabajador", "grado": 1}],
+			"caidos": [{"tipo": "granadero", "grado": 1, "nombre": 5}]}
+	var r := Campanas.aplicar_batalla(cat, c, est, propio, null, true, 9.96)
+	_ok(r["victoria"] and r["supervivientes"] == 1 and r["nuevos"] == 1 and r["caidos"] == 1,
+			"la victoria pasa los veteranos al escalafón y los caídos al libro")
+	_igual(r["minutos"], 10.0, "los minutos con un decimal")
+	_igual(est["escalafon"][0]["ficha"], "v1", "el veterano nuevo recibe su ficha")
+	_igual(est["etapa"], 1, "se avanza a la batalla siguiente")
+	_igual(r["honores"], 10 + 3, "honores: la victoria y el veterano según su grado")
+	var nucleo := Campanas.veteranos_rival(cat, c, est, c.etapas[1])
+	_igual(nucleo.size(), 4, "la IA empieza Tarapacá con su núcleo de veteranos")
+	_ok(int(nucleo[0]["xp"]) > 0 and int(nucleo[0]["batallas"]) == 1, "con la experiencia de su grado")
+	var r2 := Campanas.aplicar_batalla(cat, c, est, {}, null, false, 3.0)
+	_ok(not r2["victoria"] and est["etapa"] == 1, "la derrota no avanza: la batalla se repite")
+	var nombres := Nombres.new()
+	nombres.cargar(_dir_datos())
+	var n := nombres.nombre(cat, "chile", cat.tipos_por_id["infante"], 2, 123456)
+	_ok(n.begins_with("Cabo "), "un veterano de grado 2 es cabo: " + n)
+	_igual(nombres.nombre(cat, "chile", cat.tipos_por_id["infante"], 2, 0), "", "sin semilla no hay nombre")
+
+
+func _campanas_cruzada(entrada: String, salida: String) -> int:
+	var casos: Variant = JSON.parse_string(FileAccess.get_file_as_string(entrada))
+	var campanas := Campanas.cargar(_dir_datos())
+	var out: Array = []
+	for caso in casos:
+		var c: Campanas.Campana = campanas[caso["campana"]]
+		var est: Dictionary = caso["estado"]
+		var etapa: Campanas.Etapa = c.etapas[int(est["etapa"])]
+		var rival_ini := Campanas.veteranos_rival(cat, c, est, etapa)
+		var r := Campanas.aplicar_batalla(cat, c, est, caso["propio"], caso["rival"], bool(caso["victoria"]),
+				float(caso["minutos"]))
+		out.append({"estado": est, "resumen": r, "rival_ini": rival_ini})
+	var f := FileAccess.open(salida, FileAccess.WRITE)
+	f.store_string(JSON.stringify(Rutas.enteros(out)))
+	f.close()
+	return 0
+
+
+func _nombres_cruzada(entrada: String, salida: String) -> int:
+	var casos: Variant = JSON.parse_string(FileAccess.get_file_as_string(entrada))
+	var nombres := Nombres.new()
+	nombres.cargar(_dir_datos())
+	var out: Array = []
+	for caso in casos:
+		out.append(nombres.nombre(cat, caso[0], cat.tipos_por_id[caso[1]], int(caso[2]), int(caso[3]), bool(caso[4])))
+	var f := FileAccess.open(salida, FileAccess.WRITE)
+	f.store_string(JSON.stringify(out))
 	f.close()
 	return 0

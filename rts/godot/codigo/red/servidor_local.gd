@@ -1,7 +1,9 @@
-## Servidor privado de las escaramuzas: el mismo servidor de Python, lanzado como proceso.
+## Servidor de este equipo: el mismo servidor de Python, lanzado como proceso.
 ##
-## Escucha solo en este equipo (127.0.0.1) y se cierra solo cuando termina el juego
-## (--padre con el PID de este proceso), aunque el juego se cierre de golpe.
+## El privado de las escaramuzas, la campaña y las repeticiones escucha solo en este equipo
+## (127.0.0.1); el abierto («Crear servidor en este equipo») escucha en toda la red y responde
+## a la búsqueda de la red local. Los dos se cierran solos cuando termina el juego (--padre
+## con el PID de este proceso), aunque el juego se cierre de golpe.
 ## En una instalación se usa el ejecutable empaquetado (ServidorSalitre); en desarrollo,
 ## «python -m salitre» desde la carpeta rts/ (SALITRE_PYTHON elige el intérprete).
 extends RefCounted
@@ -9,13 +11,19 @@ extends RefCounted
 var pid := -1
 var puerto := 0
 var error := ""
+var publico := false
 
 
-func iniciar(dir_rts: String) -> bool:
+## publico: abierto a la red con ese nombre y puerto (para jugar con los compañeros).
+func iniciar(dir_rts: String, abierto := false, nombre := "", puerto_fijo := 0) -> bool:
 	detener()
-	puerto = _puerto_libre()
-	var args := PackedStringArray(["--servidor", "--local", "--puerto", str(puerto),
-			"--padre", str(OS.get_process_id())])
+	publico = abierto
+	puerto = puerto_fijo if puerto_fijo > 0 else _puerto_libre()
+	var args := PackedStringArray(["--servidor", "--puerto", str(puerto), "--padre", str(OS.get_process_id())])
+	if abierto:
+		args.append_array(["--nombre", nombre])
+	else:
+		args.append("--local")
 	var exe := _ejecutable_empaquetado()
 	if exe != "":
 		pid = OS.create_process(exe, args)

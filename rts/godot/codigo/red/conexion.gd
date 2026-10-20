@@ -50,9 +50,9 @@ func enviar(msg: Dictionary) -> void:
 		_caida("no se pudo enviar (error %d)" % err)
 
 
-func saludar(nombre: String, huella: String, version: String, protocolo: int) -> void:
+func saludar(nombre: String, huella: String, version: String, protocolo: int, clave := "", registrar := false) -> void:
 	enviar({"t": "hola", "protocolo": protocolo, "version": version, "huella": huella,
-			"nombre": nombre, "clave": "", "registrar": false})
+			"nombre": nombre, "clave": clave, "registrar": registrar})
 
 
 func comando(cmd: Dictionary) -> void:

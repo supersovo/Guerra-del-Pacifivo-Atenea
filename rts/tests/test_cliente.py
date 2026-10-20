@@ -460,6 +460,15 @@ def test_campana_del_salitre(app):
     app.escena.volver()
     cuadros(app)
     assert escena(app) == "Campana" and app.escena.resumen is not None
+    # otra vez a la batalla: en la campaña se puede pausar, y abandonar vuelve a la campaña
+    app.escena.marchar()
+    hasta(app, lambda: escena(app) == "Juego")
+    juego = app.escena
+    juego.abrir_menu()
+    assert any(getattr(w, "texto", "") == "Pausa (F3)" for w in juego.menu)
+    juego.abandonar()
+    cuadros(app)
+    assert escena(app) == "Campana" and app.servidor_local is None
 
 
 def test_multijugador_salon_sala_y_batalla(app, tmp_path):

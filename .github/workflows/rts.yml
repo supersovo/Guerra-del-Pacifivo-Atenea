@@ -66,7 +66,7 @@ jobs:
   godot:
     name: Cliente 3D (Godot)
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 40
     defaults:
       run:
         working-directory: rts
@@ -87,22 +87,27 @@ jobs:
             "https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-stable/Godot_v${GODOT_VERSION}-stable_linux.x86_64.zip"
           unzip -q "$RUNNER_TEMP/godot.zip" -d "$RUNNER_TEMP/godot"
           echo "SALITRE_GODOT=$RUNNER_TEMP/godot/Godot_v${GODOT_VERSION}-stable_linux.x86_64" >> "$GITHUB_ENV"
-      - name: Pruebas del cliente (catálogo, niebla, servidor privado y prueba de humo)
+      - name: Pruebas del cliente (catálogo, niebla, campañas, prueba de humo, pantallas, campaña y multijugador)
         run: python -m pytest -v tests/test_godot.py
-      - name: Captura de una batalla (Xvfb y render por software)
+      - name: Capturas de la batalla y de las pantallas (Xvfb y render por software)
         continue-on-error: true
         run: |
           sudo apt-get update -q
           sudo apt-get install -y -q xvfb libgl1-mesa-dri
+          mkdir -p "$RUNNER_TEMP/capturas"
           SALITRE_PYTHON="$(which python)" SALITRE_DATOS_USUARIO="$RUNNER_TEMP/datos" \
             xvfb-run -a -s "-screen 0 1280x720x24" "$SALITRE_GODOT" --rendering-method gl_compatibility \
             --rendering-driver opengl3 --path godot --resolution 1280x720 \
-            -- --prueba-humo --captura="$RUNNER_TEMP/batalla.png"
+            -- --prueba-humo --captura="$RUNNER_TEMP/capturas/batalla.png" --capturas="$RUNNER_TEMP/capturas"
+          SALITRE_DATOS_USUARIO="$RUNNER_TEMP/datos2" \
+            xvfb-run -a -s "-screen 0 1280x720x24" "$SALITRE_GODOT" --rendering-method gl_compatibility \
+            --rendering-driver opengl3 --path godot --resolution 1280x720 \
+            -- --recorrido=pantallas --captura="$RUNNER_TEMP/capturas/pantallas"
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: captura-cliente-godot
-          path: ${{ runner.temp }}/batalla.png
+          name: capturas-cliente-godot
+          path: ${{ runner.temp }}/capturas
           if-no-files-found: ignore
 
   windows:

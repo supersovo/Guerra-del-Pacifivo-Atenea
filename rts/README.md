@@ -82,10 +82,18 @@ tropas y las obras modeladas en 3D con los uniformes de cada nación. Las tropas
 marchan, apuntan y hacen fuego, los jinetes galopan, las ruedas giran, las
 banderas ondean, las bajas caen; la guarnición se ve en la trinchera y en las
 azoteas, hay minimapa, la niebla de guerra tiene bordes suaves y lo explorado
-queda en sepia, como un mapa viejo. Usa el mismo servidor, la misma
-simulación, la misma IA y los mismos datos que el juego de siempre, que sigue
-disponible hasta que el nuevo cliente lo iguale. Por ahora ofrece la
-escaramuza contra la IA y ver repeticiones. Para probarlo
+queda en sepia, como un mapa viejo. Ya tiene **toda la interfaz** del juego, sobre
+el diorama de la pampa: Campaña del Salitre con su escalafón, escaramuza contra
+la IA, multijugador (red local, Internet o un servidor creado en el propio
+equipo, con salón, salas, series de campaña y conversación), repeticiones,
+Archivo histórico (con un retrato 3D de cada unidad y cada obra, y el desfile
+de cada nación), opciones (también la calidad gráfica, para equipos sin
+tarjeta de video), parte de guerra, la música, las voces de la tropa y los
+efectos de sonido. Usa el mismo servidor, la misma simulación, la misma IA y
+los mismos datos que el juego de siempre, que sigue disponible hasta que el
+nuevo cliente lo iguale; guarda su configuración y su perfil en
+`config_3d.json` y `perfil_3d.json` (la primera vez toma el nombre, los
+volúmenes y las preferencias del cliente de siempre). Para probarlo
 desde el código fuente hacen falta Godot 4.7 (o más nuevo) y Python 3.11:
 
 ```sh
@@ -466,7 +474,7 @@ rts/
 │   ├── red/              protocolo e instantáneas
 │   ├── servidor/         backend: cuentas, salas, partidas, series de campaña, base de datos, repeticiones
 │   └── cliente/          frontend: menús, campaña, salón, sala de espera y campo de batalla
-├── godot/                cliente 3D en Godot 4 (en desarrollo): diorama, modelos, sombreadores y pruebas
+├── godot/                cliente 3D en Godot 4 (en desarrollo): diorama, modelos, interfaz, sonido y pruebas
 ├── datos/                unidades, edificios, mejoras, habilidades, naciones, tablas (con la veteranía),
 │                         campañas y nombres del escalafón (JSON)
 ├── mapas/                los seis campos de batalla (JSON)
@@ -505,9 +513,11 @@ pyinstaller --noconfirm instalador/salitre.spec   # ejecutables en dist/
 ```
 
 Las pruebas del cliente 3D corren con el resto; las que necesitan Godot (las
-del propio cliente, la niebla comparada con la del servidor y una prueba de
-humo de punta a punta contra el servidor real) se activan indicando el
-ejecutable: `SALITRE_GODOT=/ruta/a/Godot_v4.7.2 python -m pytest tests/test_godot.py`.
+del propio cliente, la niebla, la campaña y los nombres de los veteranos
+comparados con los de Python, una prueba de humo de punta a punta contra el
+servidor real y los recorridos por todas las pantallas, la campaña y el
+multijugador con un servidor dedicado) se activan indicando el ejecutable:
+`SALITRE_GODOT=/ruta/a/Godot_v4.7.2 python -m pytest tests/test_godot.py`.
 `godot --path godot -s res://pruebas/vitrina.gd -- --vista=tropas` arma una
 vitrina con las tropas (o `--vista=obras`, `--vista=mapa`) para revisar los
 modelos.

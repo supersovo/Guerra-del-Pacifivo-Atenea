@@ -5,8 +5,8 @@ modo que las cifras que se leen aquí son las que valen en el combate."""
 import pygame
 
 from ...contenido import mapas as mod_mapas
-from ...contenido.textos import describir_efecto
-from ...sim.constantes import AFP, TICKS, TILE
+from ...contenido.textos import (CRONOLOGIA, aura_unidad, filas_edificio, filas_unidad, habilidades_unidad,
+                                 subtitulo_edificio, subtitulo_unidad)
 from .. import fuentes
 from ..graficos import paleta as P
 from ..graficos.banderas import superficie_bandera
@@ -19,42 +19,8 @@ from .base import Escena, FondoMenu
 NACIONES = ["chile", "peru", "bolivia", "argentina"]
 COLOR_NACION = {"chile": 0, "peru": 3, "bolivia": 2, "argentina": 4}
 
-CRONOLOGIA = [
-    ("14 feb 1879", "Tropas chilenas ocupan Antofagasta, tras el impuesto boliviano de diez centavos al quintal de "
-                    "salitre exportado y el remate de la Compañía de Salitres."),
-    ("1 mar 1879", "Bolivia declara el estado de guerra con Chile."),
-    ("23 mar 1879", "Combate de Calama (puente del Topáter): cae Eduardo Abaroa."),
-    ("5 abr 1879", "Chile declara la guerra al Perú y a Bolivia, aliados por el tratado secreto de 1873."),
-    ("21 may 1879", "Combate naval de Iquique: Arturo Prat muere al abordar el Huáscar y la Esmeralda se hunde. "
-                    "En Punta Gruesa la fragata peruana Independencia encalla persiguiendo a la Covadonga."),
-    ("8 oct 1879", "Combate de Angamos: el Huáscar es capturado y muere el almirante Miguel Grau. Chile domina "
-                   "el mar."),
-    ("2 nov 1879", "Desembarco de Pisagua: comienza la campaña terrestre de Tarapacá."),
-    ("19 nov 1879", "Batalla de San Francisco (Dolores): los aliados no logran tomar el cerro y se retiran."),
-    ("27 nov 1879", "Batalla de Tarapacá: victoria peruana; muere el comandante Eleuterio Ramírez. Aun así, el "
-                    "Perú pierde la provincia."),
-    ("22 mar 1880", "Batalla de Los Ángeles (Moquegua)."),
-    ("26 may 1880", "Batalla del Alto de la Alianza (Tacna): Baquedano derrota al ejército aliado de Campero. "
-                    "Bolivia se retira de la guerra."),
-    ("7 jun 1880", "Asalto y toma del Morro de Arica: mueren Bolognesi, Ugarte y More; cae el comandante "
-                   "San Martín Penrose."),
-    ("13 ene 1881", "Batalla de Chorrillos (San Juan)."),
-    ("15 ene 1881", "Batalla de Miraflores. El 17 de enero el ejército chileno ocupa Lima."),
-    ("23 jul 1881", "Tratado de límites entre Chile y la Argentina: la cordillera de los Andes como frontera."),
-    ("9 jul 1882", "Combate de La Concepción: los 77 hombres de la 4ª compañía del Chacabuco mueren en la sierra "
-                   "frente a las fuerzas de Cáceres."),
-    ("10 jul 1883", "Batalla de Huamachuco: termina la campaña de la Breña."),
-    ("20 oct 1883", "Tratado de Ancón entre Chile y el Perú: Tarapacá pasa a Chile; Tacna y Arica quedan bajo su "
-                    "administración por diez años."),
-    ("4 abr 1884", "Pacto de Tregua entre Chile y Bolivia: Bolivia pierde su litoral."),
-]
-
 PESTANAS = [("naciones", "Naciones"), ("heroes", "Héroes"), ("unidades", "Unidades"), ("edificios", "Edificios"),
             ("mapas", "Batallas"), ("cronologia", "Cronología")]
-
-
-def casillas(sub):
-    return sub / TILE
 
 
 class Archivo(Escena):
@@ -271,54 +237,17 @@ class Archivo(Escena):
         lz.rect((x + w - caja - 10, y - 4, caja + 10, caja + 10), (226, 210, 176))
         lz.dibujar(tex, x + w - caja - 5 + (caja - tex.width * esc) / 2, y + 1 + (caja - tex.height * esc) / 2,
                    tex.width * esc, tex.height * esc)
-        clases = {"infanteria": "Infantería", "caballeria": "Caballería", "artilleria": "Artillería",
-                  "apoyo": "Apoyo", "trabajador": "Trabajador", "heroe": "Héroe", "naval": "Marina",
-                  "sanidad": "Sanidad", "logistica": "Logística"}
-        sub = clases.get(tp.categoria, tp.categoria)
-        if tp.faccion:
-            sub += f" · solo {cat.facciones[tp.faccion].nombre}"
-        y = self._titulo(nombre, sub, x, y, caja + 20)
+        y = self._titulo(nombre, subtitulo_unidad(cat, tp), x, y, caja + 20)
         y = self._texto(tp.descripcion, x, y, w - 180, fuentes.negrita(17))
         y = max(y, y_ini + 170)
-        filas = [("Costo", f"$ {tp.costo[0]}" + (f", {tp.costo[1]} agua" if tp.costo[1] else "")),
-                 ("Población", tp.poblacion), ("Tiempo", f"{tp.tiempo / TICKS:.0f} s"),
-                 ("Vida", tp.vida), ("Armadura", f"{tp.armadura} ({cat.nombres_armadura.get(tp.clase, tp.clase)})"),
-                 ("Velocidad", f"{tp.velocidad * TICKS / TILE:.1f} casillas/s"), ("Visión", f"{tp.vision:g}")]
-        if tp.arma is not None:
-            a = tp.arma
-            filas += [("Daño", f"{a.danio} ({cat.nombres_ataque.get(a.tipo, a.tipo)})"),
-                      ("Alcance", f"{casillas(a.alcance):.1f}" + (f" (mín. {casillas(a.alcance_min):.1f})"
-                                                                  if a.alcance_min else "")),
-                      ("Cadencia", f"{a.enfriamiento / TICKS:.1f} s")]
-            if a.cep:
-                filas.append(("Dispersión", f"CEP {casillas(a.cep):.2f} por casilla de tiro"))
-        if tp.sed is not None:
-            filas.append(("Cantimplora", f"{tp.sed.cantimplora // AFP} de agua"))
-        if tp.estanque_cap:
-            filas.append(("Pipa", f"{tp.estanque_cap // AFP} de agua, radio {casillas(tp.estanque_radio):g}"))
-        if tp.forma_filas:
-            filas.append(("Formaciones", ", ".join(f.nombre for f in cat.formaciones.values())))
-        if tp.observador:
-            filas.append(("Observador", f"radio {casillas(tp.observador):g}: el CEP a la mitad"))
-        if tp.capacidad:
-            filas.append(("Transporta", f"{tp.capacidad} plazas"))
-        if tp.produce_en:
-            te = cat.edificios.get(tp.produce_en)
-            filas.append(("Se forma en", te.nombre if te else tp.produce_en))
-        if tp.requisitos:
-            filas.append(("Requiere", ", ".join(cat.edificios[r].nombre if r in cat.edificios else r
-                                                for r in tp.requisitos)))
-        y = self._cifras(filas, x, y, w)
-        if tp.aura_efectos:
-            lz.texto(f"Aura de mando (radio {casillas(tp.aura_radio):.0f} casillas)", x, y, fuentes.negrita(17),
-                     P.ROJO_SELLO)
-            y = self._texto(", ".join(describir_efecto(e) for e in tp.aura_efectos), x + 16, y + 24, w - 16)
-        for hid in tp.habilidades:
-            h = cat.habilidades.get(hid)
-            if h is None:
-                continue
-            lz.texto(h.nombre + (f" ({h.atajo})" if h.atajo else ""), x, y, fuentes.negrita(17), P.TINTA)
-            y = self._texto(h.descripcion, x + 16, y + 24, w - 16, fuentes.cuerpo(16))
+        y = self._cifras(filas_unidad(cat, tp), x, y, w)
+        aura = aura_unidad(tp)
+        if aura is not None:
+            lz.texto(aura[0], x, y, fuentes.negrita(17), P.ROJO_SELLO)
+            y = self._texto(aura[1], x + 16, y + 24, w - 16)
+        for titulo, descripcion in habilidades_unidad(cat, tp):
+            lz.texto(titulo, x, y, fuentes.negrita(17), P.TINTA)
+            y = self._texto(descripcion, x + 16, y + 24, w - 16, fuentes.cuerpo(16))
         y = self._texto(tp.historia, x, y + 4, w, fuentes.cursiva(17), P.TINTA_SUAVE)
 
     def _ficha_heroes(self, x, y, w):
@@ -341,23 +270,10 @@ class Archivo(Escena):
         esc = min(caja / tex.width, caja / tex.height)
         lz.dibujar(tex, x + w - caja + (caja - tex.width * esc) / 2, y + (caja - tex.height * esc) / 2,
                    tex.width * esc, tex.height * esc)
-        y = self._titulo(te.nombre, f"Edificio de {te.ancho}×{te.alto} casillas", x, y, caja + 10)
+        y = self._titulo(te.nombre, subtitulo_edificio(te), x, y, caja + 10)
         y = self._texto(te.descripcion, x, y, w - 190, fuentes.negrita(17))
         y = max(y, y_ini + 180)
-        filas = [("Costo", f"$ {te.costo[0]}" + (f", {te.costo[1]} agua" if te.costo[1] else "")),
-                 ("Tiempo", f"{te.tiempo / TICKS:.0f} s"), ("Vida", te.vida), ("Armadura", te.armadura)]
-        if te.poblacion:
-            filas.append(("Población", f"+{te.poblacion}"))
-        if te.guarnicion:
-            filas.append(("Guarnición", f"{te.guarnicion} soldados"))
-        if te.arma is not None:
-            filas.append(("Daño", f"{te.arma.danio} a {casillas(te.arma.alcance):.0f} casillas"))
-        if te.abastece_radio:
-            filas.append(("Aguada", f"radio {casillas(te.abastece_radio):g} (tropa y pipas)"))
-        if te.requisitos:
-            filas.append(("Requiere", ", ".join(cat.edificios[r].nombre if r in cat.edificios else r
-                                                for r in te.requisitos)))
-        y = self._cifras(filas, x, y, w)
+        y = self._cifras(filas_edificio(cat, te), x, y, w)
         if te.produce:
             nombres = [cat.nombre(nacion, u) for u in te.produce if cat.disponible(nacion, u)]
             y = self._texto("Forma: " + ", ".join(nombres), x, y, w)
