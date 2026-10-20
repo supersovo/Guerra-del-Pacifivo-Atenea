@@ -71,8 +71,7 @@ func actualizar(delta: float) -> void:
 	match _fase:
 		"conectar":
 			if not Juego.servidor.vivo():
-				_falla("El servidor del juego se cerró al comenzar. ¿Está instalado Python 3 con el juego? " +
-						"(Defina SALITRE_PYTHON con la ruta del intérprete.)")
+				_falla(Juego.servidor.motivo_cierre())
 				return
 			if _t >= 0.4:
 				_t = 0.0

@@ -8,9 +8,17 @@ config_version=5
 
 config/name="Guerra del Pacífico: Salitre y Pólvora"
 config/description="Cliente 3D del RTS de la Guerra del Pacífico (1879-1884)."
+config/version="0.14.0"
 run/main_scene="res://escenas/menu.tscn"
 config/features=PackedStringArray("4.7", "Forward Plus")
 config/icon="res://icono.svg"
+; los registros de Godot (user://logs) en la carpeta del juego, junto a los de Python
+config/use_custom_user_dir=true
+config/custom_user_dir_name="GuerraDelPacifico/godot"
+config/custom_user_dir_name.linux="guerra-del-pacifico/godot"
+; sin el logotipo de Godot al abrir: el color del menú hasta que aparece el diorama
+boot_splash/show_image=false
+boot_splash/bg_color=Color(0.78, 0.7, 0.58, 1)
 
 [autoload]
 
@@ -31,6 +39,8 @@ common/drop_mouse_on_gui_input_disabled=true
 [rendering]
 
 renderer/rendering_method="forward_plus"
+; la aplicación de macOS es universal: Apple Silicon pide también ETC2/ASTC
+textures/vram_compression/import_etc2_astc=true
 rendering_device/fallback_to_opengl3=true
 anti_aliasing/quality/msaa_3d=1
 lights_and_shadows/directional_shadow/size=4096

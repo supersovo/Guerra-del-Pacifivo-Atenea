@@ -5,8 +5,8 @@
 > Gemini CLI lo carga solo cuando trabaja en este repositorio; también se puede
 > adjuntar o pegar en una conversación.
 >
-> Describe el código de la versión **0.13.0** (`salitre/__init__.py`:
-> `VERSION = "0.13.0"`, `PROTOCOLO = 3`). Si el código y esta guía discrepan,
+> Describe el código de la versión **0.14.0** (`salitre/__init__.py`:
+> `VERSION = "0.14.0"`, `PROTOCOLO = 3`). Si el código y esta guía discrepan,
 > manda el código: verifique antes de afirmar.
 
 Todas las rutas son relativas a `rts/`, salvo que se indique otra cosa.
@@ -23,9 +23,9 @@ Todas las rutas son relativas a `rts/`, salvo que se indique otra cosa.
 | **Dónde está** | Todo el juego vive en `rts/`. La raíz del repositorio guarda además **otro proyecto sin relación**: un *shooter* en JavaScript, el «Motor Atenea» (`index.html`, `src/`, `content/`, `tools/`, y los `tests/` y `docs/` de la raíz). Esta guía no lo cubre. |
 | **Tamaño** | Unas 21 200 líneas en `salitre/`: cliente 10 800, simulación 5 600, servidor 1 900, contenido 1 200, IA 1 000, red 580. Además, 2 500 líneas de pruebas y 2 000 de herramientas. |
 | **Cómo se arranca** | `python -m salitre` abre el juego (opciones: `--conectar HOST[:PUERTO]`, `--nombre`, `--version`). `python -m salitre --servidor` arranca el servidor dedicado, con las opciones `--host 0.0.0.0 --puerto 47800 --nombre … --sin-invitados --sin-lan --bd ruta --detallado`; con `--local --padre PID` es el servidor privado del cliente 3D. |
-| **Cliente 3D** | `rts/godot/`: un segundo cliente en **Godot 4.7** (GDScript, unas 12 900 líneas), en construcción por fases (§10.1; las tres primeras, hechas: ya tiene toda la interfaz). Usa el mismo servidor, protocolo y datos; se abre con `godot --path godot`. |
-| **Pruebas** | `SDL_VIDEODRIVER=dummy SDL_AUDIODRIVER=dummy python -m pytest -q` corre 89 pruebas en unos 5 minutos (9 de ellas necesitan Godot y se omiten sin `SALITRE_GODOT`). La revisión estática es `python -m pyflakes salitre herramientas instalador docker tests`. |
-| **Integración continua** | `.github/workflows/rts.yml`, en la raíz del repositorio: pruebas en Linux, Windows y macOS; instalador de Windows (PyInstaller + Inno Setup); `.app` y `.dmg` universal2; versión portátil para Linux; imagen Docker del servidor. |
+| **Cliente 3D** | `rts/godot/`: el cliente en **Godot 4.7** (GDScript, unas 13 000 líneas), **el juego principal de los instaladores desde la 0.14.0**; el de pygame viaja con él como *versión clásica* (§10.1, hecho en cuatro fases). Usa el mismo servidor, protocolo y datos; desde las fuentes se abre con `godot --path godot`. |
+| **Pruebas** | `SDL_VIDEODRIVER=dummy SDL_AUDIODRIVER=dummy python -m pytest -q` corre 92 pruebas en unos 5 minutos (9 de ellas necesitan Godot y se omiten sin `SALITRE_GODOT`). La revisión estática es `python -m pyflakes salitre herramientas instalador docker tests`. |
+| **Integración continua** | `.github/workflows/rts.yml`, en la raíz del repositorio: pruebas en Linux, Windows y macOS; el cliente 3D probado y exportado para los tres sistemas; instalador de Windows (PyInstaller + Inno Setup), `.app` y `.dmg` universal y versión portátil para Linux, cada uno con los dos clientes y el servidor, probados; imagen Docker del servidor. |
 | **Idioma** | Todo en **español**: identificadores, datos, textos, comentarios, documentación y mensajes de commit. Los identificadores van sin tildes ni eñe: `dueno`, `danio`, `tamano`, `campana` (= campaña). |
 
 ---
@@ -219,18 +219,22 @@ rts/
 ├── mapas/                        6 mapas JSON (ver §6.7)
 ├── recursos/                     fuentes, ícono, música (.ogg) y voces (.ogg + voces.json); aquí pueden
 │                                 ir gráficos y sonidos propios que reemplazan a los generados
-├── godot/                        cliente 3D en Godot 4 (§10.1): project.godot, datos/catalogo.json (generado),
-│                                 codigo/ (juego.gd, sonido.gd, red, datos, batalla, mundo, ui y ui/pantallas),
-│                                 escenas/, sombreadores/, pruebas/ (correr.gd, recorrido.gd, vitrina.gd)
+├── godot/                        cliente 3D en Godot 4 (§10.1): project.godot, export_presets.cfg,
+│                                 datos/catalogo.json (generado), codigo/ (juego.gd, sonido.gd, red, datos,
+│                                 batalla, mundo, ui y ui/pantallas), escenas/, sombreadores/,
+│                                 pruebas/ (correr.gd, recorrido.gd, vitrina.gd)
 ├── herramientas/                 generar_mapas.py, generar_tablas.py (→ docs/TABLAS.md), generar_icono.py,
 │                                 generar_musica.py (numpy + soundfile), generar_voces.py (Kokoro-82M),
 │                                 vista_mapa.py (PNG de cada mapa), exportar_godot.py (→ godot/datos/
-│                                 catalogo.json), duelo_ia.py (IA contra IA sin red, con repetición)
-├── instalador/                   salitre.spec (PyInstaller), salitre.iss (Inno Setup), construir.sh (portátil
-│                                 de Linux, lo usa la CI), construir_windows.ps1, construir_mac.sh,
-│                                 lanzar_juego.py / lanzar_servidor.py (puntos de entrada empaquetados)
+│                                 catalogo.json y la versión de project.godot), duelo_ia.py (IA contra IA
+│                                 sin red, con repetición), exportar_cliente3d.py (exporta el cliente 3D),
+│                                 plantillas_godot.py (baja solo las plantillas de exportación que hacen falta)
+├── instalador/                   salitre.spec (PyInstaller: versión clásica y servidor), salitre.iss (Inno
+│                                 Setup), construir.sh (portátil de Linux, lo usa la CI), construir_windows.ps1,
+│                                 construir_mac.sh, lanzar_juego.py / lanzar_servidor.py (puntos de entrada
+│                                 empaquetados), probar_cliente3d.py (prueba de humo del cliente 3D empaquetado)
 ├── docker/                       Dockerfile y docker-compose.yml del servidor dedicado; probar_servidor.py
-├── descargas/                    instalador .exe y .dmg guardados a pedido por la CI, más LEEME.md
+├── descargas/                    instalador .exe, .dmg y .tar.gz de Linux guardados a pedido por la CI, más LEEME.md
 ├── tests/                        pruebas (ver §12)
 └── docs/                         ARQUITECTURA, DISENO, TABLAS (generado), MULTIJUGADOR, INVESTIGACION,
                                   RECOMENDACIONES
@@ -976,9 +980,9 @@ Ver §14.
 
 ### 10.1 Cliente 3D (`rts/godot`)
 
-Proyecto de Godot 4.7 en GDScript que reemplaza solo la parte gráfica. Fases: 1) cabeza de puente: red, diorama, tropas, selección, órdenes, tarjeta, obras y escaramuza (**hecha**); 2) figuras agrupadas y animadas, guarnición a la vista, marcas de estado, efectos, niebla suave y minimapa (**hecha**); 3) toda la interfaz: menús, campaña, multijugador, archivo, opciones y sonido (**hecha**); 4) ejecutables con el servidor adentro. El cliente de pygame sigue siendo el oficial hasta la paridad: **todo cambio de reglas va en Python**, y el cliente 3D solo lo dibuja.
+Proyecto de Godot 4.7 en GDScript que reemplaza solo la parte gráfica. Se hizo en cuatro fases, todas **hechas**: 1) cabeza de puente: red, diorama, tropas, selección, órdenes, tarjeta, obras y escaramuza; 2) figuras agrupadas y animadas, guarnición a la vista, marcas de estado, efectos, niebla suave y minimapa; 3) toda la interfaz: menús, campaña, multijugador, archivo, opciones y sonido; 4) ejecutables para Windows, macOS y Linux con el servidor adentro. Desde la 0.14.0 es el juego principal de los instaladores, y el cliente de pygame viaja con él como **versión clásica** (para los equipos sin tarjeta de video). **Todo cambio de reglas va en Python**: los dos clientes solo lo dibujan.
 
-**Arranque.** Dos autocargas: `Sonido` (`codigo/sonido.gd`, va primero) y `Juego` (`codigo/juego.gd`), que carga `datos/catalogo.json`, las fuentes de `rts/recursos/fuentes/`, el tema, la configuración (`config_3d.json`, sembrada la primera vez desde el `config.json` del cliente de Python), el perfil (`perfil_3d.json`), `datos/nombres.json` y `datos/campanas.json`, y guarda lo que pasa de una pantalla a otra: la conexión, la bienvenida, el salón, la sala, la conversación, el origen de la batalla (`escaramuza`, `campana`, `repeticion`, `multijugador`), su `info` y su fin. `escenas/menu.tscn` (`ui/menu.gd`) deja el diorama girando de fondo y abre una pantalla a la vez (`ui/pantallas/*.gd`, con base en `pantalla.gd`: un lienzo de 1280×720 centrado con las coordenadas de las escenas de Python); `Juego.ir_al_menu(pantalla, args)` vuelve a él desde la batalla. Las partidas locales pasan por `cargando.gd`: `ServidorLocal.iniciar` lanza el servidor privado (`SALITRE_SERVIDOR` o el `ServidorSalitre` empaquetado; si no, `python -m salitre` con `PYTHONPATH=rts/` y el intérprete de `SALITRE_PYTHON`, `python3`/`python` o, en Windows, `python`/`py -3`), reintenta la conexión, saluda, pide `partida_rapida` (o `ver_repeticion`) y con `inicio` llama a `Juego.a_la_batalla`. «Crear servidor en este equipo» lanza el mismo servidor abierto (`--puerto 47800 --nombre … --padre PID`, sin `--local`). Argumentos (después de `--`): `--prueba-humo`, `--recorrido=pantallas|campana|multijugador`, `--conectar=`, `--nombre=`, `--mapa=`, `--repeticion=`, `--captura=`, `--captura-en=`, `--capturas=`.
+**Arranque.** Dos autocargas: `Sonido` (`codigo/sonido.gd`, va primero) y `Juego` (`codigo/juego.gd`), que carga `datos/catalogo.json`, las fuentes de `rts/recursos/fuentes/`, el tema, la configuración (`config_3d.json`, sembrada la primera vez desde el `config.json` del cliente de Python), el perfil (`perfil_3d.json`), `datos/nombres.json` y `datos/campanas.json`, y guarda lo que pasa de una pantalla a otra: la conexión, la bienvenida, el salón, la sala, la conversación, el origen de la batalla (`escaramuza`, `campana`, `repeticion`, `multijugador`), su `info` y su fin. `escenas/menu.tscn` (`ui/menu.gd`) deja el diorama girando de fondo y abre una pantalla a la vez (`ui/pantallas/*.gd`, con base en `pantalla.gd`: un lienzo de 1280×720 centrado con las coordenadas de las escenas de Python); `Juego.ir_al_menu(pantalla, args)` vuelve a él desde la batalla. Las partidas locales pasan por `cargando.gd`: `ServidorLocal.iniciar` lanza el servidor privado (`SALITRE_SERVIDOR` o el `ServidorSalitre` empaquetado, sin `--servidor`; si no, `python -m salitre --servidor` con `PYTHONPATH=rts/` y el intérprete de `SALITRE_PYTHON`, `python3`/`python` o, en Windows, `python`/`py -3`), reintenta la conexión, saluda, pide `partida_rapida` (o `ver_repeticion`) y con `inicio` llama a `Juego.a_la_batalla`. «Crear servidor en este equipo» lanza el mismo servidor abierto (`--puerto 47800 --nombre … --padre PID`, sin `--local`). Argumentos (después de `--`): `--prueba-humo`, `--recorrido=pantallas|campana|multijugador`, `--conectar=`, `--nombre=`, `--mapa=`, `--repeticion=`, `--captura=`, `--captura-en=`, `--capturas=`.
 
 **Menú y red.** El menú reparte los mensajes del servidor a la pantalla que los usa (`usa_red`): si la pantalla cambia (o se pide la batalla) en medio de un lote, lo que falta vuelve a `Conexion.pendientes` para la siguiente. Una caída de la conexión en una pantalla de red lleva a la portada con un aviso (`Juego.perdio_conexion`). `Juego.avisar` muestra avisos al pie en cualquier pantalla (también en la batalla).
 
@@ -999,6 +1003,8 @@ Proyecto de Godot 4.7 en GDScript que reemplaza solo la parte gráfica. Fases: 1
 - `Sonido`: los efectos de `cliente/sonido.py` sintetizados la primera vez que suenan (o un `.ogg`/`.wav` de `recursos/sonidos/` con su nombre), las voces de a una con prioridades, la música con fundidos y un bus por volumen; `en_mapa(nombre, punto, centro, ancho)` suena en el lugar del mapa (`AudioStreamPlayer3D` sin atenuación propia: el volumen baja con la distancia al centro de la vista, como en pygame).
 
 **Pruebas** (§12): `godot/pruebas/correr.gd` (sin pantalla), `godot/pruebas/recorrido.gd` (recorridos del menú que eligen como un jugador: la prueba de humo, todas las pantallas, la campaña y el multijugador) y `tests/test_godot.py`. `godot/pruebas/vitrina.gd` arma una vitrina con las tropas, las obras o el mapa y guarda una captura (necesita pantalla: Xvfb con `--rendering-method gl_compatibility` sirve).
+
+**Empaquetado** (fase 4). `herramientas/exportar_cliente3d.py --sistemas windows,macos,linux` exporta con `godot/export_presets.cfg` (release; desde cualquier sistema para los tres) a `dist/cliente3d/<sistema>/` y, si faltan, baja las plantillas con `herramientas/plantillas_godot.py`, que lee del `.tpz` oficial de 1,3 GB solo el índice del zip y las tres plantillas (pedidos HTTP por tramos). Los guiones de `instalador/` juntan ese ejecutable con lo que arma PyInstaller: la versión clásica (`GuerraDelPacificoClasico`), el servidor (`ServidorSalitre`) y `_internal/` con Python y `datos/`, `mapas/` y `recursos/`, que el cliente 3D también lee. Windows y Linux: una carpeta con `GuerraDelPacifico(.exe)` (el cliente 3D, con su `.pck` adentro) junto a los otros dos. macOS: la `.app` de PyInstaller con el cliente 3D como `CFBundleExecutable` (`Contents/MacOS/GuerraDelPacifico` y `Contents/Resources/GuerraDelPacifico.pck`), los requisitos de Godot en el `Info.plist` (macOS 11 en Intel, 13 en Apple Silicon), firmada «ad hoc» de nuevo y en un `.dmg` ULMO. Instalado (`OS.has_feature("template")`), el cliente busca los datos con `Rutas.dir_juego_instalado` (junto al ejecutable, `_internal/` o `../Resources`) y los otros ejecutables con `Rutas.ejecutable_hermano`; el botón *Versión clásica (2D)* de la portada (`Juego.abrir_version_clasica`) abre la de pygame y cierra el cliente 3D (desde las fuentes, con `python -m salitre`). `exportar_godot.py` pone la versión del juego en `project.godot` (`config/version`, que la exportación lleva al `.exe` y al `Info.plist`); `user://` (los registros de Godot) es la carpeta `GuerraDelPacifico/godot` del usuario (`guerra-del-pacifico/godot` en Linux). `instalador/probar_cliente3d.py` corre la prueba de humo con el ejecutable empaquetado y `SALITRE_PYTHON` apuntando a la nada: si el cliente no encuentra el servidor empaquetado, falla.
 
 **Para agregar una pantalla:** cree `ui/pantallas/nombre.gd` con `extends "res://codigo/ui/pantallas/pantalla.gd"`, arme sus controles en `armar()` con los constructores de la base (`panel`, `titulo_panel`, `texto`, `parrafo`, `boton`, `opciones`, `casilla`, `deslizador`, `campo`, `tabla`, `lista`, `bandera`, `previa_mapa`), declare `usa_red = true` si recibe mensajes (`mensaje(m)`), `var titulo := false` si tapa el título, y regístrela en `PANTALLAS` de `ui/menu.gd`; agréguela a `ORDEN` en `pruebas/recorrido.gd` para que la prueba la recorra.
 
@@ -1067,7 +1073,7 @@ Para medir el efecto, deje a la IA contra la IA sin red, como en `test_determini
 3. Para la Campaña del Salitre o las series, edite `datos/campanas.json` y `servidor/serie.py:ITINERARIO`.
 
 **Publicar una versión** (solo cuando el dueño del proyecto lo pida)
-1. Suba `VERSION` en `salitre/__init__.py` (y `PROTOCOLO` si cambió el formato de la red).
+1. Suba `VERSION` en `salitre/__init__.py` (y `PROTOCOLO` si cambió el formato de la red) y corra `python herramientas/exportar_godot.py`, que la lleva al catálogo y a `godot/project.godot` (la prueba del catálogo lo exige).
 2. Actualice el comentario de `instalador/salitre.iss`.
 3. Escriba las novedades y los enlaces en `descargas/LEEME.md`.
 4. La CI construye los instaladores y, con una etiqueta `v*`, los publica en una versión de GitHub.
@@ -1084,7 +1090,7 @@ python -m pyflakes salitre herramientas instalador docker tests
 python -m pytest -q tests/test_simulacion.py -k camilleros   # una parte
 ```
 
-**Las 89 pruebas, por archivo**
+**Las 92 pruebas, por archivo**
 
 | Archivo | Qué cubre |
 |---|---|
@@ -1092,8 +1098,8 @@ python -m pytest -q tests/test_simulacion.py -k camilleros   # una parte
 | `test_contenido.py` | Catálogo, reglas de población, héroes por nación, mapas oficiales y campaña. |
 | `test_red.py` | Protocolo, huella, cuentas, partida de dos jugadores por TCP con ELO, escaramuza y reconexión, veteranos de la campaña y serie de campaña en red. |
 | `test_cliente.py` | Todas las pantallas, escaramuza, ambulancia en el cliente, formaciones, sed, carreta y viento en el cliente, volumen, casas fuertes, campaña, multijugador completo, clics con la ventana agrandada (eventos nativos de SDL), uniformes, voces, cámara por el borde. |
-| `test_empaquetado.py` | Ícono de macOS. |
-| `test_godot.py` | Cliente 3D: el catálogo de Godot al día y en el orden de la red, el servidor privado que se cierra con el juego; con `SALITRE_GODOT`, las 300 comprobaciones de `godot/pruebas/correr.gd`, la niebla de Godot comparada casilla por casilla con `sim/vision.py`, la campaña (60 batallas seguidas, con fichas dañadas) y 400 nombres de veteranos comparados con `contenido/campanas.py` y `contenido/nombres.py`, una batalla IA contra IA (`herramientas/duelo_ia.py`) vista como espectador sin errores de guion, la prueba de humo de punta a punta (menú, servidor privado, escaramuza, marcha, minimapa, formar y cancelar, depósito en obra, conversación, menú con el volumen, rendición, parte de guerra y la escaramuza en el perfil) y los recorridos de `godot/pruebas/recorrido.gd`: todas las pantallas, una batalla de la campaña que queda en el escalafón y el multijugador contra un servidor dedicado (salón, sala con la IA, batalla, parte, sala y salón). |
+| `test_empaquetado.py` | Ícono de macOS; los nombres de los ejecutables (cliente 3D, versión clásica, servidor) iguales en `salitre.spec`, `salitre.iss`, los guiones de `instalador/`, la CI y el cliente 3D; los presets de `godot/export_presets.cfg` contra `exportar_cliente3d.py` y `plantillas_godot.py`; la versión de Godot de la CI y la del proyecto. |
+| `test_godot.py` | Cliente 3D: el catálogo de Godot al día y en el orden de la red, el servidor privado que se cierra con el juego; con `SALITRE_GODOT`, las 309 comprobaciones de `godot/pruebas/correr.gd` (también las carpetas de una instalación), la niebla de Godot comparada casilla por casilla con `sim/vision.py`, la campaña (60 batallas seguidas, con fichas dañadas) y 400 nombres de veteranos comparados con `contenido/campanas.py` y `contenido/nombres.py`, una batalla IA contra IA (`herramientas/duelo_ia.py`) vista como espectador sin errores de guion, la prueba de humo de punta a punta (menú, servidor privado, escaramuza, marcha, minimapa, formar y cancelar, depósito en obra, conversación, menú con el volumen, rendición, parte de guerra y la escaramuza en el perfil) y los recorridos de `godot/pruebas/recorrido.gd`: todas las pantallas (y el botón de la versión clásica), una batalla de la campaña que queda en el escalafón y el multijugador contra un servidor dedicado (salón, sala con la IA, batalla, parte, sala y salón). |
 
 **Ayudas para escribir pruebas** (`tests/utilidades.py`)
 - `cat()` carga el catálogo.
@@ -1138,8 +1144,8 @@ python herramientas/duelo_ia.py --nombre duelo && godot --path godot -- --repeti
 Un error de sintaxis o de tipos de GDScript aparece recién al cargar el guion (§13, trampa 19): después de tocar el cliente 3D, corra al menos la prueba de humo.
 
 **Integración continua**
-- Cada push a cualquier rama que toque `rts/**` corre las pruebas en tres sistemas operativos, prueba el cliente 3D con Godot 4.7.2 en Linux (y guarda capturas de la batalla, del menú de la batalla y de cada pantalla, dibujadas por software, como artefacto `capturas-cliente-godot`) y construye el instalador de Windows (con prueba de humo `--prueba-humo` del `.exe`), la `.app`/`.dmg`, la versión portátil de Linux y la imagen Docker (probada con `docker/probar_servidor.py`).
-- A pedido (*Run workflow*), guarda el `.exe` y el `.dmg` en `rts/descargas/`; ese commit lo hace el bot de la CI en la rama.
+- Cada push a cualquier rama que toque `rts/**` corre las pruebas en tres sistemas operativos, prueba el cliente 3D con Godot 4.7.2 en Linux (y guarda capturas de la batalla, del menú de la batalla y de cada pantalla, dibujadas por software, como artefacto `capturas-cliente-godot`), exporta el cliente 3D para los tres sistemas (trabajo `cliente3d`, con las plantillas en caché; artefactos `cliente3d-windows`, `-macos` y `-linux`) y construye el instalador de Windows, la `.app`/`.dmg` y la versión portátil de Linux, cada uno con las pruebas de humo de la versión clásica (`--prueba-humo` sin pantalla) y del cliente 3D (`instalador/probar_cliente3d.py`) contra el servidor empaquetado; además, la imagen Docker (probada con `docker/probar_servidor.py`).
+- A pedido (*Run workflow*), guarda el `.exe`, el `.dmg` o el `.tar.gz` de Linux en `rts/descargas/` (rechaza archivos de más de 95 MB: GitHub no acepta más de 100); ese commit lo hace el bot de la CI en la rama.
 
 ---
 
@@ -1183,6 +1189,11 @@ Un error de sintaxis o de tipos de GDScript aparece recién al cargar el guion (
 27. **Godot no compara números con textos:** `1 == "chile"` es un error en tiempo de ejecución (no un `false`). Las claves de listas, tablas y desplegables, que pueden ser de los dos tipos, se comparan con `pantalla.gd:iguales`.
 28. **En un `TextureRect`, el modo de ajuste va antes que el tamaño.** Si se fija `size` con `expand_mode` todavía en el valor por omisión, el tamaño mínimo (el de la imagen) manda y la imagen sale a su tamaño natural.
 29. **El orden de las autocargas importa:** `Sonido` va antes que `Juego` en `project.godot`, porque `Juego._ready` lo configura. Y al salir, `Juego.salir` calla la música y espera un instante: el mezclador suelta la pista en su propio hilo, y si no, Godot avisa objetos sin liberar.
+30. **El servidor empaquetado no lleva `--servidor`.** `ServidorSalitre` (`instalador/lanzar_servidor.py`) llama directo a `servidor.principal.main`, cuyo argparse no conoce ese argumento: con él, el servidor se cierra al arrancar y el cliente 3D avisa que «se cerró al comenzar». `ServidorLocal.iniciar` lo agrega solo a `python -m salitre`.
+31. **Una exportación vieja viaja en el paquete.** Sin `SALITRE_GODOT`, los guiones de `instalador/` usan el cliente 3D que encuentren en `dist/cliente3d/`: después de tocar el cliente, vuelva a exportar (o defina `SALITRE_GODOT`) antes de empaquetar.
+32. **La aplicación universal de macOS exige ETC2/ASTC.** Sin `rendering/textures/vram_compression/import_etc2_astc=true` en `project.godot`, Godot se niega a exportar para macOS («configuration errors»), aunque el proyecto casi no tenga texturas.
+33. **PyInstaller 6 deja los datos en `_internal/`** (en macOS, en `Contents/Resources/`), no junto a los ejecutables: el cliente 3D instalado los busca con `Rutas.dir_juego_instalado`. Lo que el cliente 3D lea de `rts/` tiene que estar en `DATOS` de `instalador/salitre.spec`.
+34. **Un `.dmg` de más de 100 MB no entra en `rts/descargas/`.** El ejecutable universal de Godot pesa 170 MB (unos 60 comprimido): la imagen va en LZMA (`-format ULMO`, que macOS abre desde la 10.15) y la CI se niega a guardar archivos de más de 95 MB.
 
 ---
 
@@ -1229,7 +1240,7 @@ Ordenadas por valor estimado. Cada una indica dónde atacar.
    - Límite de héroes simultáneos.
 8. **Eventos que el cliente no muestra.** La simulación emite `mina`, `golpe`, `embarca`, `desembarca` y `fin`, que `Juego._evento` no atiende. Puede ser intencional; revise antes de agregar efectos.
 9. **Formaciones a la vista.** Hoy la formación solo se lee en la ficha (y en el submenú). Dibujarla sobre el terreno (las filas de la línea, el cuadro) ayudaría a leer la batalla; lo mismo la cobertura y la sombra, que el cliente tendría que calcular (§13, trampa 16). Archivos: `cliente/juego/vista.py` y `cliente/graficos/`.
-10. **Cliente 3D, fase 4** (§10.1): los ejecutables para Windows, macOS y Linux con el servidor adentro (`ServidorSalitre`, que el cliente ya busca junto a su ejecutable), su integración continua e instaladores. Pendiente menor: importar al cliente 3D la campaña y el historial que el cliente de Python guarda en `perfil.db` (SQLite; Godot no lo lee sin una extensión). Rendimiento: con dibujo por software (llvmpipe) la batalla anda a 3 cuadros por segundo con 180 figuras: lo que pesa es la sombra del sol y el sombreador del terreno; la **calidad gráfica** de las Opciones (alta, media, baja) apaga o simplifica las sombras, el suavizado y el humo, y no se pudo medir aquí con una tarjeta de video.
+10. **Cliente 3D** (§10.1): las cuatro fases están hechas y los instaladores lo traen como juego principal. Pendientes: importar al cliente 3D la campaña y el historial que la versión clásica guarda en `perfil.db` (SQLite; Godot no lo lee sin una extensión); firmar los ejecutables (Authenticode en Windows; Developer ID y notarización de Apple) para que los sistemas no desconfíen; exportar también para Windows y Linux en ARM64 (las plantillas existen; faltaría la versión clásica de PyInstaller en esas arquitecturas). Rendimiento: con dibujo por software (llvmpipe) la batalla anda a 3 cuadros por segundo con 180 figuras: lo que pesa es la sombra del sol y el sombreador del terreno; la **calidad gráfica** de las Opciones (alta, media, baja) apaga o simplifica las sombras, el suavizado y el humo, y no se pudo medir aquí con una tarjeta de video.
 11. **Dispersión de los cañones navales y de la Gatling.** Solo los cañones de montaña y de campaña tienen `cep`. Los buques podrían dispersar con el balanceo: como sus cañones tienen `proyectil`, basta con agregarles `cep`. La Gatling dispara al instante (metralla, sin `proyectil`): solo con `cep`, el catálogo no carga; habría que darle `proyectil`, que cambia su fuego, o dispersar los tiros instantáneos en `combate.disparar`.
 
 ---

@@ -36,6 +36,9 @@ def test_catalogo_de_godot_al_dia():
     archivo = PROYECTO / "datos" / "catalogo.json"
     assert archivo.read_text(encoding="utf-8") == exportar_godot.exportar(), \
         "El catálogo de Godot está desfasado: corra python herramientas/exportar_godot.py"
+    proyecto = (PROYECTO / "project.godot").read_text(encoding="utf-8")
+    assert exportar_godot.proyecto_con_version(proyecto) == proyecto, \
+        "La versión de godot/project.godot no es la del juego: corra python herramientas/exportar_godot.py"
 
 
 def test_catalogo_de_godot_en_el_orden_de_la_red():

@@ -7,14 +7,17 @@ orden de los índices de red, junto con la huella del contenido (el servidor
 rechaza a quien no la tenga igual), las banderas de la instantánea y los
 colores.
 
-Después de tocar los datos:
+Después de tocar los datos o de cambiar la versión del juego:
 
     python herramientas/exportar_godot.py
 
-La prueba test_godot.py comprueba que el archivo está al día.
+También pone la versión del juego en godot/project.godot (config/version), que la
+exportación lleva a los ejecutables. La prueba test_godot.py comprueba que los dos
+archivos están al día.
 """
 
 import json
+import re
 import sys
 from pathlib import Path
 
@@ -33,6 +36,7 @@ from salitre.servidor.servidor import VELOCIDADES  # noqa: E402
 from salitre.sim.constantes import AFP, EFP, SUB, TICKS, TILE, TILE_PX, XPF  # noqa: E402
 
 DESTINO = RAIZ / "godot" / "datos" / "catalogo.json"
+PROYECTO = RAIZ / "godot" / "project.godot"
 
 
 def _casillas(sub):
@@ -156,10 +160,23 @@ def exportar(cat=None):
     return json.dumps(datos, ensure_ascii=False, indent=1) + "\n"
 
 
+def proyecto_con_version(texto):
+    """project.godot con la versión del juego en [application] config/version."""
+    linea = f'config/version="{VERSION}"'
+    if re.search(r"^config/version=.*$", texto, flags=re.M):
+        return re.sub(r"^config/version=.*$", linea, texto, count=1, flags=re.M)
+    return re.sub(r"^(config/description=.*)$", lambda m: m.group(1) + "\n" + linea, texto, count=1, flags=re.M)
+
+
 def main():
     DESTINO.parent.mkdir(parents=True, exist_ok=True)
     DESTINO.write_text(exportar(), encoding="utf-8")
     print("Escrito", DESTINO)
+    texto = PROYECTO.read_text(encoding="utf-8")
+    nuevo = proyecto_con_version(texto)
+    if nuevo != texto:
+        PROYECTO.write_text(nuevo, encoding="utf-8")
+        print("Versión", VERSION, "en", PROYECTO)
     return 0
 
 

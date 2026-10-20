@@ -1,4 +1,4 @@
-"""Punto de entrada del ejecutable del juego (PyInstaller)."""
+"""Punto de entrada del ejecutable de la versión clásica del juego, la de pygame (PyInstaller)."""
 
 import multiprocessing
 import sys

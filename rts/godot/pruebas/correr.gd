@@ -57,7 +57,7 @@ func _initialize() -> void:
 		return
 	for prueba in ["protocolo", "lector_por_trozos", "vision", "estado", "terreno", "tarjeta", "modelos", "lugar_costo",
 			"partes_animadas", "grupos", "guarnicion", "minimapa", "niebla_fundida", "enteros", "config", "perfil",
-			"repeticiones", "mapas_y_banderas", "campana"]:
+			"repeticiones", "mapas_y_banderas", "campana", "instalacion"]:
 		call("_prueba_" + prueba)
 	print("%d comprobaciones, %d fallas" % [pruebas, fallas])
 	quit(mini(fallas, 100))
@@ -560,3 +560,55 @@ func _nombres_cruzada(entrada: String, salida: String) -> int:
 	f.store_string(JSON.stringify(out))
 	f.close()
 	return 0
+
+
+# ----------------------------------------------------------------------
+# Fase 4: el juego instalado (carpetas de PyInstaller y de la aplicación de macOS)
+
+func _arbol(raiz: String, rutas: Array) -> void:
+	for r in rutas:
+		var ruta: String = raiz.path_join(r)
+		if r.ends_with("/"):
+			DirAccess.make_dir_recursive_absolute(ruta)
+		else:
+			DirAccess.make_dir_recursive_absolute(ruta.get_base_dir())
+			FileAccess.open(ruta, FileAccess.WRITE).store_string("x")
+
+
+func _borrar_arbol(d: String) -> void:
+	for sub in DirAccess.get_directories_at(d):
+		_borrar_arbol(d.path_join(sub))
+	_borrar_dir(d)
+
+
+func _prueba_instalacion() -> void:
+	var d := _dir_prueba("instalacion")
+	# Windows y Linux: PyInstaller 6 deja los datos en _internal/, junto a los ejecutables
+	var carpeta := d.path_join("GuerraDelPacifico")
+	_arbol(carpeta, ["GuerraDelPacifico.exe", "GuerraDelPacificoClasico.exe", "ServidorSalitre.exe",
+			"_internal/datos/", "_internal/mapas/", "_internal/recursos/"])
+	_igual(Rutas.dir_juego_instalado(carpeta), carpeta.path_join("_internal"), "los datos de PyInstaller, en _internal")
+	_igual(Rutas.ejecutable_hermano("ServidorSalitre", carpeta, true), carpeta.path_join("ServidorSalitre.exe"),
+			"el servidor junto al cliente 3D, en Windows")
+	_igual(Rutas.ejecutable_hermano("GuerraDelPacificoClasico", carpeta, true),
+			carpeta.path_join("GuerraDelPacificoClasico.exe"), "y la versión clásica")
+	_igual(Rutas.ejecutable_hermano("ServidorSalitre", carpeta, false), "", "sin .exe no es el de Windows")
+	# macOS: el ejecutable en Contents/MacOS y los datos en Contents/Resources
+	var app := d.path_join("Guerra del Pacífico.app/Contents")
+	_arbol(app, ["MacOS/GuerraDelPacifico", "MacOS/ServidorSalitre", "Resources/datos/", "Resources/recursos/",
+			"Frameworks/"])
+	_igual(Rutas.dir_juego_instalado(app.path_join("MacOS")), app.path_join("Resources"),
+			"los datos de la aplicación de macOS, en Contents/Resources")
+	_igual(Rutas.ejecutable_hermano("ServidorSalitre", app.path_join("MacOS"), false),
+			app.path_join("MacOS/ServidorSalitre"), "el servidor dentro de la aplicación")
+	_igual(Rutas.ejecutable_hermano("GuerraDelPacificoClasico", app.path_join("MacOS"), false), "",
+			"sin la versión clásica no hay botón")
+	# una carpeta con los datos a la vista (como rts/ en las fuentes)
+	var plana := d.path_join("plana")
+	_arbol(plana, ["datos/", "recursos/"])
+	_igual(Rutas.dir_juego_instalado(plana), plana, "los datos junto al ejecutable")
+	var vacia := d.path_join("vacia")
+	DirAccess.make_dir_recursive_absolute(vacia)
+	_igual(Rutas.dir_juego_instalado(vacia), vacia, "sin datos queda la carpeta del ejecutable")
+	_borrar_arbol(d)
+

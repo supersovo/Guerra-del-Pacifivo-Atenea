@@ -4,7 +4,7 @@ Este repositorio reúne dos juegos sobre la Guerra del Pacífico (1879-1884):
 
 | Juego | Género | Dónde |
 |-------|--------|-------|
-| **Salitre y Pólvora** (nuevo) | Estrategia en tiempo real al estilo *StarCraft*/*WarCraft*: Chile, Perú, Bolivia y la Argentina; salitre y agua; héroes históricos; multijugador en línea con servidor, cuentas, escalafón y repeticiones; base de datos SQLite e instalador para Windows | [`rts/`](rts/README.md) |
+| **Salitre y Pólvora** (nuevo) | Estrategia en tiempo real al estilo *StarCraft*/*WarCraft*: Chile, Perú, Bolivia y la Argentina; salitre y agua; héroes históricos; el campo de batalla como un diorama 3D (Godot 4) y una versión clásica en 2D; multijugador en línea con servidor, cuentas, escalafón y repeticiones; base de datos SQLite; instaladores para Windows, macOS y Linux | [`rts/`](rts/README.md) |
 | **Motor Atenea** | Shooter en primera persona al estilo *DOOM*, en el navegador | esta página, más abajo |
 
 Para instalar y jugar *Salitre y Pólvora*, y para organizar partidas con los

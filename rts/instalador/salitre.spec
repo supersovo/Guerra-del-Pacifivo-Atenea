@@ -1,15 +1,19 @@
 # -*- mode: python ; coding: utf-8 -*-
-"""PyInstaller: el juego (sin consola) y el servidor dedicado (con consola) en
-una sola carpeta que comparten Python, pygame y los datos.
+"""PyInstaller: la versión clásica del juego (pygame, sin consola) y el servidor
+dedicado (con consola) en una sola carpeta que comparten Python y los datos.
 
     cd rts
     pyinstaller --noconfirm instalador/salitre.spec
 
-Resultado: dist/GuerraDelPacifico/ con GuerraDelPacifico(.exe) y
-ServidorSalitre(.exe). El instalador de Windows (salitre.iss) empaqueta esa carpeta.
-En macOS sale además dist/Guerra del Pacífico.app (instalador/construir_mac.sh
-la mete en un .dmg); con SALITRE_ARQUITECTURA=universal2 sirve para Mac con
-procesador Intel y con Apple Silicon (hace falta el Python universal2 de python.org).
+Resultado: dist/GuerraDelPacifico/ con GuerraDelPacificoClasico(.exe),
+ServidorSalitre(.exe) y _internal/ (Python, datos/, mapas/ y recursos/). Los guiones
+de instalador/ le suman el cliente 3D, el juego principal (GuerraDelPacifico(.exe),
+exportado de Godot por herramientas/exportar_cliente3d.py), que usa ese mismo
+servidor y esos mismos datos; el instalador de Windows (salitre.iss) empaqueta la carpeta.
+En macOS sale además dist/Guerra del Pacífico.app (instalador/construir_mac.sh le
+pone adentro el cliente 3D y la mete en un .dmg); con SALITRE_ARQUITECTURA=universal2
+sirve para Mac con procesador Intel y con Apple Silicon (hace falta el Python
+universal2 de python.org).
 """
 
 import os
@@ -34,10 +38,10 @@ def archivo_version():
   kids=[
     StringFileInfo([StringTable('0C0A04B0', [
       StringStruct('CompanyName', 'Proyecto Atenea'),
-      StringStruct('FileDescription', 'Guerra del Pacífico: Salitre y Pólvora'),
+      StringStruct('FileDescription', 'Guerra del Pacífico: Salitre y Pólvora (versión clásica)'),
       StringStruct('FileVersion', '{VERSION}'),
-      StringStruct('InternalName', 'GuerraDelPacifico'),
-      StringStruct('OriginalFilename', 'GuerraDelPacifico.exe'),
+      StringStruct('InternalName', 'GuerraDelPacificoClasico'),
+      StringStruct('OriginalFilename', 'GuerraDelPacificoClasico.exe'),
       StringStruct('ProductName', 'Guerra del Pacífico: Salitre y Pólvora'),
       StringStruct('ProductVersion', '{VERSION}')])]),
     VarFileInfo([VarStruct('Translation', [0x0C0A, 1200])])
@@ -81,7 +85,7 @@ exe_juego = EXE(
     juego.scripts,
     [],
     exclude_binaries=True,
-    name="GuerraDelPacifico",
+    name="GuerraDelPacificoClasico",
     console=False,
     icon=ICONO if EN_WINDOWS else None,
     version=archivo_version() if EN_WINDOWS else None,
@@ -112,8 +116,10 @@ coll = COLLECT(
 )
 
 if EN_MAC:
-    # El juego es el primer ejecutable: el que abre el ícono. El servidor dedicado
-    # queda junto a él, en Contents/MacOS/ServidorSalitre, para usarlo desde la Terminal.
+    # La versión clásica es el primer ejecutable: el que abre el ícono hasta que
+    # construir_mac.sh pone en su lugar el cliente 3D (Contents/MacOS/GuerraDelPacifico).
+    # El servidor dedicado queda junto a ellos, en Contents/MacOS/ServidorSalitre: lo
+    # lanza el cliente 3D y sirve también desde la Terminal.
     app = BUNDLE(
         coll,
         name="Guerra del Pacífico.app",

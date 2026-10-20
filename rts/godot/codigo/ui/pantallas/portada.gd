@@ -32,6 +32,13 @@ func armar() -> void:
 		var b := boton(Rect2(x, y + i * 54, ancho, 44), op[0], accion, op[2], op[3], 19)
 		b.ayuda_titulo = op[0]
 		botones[destino if destino != "" else "salir"] = b
+	if Juego.hay_version_clasica():
+		var c := boton(Rect2(24, H - 86, 230, 40), "Versión clásica (2D)", Juego.abrir_version_clasica, "normal",
+				"Cierra el cliente 3D y abre el juego en su versión clásica, dibujada en dos dimensiones: más " +
+				"liviana, para los equipos sin tarjeta de video. Es el mismo juego, con los mismos servidores, " +
+				"repeticiones y mapas; la campaña y las opciones de cada versión van por separado.", 16)
+		c.ayuda_titulo = "Versión clásica"
+		botones["clasica"] = c
 	var r: Dictionary = Juego.perfil.resumen()
 	if r["jugadas"]:
 		texto(Vector2(W / 2.0, y - 24 + alto + 10), "Escaramuzas en este equipo: %d  ·  victorias %d  ·  derrotas %d" %

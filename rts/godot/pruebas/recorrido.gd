@@ -182,6 +182,12 @@ func _pantallas(p: Control) -> void:
 		print("RECORRIDO: escaramuza: %d mapas con sus rivales" % p.mapas.size())
 		t = 0.0
 		return
+	if menu.nombre_pantalla == "portada" and not p.has_meta("recorrido"):
+		p.set_meta("recorrido", true)
+		if p.botones.has("clasica") != Juego.hay_version_clasica():
+			_falla("el botón de la versión clásica no corresponde a lo instalado")
+			return
+		print("RECORRIDO: portada (versión clásica: %s)" % ("sí" if Juego.hay_version_clasica() else "no"))
 	if i >= ORDEN.size():
 		_ok()
 		return

@@ -50,6 +50,25 @@ static func dir_capturas() -> String:
 	return _sub("capturas")
 
 
+# -- el juego instalado ---------------------------------------------------------------
+## Carpeta de una instalación con datos/, mapas/ y recursos/, vista desde la del ejecutable del
+## cliente 3D: junto a él, en _internal/ (PyInstaller 6, en Windows y Linux) o en
+## Contents/Resources/ (la aplicación de macOS, donde el ejecutable está en Contents/MacOS/).
+static func dir_juego_instalado(dir_ejecutable: String) -> String:
+	for sub in [".", "_internal", "../Resources"]:
+		var d := dir_ejecutable.path_join(sub).simplify_path()
+		if DirAccess.dir_exists_absolute(d.path_join("datos")) and DirAccess.dir_exists_absolute(d.path_join("recursos")):
+			return d
+	return dir_ejecutable
+
+
+## Otro ejecutable de la instalación (ServidorSalitre, GuerraDelPacificoClasico), que va junto al
+## del cliente 3D; "" si no está.
+static func ejecutable_hermano(nombre: String, dir_ejecutable: String, en_windows := OS.get_name() == "Windows") -> String:
+	var ruta := dir_ejecutable.path_join(nombre + (".exe" if en_windows else ""))
+	return ruta if FileAccess.file_exists(ruta) else ""
+
+
 ## Escribe un texto de una vez: primero a un archivo temporal y después lo pone en su lugar,
 ## para que un corte de luz nunca deje la configuración o el perfil a medio escribir.
 static func escribir_seguro(ruta: String, texto: String) -> bool:

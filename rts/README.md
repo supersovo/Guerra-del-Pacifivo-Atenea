@@ -23,18 +23,36 @@ El juego en red con los compañeros es el centro del diseño: ver
 
 ## Instalación
 
-**Windows.** Ejecute `GuerraDelPacifico-<versión>-Instalador.exe`. El instalador
-crea los accesos «Guerra del Pacífico» y «Servidor dedicado» en el menú de
-inicio y, si se marca la opción, permite el juego en red en el cortafuegos de
-Windows. También hay una versión portátil que se descomprime y se usa sin
-instalar (`GuerraDelPacifico.exe` dentro de la carpeta). Ambas se generan en
-GitHub Actions (pestaña *Actions* → flujo «RTS Salitre y Pólvora» → última
-ejecución → artefactos `instalador-windows` y `portatil-windows`; hay que
-iniciar sesión en GitHub para descargarlos) o en una versión publicada.
+Cada instalación trae **dos clientes** y el servidor dedicado, sin necesidad de
+instalar Python:
 
-**macOS** (Mac con procesador Intel o Apple Silicon, macOS 10.13 o posterior).
-Abra `GuerraDelPacifico-<versión>-macOS.dmg` y arrastre *Guerra del Pacífico*
-sobre *Aplicaciones*. La aplicación no está registrada ante Apple, así que la
+- **El juego** (el **cliente 3D**, hecho con [Godot 4](https://godotengine.org)):
+  el campo de batalla es un diorama sobre la mesa de guerra, con relieve, luz
+  del sol y sombras, y las tropas y las obras modeladas en 3D. Pide una tarjeta
+  de video compatible con Vulkan, Direct3D 12, Metal u OpenGL 3.3.
+- **La versión clásica**, dibujada en dos dimensiones (pygame), más liviana: para
+  los equipos sin tarjeta de video. Se abre con el botón *Versión clásica (2D)*
+  de la portada del cliente 3D (o con su propio acceso en Windows y Linux).
+
+Los dos usan el mismo servidor y los mismos datos, y juegan juntos en red; las
+repeticiones y los mapas propios son los mismos, mientras que la campaña y las
+opciones de cada uno van por separado.
+
+**Windows.** Ejecute `GuerraDelPacifico-<versión>-Instalador.exe`. El instalador
+crea en el menú de inicio los accesos «Guerra del Pacífico» (el cliente 3D),
+«Guerra del Pacífico (versión clásica)» y «Servidor dedicado» y, si se marca la
+opción, permite el juego en red en el cortafuegos de Windows. También hay una
+versión portátil que se descomprime y se usa sin instalar (en la carpeta,
+`GuerraDelPacifico.exe` es el cliente 3D y `GuerraDelPacificoClasico.exe` la
+versión clásica). Ambas se generan en GitHub Actions (pestaña *Actions* → flujo
+«RTS Salitre y Pólvora» → última ejecución → artefactos `instalador-windows` y
+`portatil-windows`; hay que iniciar sesión en GitHub para descargarlos) o en una
+versión publicada.
+
+**macOS** (Mac con procesador Intel y macOS 11 o posterior, o con Apple Silicon y
+macOS 13 o posterior). Abra `GuerraDelPacifico-<versión>-macOS.dmg` y arrastre
+*Guerra del Pacífico* sobre *Aplicaciones*: una sola aplicación con los dos
+clientes y el servidor. La aplicación no está registrada ante Apple, así que la
 primera vez macOS no la deja abrir: en macOS 15 o posterior, después del primer
 intento vaya a *Ajustes del Sistema → Privacidad y seguridad* y pulse *Abrir
 igualmente*; en macOS 14 o anterior, clic derecho sobre la aplicación → *Abrir*.
@@ -43,11 +61,13 @@ compañeros. Se genera en GitHub Actions (artefacto `aplicacion-macos`), donde s
 prueba en el macOS más reciente, también la parte para Intel.
 
 **Linux.** Descomprima `GuerraDelPacifico-<versión>-linux.tar.gz` y ejecute
-`GuerraDelPacifico/GuerraDelPacifico`.
+`GuerraDelPacifico/GuerraDelPacifico` (el cliente 3D) o
+`GuerraDelPacifico/GuerraDelPacificoClasico` (la versión clásica).
 
-**Copia en el repositorio.** El instalador de Windows y la aplicación para macOS
-también pueden guardarse en [`rts/descargas/`](descargas/LEEME.md), desde donde
-se bajan con PowerShell o con la Terminal del Mac sin pasar por el navegador.
+**Copia en el repositorio.** El instalador de Windows, la aplicación para macOS
+y la versión para Linux también pueden guardarse en
+[`rts/descargas/`](descargas/LEEME.md), desde donde se bajan con PowerShell o
+con la Terminal sin pasar por el navegador.
 
 **Si el navegador o Windows bloquean la descarga.** El juego es nuevo y no
 lleva firma digital, así que Chrome, Edge y Windows desconfían de él aunque no
@@ -71,30 +91,25 @@ tenga nada malicioso:
 ```sh
 cd rts
 python -m pip install -r requirements.txt
-python -m salitre                 # el juego
+python -m salitre                 # la versión clásica
 python -m salitre --servidor      # el servidor dedicado (no necesita pygame)
 ```
 
-**Cliente 3D (en desarrollo).** En `rts/godot/` está el nuevo cliente con
-gráficos 3D hecho con [Godot 4](https://godotengine.org): el campo de batalla es
-un diorama sobre la mesa de guerra, con relieve, luz del sol y sombras, y las
-tropas y las obras modeladas en 3D con los uniformes de cada nación. Las tropas
-marchan, apuntan y hacen fuego, los jinetes galopan, las ruedas giran, las
-banderas ondean, las bajas caen; la guarnición se ve en la trinchera y en las
-azoteas, hay minimapa, la niebla de guerra tiene bordes suaves y lo explorado
-queda en sepia, como un mapa viejo. Ya tiene **toda la interfaz** del juego, sobre
-el diorama de la pampa: Campaña del Salitre con su escalafón, escaramuza contra
-la IA, multijugador (red local, Internet o un servidor creado en el propio
-equipo, con salón, salas, series de campaña y conversación), repeticiones,
-Archivo histórico (con un retrato 3D de cada unidad y cada obra, y el desfile
-de cada nación), opciones (también la calidad gráfica, para equipos sin
-tarjeta de video), parte de guerra, la música, las voces de la tropa y los
-efectos de sonido. Usa el mismo servidor, la misma simulación, la misma IA y
-los mismos datos que el juego de siempre, que sigue disponible hasta que el
-nuevo cliente lo iguale; guarda su configuración y su perfil en
-`config_3d.json` y `perfil_3d.json` (la primera vez toma el nombre, los
-volúmenes y las preferencias del cliente de siempre). Para probarlo
-desde el código fuente hacen falta Godot 4.7 (o más nuevo) y Python 3.11:
+**El cliente 3D** está en `rts/godot/`. Las tropas marchan, apuntan y hacen
+fuego, los jinetes galopan, las ruedas giran, las banderas ondean, las bajas
+caen; la guarnición se ve en la trinchera y en las azoteas, hay minimapa, la
+niebla de guerra tiene bordes suaves y lo explorado queda en sepia, como un
+mapa viejo. Tiene **toda la interfaz** del juego, sobre el diorama de la pampa:
+Campaña del Salitre con su escalafón, escaramuza contra la IA, multijugador (red
+local, Internet o un servidor creado en el propio equipo, con salón, salas,
+series de campaña y conversación), repeticiones, Archivo histórico (con un
+retrato 3D de cada unidad y cada obra, y el desfile de cada nación), opciones
+(también la calidad gráfica), parte de guerra, la música, las voces de la tropa
+y los efectos de sonido. Usa el mismo servidor, la misma simulación, la misma IA
+y los mismos datos que la versión clásica; guarda su configuración y su perfil
+en `config_3d.json` y `perfil_3d.json` (la primera vez toma el nombre, los
+volúmenes y las preferencias de la versión clásica). Desde el código fuente
+hacen falta Godot 4.7 (o más nuevo) y Python 3.11:
 
 ```sh
 cd rts
@@ -102,9 +117,10 @@ godot --path godot                               # o abra godot/project.godot en
 godot --path godot -- --repeticion=NOMBRE        # ver una repetición guardada
 ```
 
-El cliente 3D lanza por su cuenta el servidor del juego (`python -m salitre
---servidor --local`) con el Python del sistema (`python3`; en Windows, `python`
-o `py`); para usar otro, indíquelo en la variable `SALITRE_PYTHON`. Ese
+El cliente 3D lanza por su cuenta el servidor del juego: instalado, el
+`ServidorSalitre` que viaja con él; desde el código fuente, `python -m salitre
+--servidor --local` con el Python del sistema (`python3`; en Windows, `python`
+o `py`; para usar otro, indíquelo en la variable `SALITRE_PYTHON`). Ese
 servidor escucha solo en el propio equipo y se cierra junto con el juego.
 
 Los datos de cada jugador (configuración, perfil, repeticiones, capturas y
@@ -474,15 +490,17 @@ rts/
 │   ├── red/              protocolo e instantáneas
 │   ├── servidor/         backend: cuentas, salas, partidas, series de campaña, base de datos, repeticiones
 │   └── cliente/          frontend: menús, campaña, salón, sala de espera y campo de batalla
-├── godot/                cliente 3D en Godot 4 (en desarrollo): diorama, modelos, interfaz, sonido y pruebas
+├── godot/                cliente 3D en Godot 4 (el juego principal): diorama, modelos, interfaz, sonido,
+│                         pruebas y presets de exportación
 ├── datos/                unidades, edificios, mejoras, habilidades, naciones, tablas (con la veteranía),
 │                         campañas y nombres del escalafón (JSON)
 ├── mapas/                los seis campos de batalla (JSON)
 ├── recursos/             tipografías e ícono (y aquí pueden ir gráficos o sonidos propios)
-├── herramientas/         generadores de mapas, tablas e ícono
-├── instalador/           PyInstaller, Inno Setup (Windows) e imagen de disco (macOS)
+├── herramientas/         generadores de mapas, tablas e ícono; exportación del cliente 3D
+├── instalador/           PyInstaller, Inno Setup (Windows), imagen de disco (macOS) y pruebas de los paquetes
 ├── docker/               servidor dedicado en contenedor
-├── descargas/            copias del instalador de Windows y del .dmg de macOS (se guardan a pedido desde GitHub Actions)
+├── descargas/            copias del instalador de Windows, del .dmg de macOS y de la versión para Linux
+│                         (se guardan a pedido desde GitHub Actions)
 ├── tests/                pruebas automáticas
 └── docs/                 investigación, diseño, arquitectura, multijugador y recomendaciones
 ```
@@ -507,9 +525,10 @@ python -m pyflakes salitre herramientas instalador tests
 python herramientas/generar_mapas.py      # vuelve a generar los mapas
 python herramientas/generar_tablas.py     # actualiza docs/TABLAS.md
 python herramientas/generar_icono.py      # vuelve a dibujar el ícono
-python herramientas/exportar_godot.py     # catálogo del cliente 3D (después de tocar datos/)
+python herramientas/exportar_godot.py     # catálogo del cliente 3D (después de tocar datos/ o la versión)
 python herramientas/duelo_ia.py --mapa quebrada_de_tarapaca --nombre duelo   # IA contra IA, con repetición
-pyinstaller --noconfirm instalador/salitre.spec   # ejecutables en dist/
+pyinstaller --noconfirm instalador/salitre.spec   # versión clásica y servidor en dist/GuerraDelPacifico/
+SALITRE_GODOT=/ruta/a/Godot_v4.7.2 python herramientas/exportar_cliente3d.py --sistemas windows,macos,linux
 ```
 
 Las pruebas del cliente 3D corren con el resto; las que necesitan Godot (las
@@ -527,9 +546,20 @@ Las voces de `recursos/sonidos/voces/` se generan sin conexión con
 comienzo del archivo) y la música de `recursos/sonidos/musica/` con
 `herramientas/generar_musica.py` (necesita `numpy` y `soundfile`).
 
-En Windows, `instalador\construir_windows.ps1` construye los ejecutables, los
-prueba y genera el instalador con Inno Setup. En un Mac, `sh
-instalador/construir_mac.sh` arma *Guerra del Pacífico.app*, la prueba y la
+**Ejecutables.** `herramientas/exportar_cliente3d.py` exporta el cliente 3D con
+los presets de `godot/export_presets.cfg` (desde cualquier sistema, para los
+tres) y, si faltan, baja solo las plantillas de exportación de Godot que hacen
+falta (`herramientas/plantillas_godot.py`: unos 300 MB en vez del archivo
+completo de 1,3 GB). Los guiones de `instalador/` lo juntan con lo que arma
+PyInstaller (la versión clásica, el servidor dedicado y los datos que los tres
+comparten) y prueban el paquete: la versión clásica con una escaramuza sin
+pantalla y el cliente 3D con su prueba de humo de punta a punta contra el
+servidor empaquetado, sin Python a la vista (`instalador/probar_cliente3d.py`).
+Con `SALITRE_GODOT` exportan el cliente 3D; sin él, usan el que esté en
+`dist/cliente3d/`. En Linux, `sh instalador/construir.sh` deja el `.tar.gz`. En
+Windows, `instalador\construir_windows.ps1` genera además el instalador con
+Inno Setup. En un Mac, `sh instalador/construir_mac.sh` arma *Guerra del
+Pacífico.app* (con el cliente 3D como ejecutable principal), la prueba y la
 guarda en un `.dmg` (con `SALITRE_ARQUITECTURA=universal2` y el Python de
 python.org sirve para Intel y Apple Silicon).
 

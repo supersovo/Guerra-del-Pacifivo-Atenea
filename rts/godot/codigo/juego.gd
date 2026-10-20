@@ -19,6 +19,7 @@ const Rutas = preload("res://codigo/datos/rutas.gd")
 
 const MENU := "res://escenas/menu.tscn"
 const BATALLA := "res://escenas/batalla.tscn"
+const CLASICA := "GuerraDelPacificoClasico"   # el ejecutable del cliente de pygame, en una instalación
 
 var catalogo := Catalogo.new()
 var conexion := Conexion.new()
@@ -298,8 +299,40 @@ func _buscar_dir_rts() -> String:
 	if not OS.has_feature("template"):
 		# desde las fuentes: este proyecto vive en rts/godot/
 		return ProjectSettings.globalize_path("res://").rstrip("/").get_base_dir()
-	# instalado: junto al ejecutable
-	return OS.get_executable_path().get_base_dir()
+	# instalado: los datos del ejecutable de PyInstaller que viaja con el cliente 3D
+	return Rutas.dir_juego_instalado(OS.get_executable_path().get_base_dir())
+
+
+# -- la versión clásica ----------------------------------------------------------------
+## ¿Se puede abrir la versión clásica (el cliente de pygame)? Instalado va junto a este
+## ejecutable; desde las fuentes se abre con Python.
+func hay_version_clasica() -> bool:
+	return not OS.has_feature("template") or _ejecutable_clasico() != ""
+
+
+func _ejecutable_clasico() -> String:
+	return Rutas.ejecutable_hermano(CLASICA, OS.get_executable_path().get_base_dir())
+
+
+## Abre la versión clásica y cierra este cliente; un aviso si no se pudo.
+func abrir_version_clasica() -> void:
+	var pid := -1
+	if OS.has_feature("template"):
+		var exe := _ejecutable_clasico()
+		if exe != "":
+			pid = OS.create_process(exe, PackedStringArray())
+	else:
+		OS.set_environment("PYTHONPATH", dir_rts)
+		for candidato in ServidorLocal.pythons():
+			var args := PackedStringArray(candidato.slice(1))
+			args.append_array(["-m", "salitre"])
+			pid = OS.create_process(candidato[0], args)
+			if pid > 0:
+				break
+	if pid <= 0:
+		avisar("No se pudo abrir la versión clásica del juego.")
+		return
+	salir(0)
 
 
 func _cargar_fuentes() -> void:

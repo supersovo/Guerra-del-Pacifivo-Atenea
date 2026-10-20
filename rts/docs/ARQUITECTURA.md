@@ -326,16 +326,18 @@ montoneros quietos, minas) solo se ven con un **detector** cerca.
 
 `rts/godot/` es un proyecto de Godot 4.7 escrito en GDScript que reemplaza solo
 la parte gráfica: la simulación, el servidor, la IA y los datos siguen siendo
-los de Python, y el cliente de pygame se mantiene hasta que el nuevo lo iguale.
-El plan va por fases: 1) cabeza de puente (red, diorama, tropas, selección,
-órdenes y escaramuza: hecha); 2) figuras animadas y agrupadas, guarnición a la
-vista, efectos, niebla suave y minimapa (hecha); 3) toda la interfaz: menús,
-campaña, multijugador, archivo, opciones y sonido (hecha); 4) ejecutables para
+los de Python. Desde la 0.14.0 es el juego principal de los instaladores, y el
+cliente de pygame viaja con él como **versión clásica** (para los equipos sin
+tarjeta de video). Se hizo por fases: 1) cabeza de puente (red, diorama, tropas,
+selección, órdenes y escaramuza); 2) figuras animadas y agrupadas, guarnición a
+la vista, efectos, niebla suave y minimapa; 3) toda la interfaz: menús,
+campaña, multijugador, archivo, opciones y sonido; 4) ejecutables para
 Windows, macOS y Linux con el servidor adentro.
 
 ```
 godot/
-├── project.godot          escena inicial, autocargas «Sonido» y «Juego», ventana, sombras
+├── project.godot          escena inicial, autocargas «Sonido» y «Juego», ventana, sombras, versión del juego
+├── export_presets.cfg     exportación para Windows, macOS (universal) y Linux
 ├── datos/catalogo.json    catálogo en el orden de la red (lo genera herramientas/exportar_godot.py)
 ├── codigo/
 │   ├── juego.gd           autocarga: catálogo, carpetas, fuentes, tema, configuración, perfil, campañas,
@@ -344,7 +346,7 @@ godot/
 │   ├── red/               protocolo.gd (largo + formato + JSON/zlib), conexion.gd (TCP sin bloquear),
 │   │                      servidor_local.gd (el privado «--local» o el abierto «Crear servidor»),
 │   │                      busqueda_lan.gd (UDP 47801, como servidor/descubrimiento.py)
-│   ├── datos/             catalogo.gd, rutas.gd (carpetas del usuario), config.gd (config_3d.json),
+│   ├── datos/             catalogo.gd, rutas.gd (carpetas del usuario y del juego instalado), config.gd (config_3d.json),
 │   │                      perfil.gd (perfil_3d.json), campanas.gd y nombres.gd (como contenido/*.py),
 │   │                      repeticiones.gd (gzip + JSON), mapas.gd (del juego y del usuario, vistas previas)
 │   ├── batalla/           estado.gd (espejo con interpolación y fantasmas), vision.gd (niebla, igual a
@@ -371,8 +373,9 @@ godot/
   repeticiones, y vigila cada segundo que siga vivo el proceso del juego (en
   Windows, con `OpenProcess`/`WaitForSingleObject`): si el juego se cierra,
   aun de golpe, el servidor también. El cliente elige un puerto libre, lanza el
-  servidor (el ejecutable empaquetado si existe, si no Python con
-  `PYTHONPATH=rts/`) y reintenta la conexión mientras arranca.
+  servidor (el `ServidorSalitre` empaquetado si existe, con los mismos
+  argumentos sin `--servidor`; si no, Python con `PYTHONPATH=rts/`) y reintenta
+  la conexión mientras arranca.
 - **El mundo en 3D.** Una casilla mide una unidad (x al este, z al sur); un
   píxel del juego es 1/32. Cada nivel de altura sube 0,8; las rampas se
   alisan con una relajación de Jacobi entre los niveles que unen; los
@@ -465,6 +468,36 @@ godot/
   chimenea de la maestranza y de las obras dañadas (con llamas bajo el 25 %),
   polvo de los jinetes y los carros, estela de los buques, vapor del tren y
   remolinos de polvo en la pampa, todo llevado por el viento de la partida.
+- **Empaquetado** (fase 4). `herramientas/exportar_cliente3d.py` exporta el
+  cliente con `export_presets.cfg` (siempre en modo release, desde cualquier
+  sistema para los tres; la integración continua lo hace en Linux) y, si
+  faltan, baja las plantillas de exportación de Godot que hacen falta:
+  `herramientas/plantillas_godot.py` lee del archivo oficial (1,3 GB, con
+  todas las plataformas) solo el índice del zip y esas tres plantillas, con
+  pedidos HTTP por tramos. En Windows y Linux los datos del proyecto van
+  dentro del ejecutable; en macOS, en un `.pck`. Los guiones de `instalador/`
+  ponen el cliente 3D junto a lo que arma PyInstaller (`instalador/salitre.spec`):
+  la versión clásica (`GuerraDelPacificoClasico`), el servidor dedicado
+  (`ServidorSalitre`) y, en `_internal/`, Python con los datos, los mapas y los
+  recursos, que el cliente 3D lee también (fuentes, voces, música, campañas,
+  nombres y mapas). En Windows y Linux todo queda en una carpeta con
+  `GuerraDelPacifico(.exe)` (el cliente 3D) junto a los otros dos; en macOS, en
+  una sola aplicación: la de PyInstaller, con el cliente 3D en
+  `Contents/MacOS/GuerraDelPacifico` (su ejecutable principal), su `.pck` en
+  `Contents/Resources/` y los requisitos de Godot en el `Info.plist` (macOS 11
+  en Intel, 13 en Apple Silicon); se firma de nuevo «ad hoc» y la imagen de
+  disco va en LZMA (ULMO) para quedar bajo los 100 MB. Instalado, el cliente
+  3D busca los datos junto a su ejecutable, en `_internal/` o en
+  `Contents/Resources/` (`Rutas.dir_juego_instalado`) y el servidor y la
+  versión clásica a su lado (`Rutas.ejecutable_hermano`); el botón *Versión
+  clásica (2D)* de la portada la abre y cierra el cliente 3D (desde las
+  fuentes, con `python -m salitre`). La versión de `project.godot` la pone
+  `exportar_godot.py` (la de `salitre/__init__.py`), y la exportación la lleva
+  a los ejecutables; los registros de Godot (`user://`) van a la carpeta del
+  juego (`GuerraDelPacifico/godot`, en Linux `guerra-del-pacifico/godot`).
+  `instalador/probar_cliente3d.py` prueba el cliente 3D empaquetado de punta a
+  punta con Python fuera de su alcance (`SALITRE_PYTHON` apunta a un archivo
+  que no existe): si no encuentra el servidor empaquetado, falla.
 
 ## Rendimiento medido
 
@@ -507,7 +540,8 @@ ficticio de SDL):
   (`godot/pruebas/correr.gd`: protocolo y zlib de Python, lector por trozos,
   niebla, espejo, terreno, tarjeta, modelos, costos, partes animadas, grupos,
   puestos de la guarnición, minimapa, niebla fundida, configuración, perfil,
-  repeticiones en gzip, mapas y vistas previas, banderas y campaña), la niebla,
+  repeticiones en gzip, mapas y vistas previas, banderas, campaña y las
+  carpetas de una instalación: PyInstaller, la aplicación de macOS), la niebla,
   la **campaña** (sesenta batallas seguidas, con fichas dañadas) y los
   **nombres de los veteranos** comparados con los de Python, una **batalla IA
   contra IA** vista entera como espectador sin un error de guion, la **prueba
@@ -517,13 +551,21 @@ ficticio de SDL):
   menú de la batalla con el volumen, la rendición, el parte de guerra y la
   escaramuza anotada en el perfil) y tres **recorridos de la interfaz**
   (`godot/pruebas/recorrido.gd`): todas las pantallas (cada mapa de la
-  escaramuza y cada ficha del archivo), una batalla de la campaña que queda en
-  el escalafón, y el multijugador contra un servidor dedicado (salón, sala con
-  un rival de la IA, batalla, parte de guerra, vuelta a la sala y al salón).
+  escaramuza, cada ficha del archivo y el botón de la versión clásica), una
+  batalla de la campaña que queda en el escalafón, y el multijugador contra un
+  servidor dedicado (salón, sala con un rival de la IA, batalla, parte de
+  guerra, vuelta a la sala y al salón).
+- **empaquetado** (`tests/test_empaquetado.py`): el ícono de macOS, y que los
+  nombres de los ejecutables, los presets de exportación, las plantillas, la
+  versión de Godot de la integración continua y la del proyecto coincidan entre
+  PyInstaller, Inno Setup, los guiones de `instalador/`, el cliente 3D y
+  `export_presets.cfg`.
 
 La integración continua (`.github/workflows/rts.yml`) corre las pruebas en Linux,
 Windows y macOS, prueba el cliente 3D con Godot 4.7.2 (y guarda capturas de
-la batalla y de cada pantalla, dibujadas por software), construye el instalador de Windows con una prueba de humo del
-ejecutable, la aplicación para macOS (universal: Intel y Apple Silicon, probada
-desde el `.dmg` en ambas arquitecturas cuando el equipo tiene Rosetta 2), la
-versión portátil para Linux y la imagen Docker del servidor.
+la batalla y de cada pantalla, dibujadas por software), exporta el cliente 3D
+para los tres sistemas (con las plantillas en caché) y construye el instalador
+de Windows, la aplicación para macOS (universal: Intel y Apple Silicon, probada
+desde el `.dmg` en ambas arquitecturas cuando el equipo tiene Rosetta 2) y la
+versión portátil para Linux, cada uno con las pruebas de humo de los dos
+clientes contra el servidor empaquetado; además, la imagen Docker del servidor.
