@@ -11,12 +11,14 @@
 ##   "animaciones": {"quieto": "Idle", "marcha": "Walk", "accion": "Heal", "muerte": "Death"}
 ##                  (sin ellas se buscan por nombres usuales: idle, walk, heal, fire, death...)
 ##   "marcha": casillas por segundo que avanza la animación de la marcha a velocidad 1
+##   "brillo": reflejo especular de sus materiales, de 0 a 1 (por omisión 0,15: casi mate)
 extends RefCounted
 
 const DIR_RETRATOS := "res://arte/retratos/"
 const DIR_UNIDADES := "res://arte/unidades/"
 const ESTADOS := ["quieto", "marcha", "accion", "muerte"]
 const EN_BUCLE := ["quieto", "marcha"]
+const BRILLO := 0.15        # reflejo especular de los materiales (el .json puede pedir otro: "brillo")
 const NOMBRES_USUALES := {
 	"quieto": ["quieto", "idle", "stand", "breath", "reposo"],
 	"marcha": ["marcha", "walk", "camina", "run", "corre"],
@@ -53,7 +55,7 @@ static func registrar(forma: String, nacion: String, ruta: String) -> void:
 	_modelos.erase(clave)
 
 
-## El modelo de esa forma y nación ({ruta, escena, caja, alto, giro, animaciones, marcha}), o {}
+## El modelo de esa forma y nación ({ruta, escena, caja, alto, pie, giro, animaciones, marcha}), o {}
 ## si no hay. alto_juego: el alto de la figura del juego, si el .json no dice otro.
 static func modelo(forma: String, nacion: String, alto_juego := 1.0) -> Dictionary:
 	var clave := forma + "|" + nacion
@@ -85,6 +87,7 @@ static func cargar(ruta: String, alto_juego := 1.0) -> Dictionary:
 		else:
 			push_warning("El archivo %s no es un JSON válido" % ruta_json)
 	var muestra: Node = escena.instantiate()
+	_mate(muestra, float(conf.get("brillo", BRILLO)))
 	var caja := _caja(muestra, Transform3D())
 	var rep := reproductor(muestra)
 	var nombres := rep.get_animation_list() if rep != null else PackedStringArray()
@@ -98,8 +101,14 @@ static func cargar(ruta: String, alto_juego := 1.0) -> Dictionary:
 			animaciones[estado] = nombre
 			if estado in EN_BUCLE:
 				rep.get_animation(nombre).loop_mode = Animation.LOOP_LINEAR
+	var alto := float(conf.get("alto", alto_juego))
+	var distancias := PackedFloat32Array()
+	_al_pie(muestra, Transform3D(), caja, distancias)
+	distancias.sort()
+	var pie := distancias[int(distancias.size() * 0.85)] if not distancias.is_empty() else 0.0
 	muestra.free()
-	return {"ruta": ruta, "escena": escena, "caja": caja, "alto": float(conf.get("alto", alto_juego)),
+	return {"ruta": ruta, "escena": escena, "caja": caja, "alto": alto,
+			"pie": pie * alto / maxf(caja.size.y, 0.0001),
 			"giro": deg_to_rad(float(conf.get("giro", 90.0))), "animaciones": animaciones,
 			"marcha": maxf(0.05, float(conf.get("marcha", 1.0)))}
 
@@ -127,7 +136,7 @@ static func instanciar(m: Dictionary) -> Node3D:
 ## Pone la animación de ese estado (quieto, marcha, accion, muerte) con un fundido; lo que el
 ## modelo no trae se reemplaza por la de estar quieto. velocidad: la de la marcha.
 static func animar(figura: Node3D, m: Dictionary, estado: String, velocidad := 1.0) -> void:
-	var rep: AnimationPlayer = figura.get_meta("reproductor", null)
+	var rep: AnimationPlayer = figura.get_meta("reproductor") if figura.has_meta("reproductor") else null
 	var animaciones: Dictionary = m["animaciones"]
 	var e := estado if animaciones.has(estado) else ("quieto" if animaciones.has("quieto") else "")
 	if rep == null or e == "":
@@ -167,6 +176,38 @@ static func _caja(nodo: Node, tf: Transform3D) -> AABB:
 			caja = c if not hay else caja.merge(c)
 			hay = true
 	return caja
+
+
+## Les quita el brillo a los materiales del modelo (son del modelo importado, los comparten
+## todas sus figuras): la pintura ya trae su luz, y un reflejo encima la destiñe al sol.
+static func _mate(nodo: Node, brillo: float) -> void:
+	var mi := nodo as MeshInstance3D
+	if mi != null and mi.mesh != null:
+		for s in mi.mesh.get_surface_count():
+			var mat := mi.mesh.surface_get_material(s) as BaseMaterial3D
+			if mat != null:
+				mat.metallic_specular = minf(mat.metallic_specular, brillo)
+				mat.roughness = maxf(mat.roughness, 0.95)
+	for hijo in nodo.get_children():
+		_mate(hijo, brillo)
+
+
+## Lo que la figura ocupa cerca del suelo (el tercio de abajo: pies, falda): las distancias
+## de sus vértices al centro de la caja, en el plano. La peana tiene que asomar más allá.
+static func _al_pie(nodo: Node, tf: Transform3D, caja: AABB, distancias: PackedFloat32Array) -> void:
+	var propio := tf * (nodo as Node3D).transform if nodo is Node3D else tf
+	var mi := nodo as MeshInstance3D
+	if mi != null and mi.mesh != null:
+		var tope := caja.position.y + caja.size.y * 0.3
+		var centro := caja.get_center()
+		for s in mi.mesh.get_surface_count():
+			var vertices: PackedVector3Array = mi.mesh.surface_get_arrays(s)[Mesh.ARRAY_VERTEX]
+			for v in vertices:
+				var q := propio * v
+				if q.y < tope:
+					distancias.append(Vector2(q.x - centro.x, q.z - centro.z).length())
+	for hijo in nodo.get_children():
+		_al_pie(hijo, propio, caja, distancias)
 
 
 static func _usual(estado: String, nombres: PackedStringArray) -> String:

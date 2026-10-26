@@ -522,6 +522,10 @@ func _evento(ev: Array) -> void:
 			var rumbo: float = a.get("rumbo", randf() * TAU)
 			if a.has("pos"):
 				p = a["pos"]
+			var figura: Node3D = tropas.soltar_figura(int(ev[2]))
+			if figura != null:
+				efx.caido_figura(figura, p, rumbo, tipo["biologica"])
+				return
 			var malla: Mesh = Modelos.unidad(tipo, cat.uniforme_base(fac), cat.uniforme_propio(fac, tipo["forma"]),
 					est.color(dueno), fac, "sin_peana")
 			efx.caido(malla, p, rumbo, Modelos.escala(tipo), tipo["biologica"])

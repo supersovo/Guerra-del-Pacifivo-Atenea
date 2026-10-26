@@ -7,13 +7,16 @@
 ## puestos, los anillos de selección (con la figura de la formación), la marca de la
 ## infantería formada, los galones de los veteranos y la gota de la tropa sin agua.
 ## Las tropas con un modelo hecho fuera del juego (arte/, ver arte.gd) son nodos sueltos con
-## sus propias animaciones: quieto, marcha y acción (fuego, curar).
+## sus propias animaciones: quieto, marcha y acción (fuego, curar); sin animaciones, se
+## bambolean al marchar y se inclinan en la acción.
 extends Node3D
 
 const Modelos = preload("res://codigo/mundo/modelos.gd")
 const Terreno = preload("res://codigo/mundo/terreno.gd")
 const Arte = preload("res://codigo/mundo/arte.gd")
 
+const BAMBOLEO := 0.06       # radianes de lado a lado al marchar (modelos de arte/ sin animaciones)
+const INCLINACION := 0.16    # radianes hacia adelante en la acción (ídem)
 const VERDE := Color8(90, 230, 90)
 const AMARILLO := Color8(240, 210, 80)
 const ROJO := Color8(230, 70, 60)
@@ -243,8 +246,7 @@ func _figura(e, delta: float, elegido: bool, hacia_camara: Basis) -> void:
 		_grupo(_malla_figura(e)).agregar(Transform3D(b.scaled(Vector3.ONE * esc), visto), dato)
 	else:
 		var actua: bool = accion > 0.5 or est.reloj() - float(e.ultima_cura) < 1.5
-		_figura_arte(e, arte, Transform3D(b, pos), "accion" if actua else ("marcha" if paso > 0.5 else "quieto"),
-				float(a["vel"]))
+		_figura_arte(e, arte, b, pos, "accion" if actua else ("marcha" if paso > 0.5 else "quieto"), a, delta)
 	if not e.es_unidad():
 		return
 	var ex := _ex(e)
@@ -277,8 +279,9 @@ func _arte(e) -> Dictionary:
 
 
 ## Pone al día la figura de arte/ de una tropa: la crea con su peana, la ubica y elige la
-## animación (la marcha, al paso de la figura).
-func _figura_arte(e, arte: Dictionary, tf: Transform3D, estado: String, velocidad: float) -> void:
+## animación (la marcha, al paso de la figura). Un modelo sin animaciones se bambolea al
+## marchar, como un soldadito que se lleva de la mano, y se inclina en la acción.
+func _figura_arte(e, arte: Dictionary, b: Basis, pos: Vector3, estado: String, a: Dictionary, delta: float) -> void:
 	var color: Color = est.color(e.dueno)
 	var clave := "%s|%s" % [arte["ruta"], color.to_html()]
 	var f: Node3D = figuras.get(e.id)
@@ -288,15 +291,34 @@ func _figura_arte(e, arte: Dictionary, tf: Transform3D, estado: String, velocida
 		f = Arte.instanciar(arte)
 		f.name = "F%d" % e.id
 		f.set_meta("clave", clave)
+		f.set_meta("arte", arte)
 		var peana := MeshInstance3D.new()
+		peana.name = "Peana"
 		peana.mesh = Modelos.peana(color)
-		peana.scale = Vector3.ONE * Modelos.escala(e.tipo)
+		peana.scale = Vector3.ONE * escala_peana(e.tipo, arte)
 		f.add_child(peana)
 		add_child(f)
 		figuras[e.id] = f
-	f.transform = tf
+	if (arte["animaciones"] as Dictionary).is_empty():
+		var paso: float = a["paso"]
+		var fase: float = a["fase"]
+		var inclina := move_toward(float(f.get_meta("inclina", 0.0)), 1.0 if estado == "accion" else 0.0, delta * 3.0)
+		f.set_meta("inclina", inclina)
+		b = b * Basis(Vector3.RIGHT, sin(fase) * BAMBOLEO * paso) * Basis(Vector3.BACK, -INCLINACION * inclina)
+		pos.y += absf(sin(fase)) * 0.03 * paso
+	f.transform = Transform3D(b, pos)
 	_usadas[e.id] = true
-	Arte.animar(f, arte, estado, clampf(velocidad / float(arte["marcha"]), 0.4, 2.5))
+	Arte.animar(f, arte, estado, clampf(float(a["vel"]) / float(arte["marcha"]), 0.4, 2.5))
+
+
+## Entrega la figura de arte/ de una tropa que cayó (para que quede en el campo) y la saca de
+## las que se dibujan; null si no tiene.
+func soltar_figura(id: int) -> Node3D:
+	var f: Node3D = figuras.get(id)
+	if f != null:
+		figuras.erase(id)
+		remove_child(f)
+	return f
 
 
 ## La acción de la figura (0 a 1): fusil apuntado, tajo, retroceso de la pieza o faena.
@@ -518,6 +540,13 @@ func alto(e) -> float:
 	if figuras.has(e.id):
 		return float(figuras[e.id].get_meta("alto"))
 	return alto_juego(e.tipo)
+
+
+## La escala de la peana de un modelo de arte/: la de la figura del juego, o algo más grande si
+## el modelo pisa más ancho (una falda, un paso largo), para que su color asome.
+static func escala_peana(tipo: Dictionary, arte: Dictionary) -> float:
+	var esc := Modelos.escala(tipo)
+	return clampf(float(arte.get("pie", 0.0)) / Modelos.RADIO_PEANA, esc, esc * 1.3)
 
 
 ## Altura de la figura del juego de un tipo de tropa (la que toma un modelo de arte/).

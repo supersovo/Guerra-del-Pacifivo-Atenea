@@ -4,14 +4,19 @@
 ##   godot --path rts/godot --rendering-method gl_compatibility -s res://pruebas/vitrina.gd -- \
 ##       --mapa=pampa_del_tamarugal --faccion=chile --vista=tropas --salida=/tmp/vitrina.png
 ##
-## Vistas: «tropas» (todas las unidades de cerca), «obras» (los edificios) y «mapa» (el
-## diorama completo).
+## Con --enfocar=<tipo> (en la vista «tropas») la cámara se acerca a esa unidad, por ejemplo
+## para revisar un modelo nuevo de arte/: --enfocar=cantinera.
+##
+## Vistas: «tropas» (todas las unidades de cerca, con el arte de arte/ donde lo hay), «obras»
+## (los edificios) y «mapa» (el diorama completo).
 extends SceneTree
 
 const Catalogo = preload("res://codigo/datos/catalogo.gd")
 const Terreno = preload("res://codigo/mundo/terreno.gd")
 const Modelos = preload("res://codigo/mundo/modelos.gd")
 const Ambiente = preload("res://codigo/mundo/ambiente.gd")
+const Arte = preload("res://codigo/mundo/arte.gd")
+const Tropas = preload("res://codigo/mundo/tropas.gd")
 
 var salida := "user://vitrina.png"
 var cuadros := 0
@@ -21,6 +26,7 @@ func _initialize() -> void:
 	var mapa_id := "pampa_del_tamarugal"
 	var faccion := "chile"
 	var vista := "tropas"
+	var enfocar := ""
 	for a in OS.get_cmdline_user_args():
 		if a.begins_with("--mapa="):
 			mapa_id = a.trim_prefix("--mapa=")
@@ -30,6 +36,8 @@ func _initialize() -> void:
 			vista = a.trim_prefix("--vista=")
 		elif a.begins_with("--salida="):
 			salida = a.trim_prefix("--salida=")
+		elif a.begins_with("--enfocar="):
+			enfocar = a.trim_prefix("--enfocar=")
 	var cat := Catalogo.new()
 	cat.cargar()
 	var dir_rts := ProjectSettings.globalize_path("res://").rstrip("/").get_base_dir()
@@ -72,22 +80,40 @@ func _initialize() -> void:
 	var base := cat.uniforme_base(faccion)
 	if vista == "tropas":
 		var k := 0
+		var foco := Vector3.INF
 		for tid in f["unidades"] + f["heroes"]:
 			var t: Dictionary = cat.tipos_por_id[tid]
 			if int(t["capa"]) == 1:
 				continue
-			var propio := cat.uniforme_propio(faccion, t["forma"])
-			var mi := MeshInstance3D.new()
-			mi.mesh = Modelos.unidad(t, base, propio, color, faccion)
 			var p := centro + Vector3((k % 6) * 0.9 - 2.2, 0, (k / 6) * 0.9 - 1.0)
 			p.y = ter.altura_en(p.x, p.z)
-			mi.position = p
-			mi.rotation.y = -PI / 4.0 * (k % 8)
 			var e := Modelos.escala(t)
-			mi.scale = Vector3(e, e, e)
-			raiz.add_child(mi)
+			if tid == enfocar:
+				foco = p
+			var arte := Arte.modelo(t["forma"], faccion, Tropas.alto_juego(t))
+			if arte.is_empty():
+				var propio := cat.uniforme_propio(faccion, t["forma"])
+				var mi := MeshInstance3D.new()
+				mi.mesh = Modelos.unidad(t, base, propio, color, faccion)
+				mi.position = p
+				mi.rotation.y = -PI / 4.0 * (k % 8)
+				mi.scale = Vector3(e, e, e)
+				raiz.add_child(mi)
+			else:
+				# lo hecho fuera del juego (arte/), sobre su peana, como en la batalla
+				var fig := Arte.instanciar(arte)
+				var peana := MeshInstance3D.new()
+				peana.mesh = Modelos.peana(color)
+				peana.scale = Vector3.ONE * Tropas.escala_peana(t, arte)
+				fig.add_child(peana)
+				fig.position = p
+				fig.rotation.y = -PI / 4.0 * (k % 8)
+				raiz.add_child(fig)
 			k += 1
-		_camara(raiz, centro + Vector3(0.3, 0, 0.6), 7.5, 44.0)
+		if foco != Vector3.INF:
+			_camara(raiz, foco + Vector3(0, 0.45, 0), 3.2, 38.0)
+		else:
+			_camara(raiz, centro + Vector3(0.3, 0, 0.6), 7.5, 44.0)
 	elif vista == "obras":
 		var x := centro.x - 7.0
 		var fila := 0

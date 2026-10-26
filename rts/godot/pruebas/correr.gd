@@ -27,6 +27,7 @@ const Repeticiones = preload("res://codigo/datos/repeticiones.gd")
 const Mapas = preload("res://codigo/datos/mapas.gd")
 const Banderas = preload("res://codigo/ui/banderas.gd")
 const Arte = preload("res://codigo/mundo/arte.gd")
+const Efectos = preload("res://codigo/mundo/efectos.gd")
 
 var fallas := 0
 var pruebas := 0
@@ -673,5 +674,66 @@ func _prueba_arte() -> void:
 	tropas.actualizar(0.05, {})
 	_ok(not tropas.figuras.has(20), "la baja se lleva su figura")
 	Arte.registrar("cantinera", "chile", "")
+	tropas.free()
+	ter.nodo.free()
+	_prueba_cantinera_real()
+
+
+## La cantinera chilena de arte/unidades/: un modelo sin esqueleto, que se bambolea al marchar,
+## se inclina al curar y cae con su propia figura.
+func _prueba_cantinera_real() -> void:
+	var tipo: Dictionary = cat.tipos_por_id["cantinera"]
+	var m := Arte.modelo("cantinera", "chile", Tropas.alto_juego(tipo))
+	_ok(not m.is_empty(), "la cantinera chilena de arte/unidades/ se carga")
+	if m.is_empty():
+		return
+	_ok((m["animaciones"] as Dictionary).is_empty(), "sin animaciones")
+	_ok(absf(float(m["giro"]) - deg_to_rad(111.0)) < 0.001, "con el giro de su .json")
+	var muestra := Arte.instanciar(m)
+	var caja := Arte._caja(muestra, Transform3D())
+	_ok(absf(caja.size.y - Tropas.alto_juego(tipo)) < 0.03 and absf(caja.position.y) < 0.03,
+			"de pie y del alto de la figura del juego (%.3f)" % caja.size.y)
+	var mallas := muestra.find_children("*", "MeshInstance3D", true, false)
+	var mat: BaseMaterial3D = (mallas[0] as MeshInstance3D).mesh.surface_get_material(0) if not mallas.is_empty() else null
+	_ok(mat != null and mat.metallic_specular <= Arte.BRILLO + 0.001, "casi mate (la pintura ya trae su luz)")
+	muestra.free()
+	_ok(float(m["pie"]) > 0.1, "mide lo que pisa (%.2f casillas)" % float(m["pie"]))
+	var ep := Tropas.escala_peana(tipo, m)
+	_ok(ep >= Modelos.escala(tipo) and ep <= Modelos.escala(tipo) * 1.3 + 0.001, "su peana asoma bajo la falda, sin pasarse")
+	var est := Estado.new(cat, _inicio_falso())
+	est.aplicar({"t": "inst", "k": 32, "completa": 1, "e": [[30, int(tipo["idx"]), 0, 100, 100, 40, 0, 0, 0]],
+			"j": {"d": 250, "a": 40, "p": 3, "pm": 10, "m": [], "i": [], "h": [], "mi": 0, "vi": [4, 30]}})
+	var ter := Terreno.new(est.terreno, est.niveles, est.w, est.h, cat.colores_terreno)
+	var tropas := Tropas.new(est, ter)
+	root.add_child(tropas)
+	tropas.actualizar(0.05, {})
+	var f: Node3D = tropas.figuras.get(30)
+	_ok(f != null, "en la batalla, con su modelo")
+	if f == null:
+		tropas.free()
+		ter.nodo.free()
+		return
+	var ladeo := 0.0
+	for k in 12:
+		est.ents[30].x += 3.0
+		tropas.actualizar(0.05, {})
+		ladeo = maxf(ladeo, 1.0 - f.transform.basis.y.normalized().dot(Vector3.UP))
+	_ok(ladeo > 0.0005, "al marchar se bambolea")
+	est.ents[30].ultima_cura = Estado.reloj()
+	for k in 10:
+		tropas.actualizar(0.05, {})
+	var frente: Vector3 = Basis(Vector3.UP, float(tropas.anim[30]["rumbo"])) * Vector3.RIGHT
+	_ok(f.transform.basis.y.normalized().dot(frente) > 0.1, "al curar se inclina hacia adelante")
+	# la baja: la figura (sin su peana) queda tendida en el campo
+	var efx := Efectos.new()
+	root.add_child(efx)
+	var caida := tropas.soltar_figura(30)
+	_ok(caida == f and not tropas.figuras.has(30), "la baja entrega su figura")
+	efx.caido_figura(caida, Vector3(3, 0, 3), 0.0, true)
+	_ok(caida.get_parent() != null and caida.get_parent().get_parent() == efx and caida.get_node_or_null("Peana") == null,
+			"y cae en el campo, sin la peana")
+	efx._process(0.6)
+	_ok(absf(absf(caida.rotation.z) - PI / 2.0) < 0.1, "de espaldas (%.2f)" % caida.rotation.z)
+	efx.free()
 	tropas.free()
 	ter.nodo.free()

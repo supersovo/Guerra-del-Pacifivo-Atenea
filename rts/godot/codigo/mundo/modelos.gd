@@ -9,6 +9,7 @@
 extends RefCounted
 
 const PIEL := [Color8(222, 184, 150), Color8(196, 150, 112), Color8(168, 120, 86), Color8(140, 98, 68)]
+const RADIO_PEANA := 0.15     # la peana de una figura a escala 1 (en casillas)
 const BOTAS := Color8(34, 26, 20)
 const CUERO := Color8(96, 64, 38)
 const CUERO_BLANCO := Color8(232, 228, 214)
@@ -339,7 +340,7 @@ static func ropa(base: Dictionary, propio: Dictionary, forma: String, color_juga
 
 ## Peana de la figura (como las miniaturas de un juego de mesa): el canto, del color del
 ## jugador; arriba, tierra pintada.
-static func _peana(k: Constructor, color: Color, radio := 0.15) -> void:
+static func _peana(k: Constructor, color: Color, radio := RADIO_PEANA) -> void:
 	k.cilindro(Vector3(0, 0, 0), radio, 0.026, color, 12, radio * 0.96, Color8(112, 98, 72).lerp(color, 0.18))
 
 

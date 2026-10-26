@@ -426,12 +426,26 @@ godot/
   (`unidades/<forma>/<forma>_<nación>.glb`) se mide al cargarlo, se pone de pie
   con la altura de la figura del juego y mirando al frente, y se dibuja como un
   nodo propio (no en los `MultiMesh`) sobre la peana del color del jugador: queda
-  quieto, marcha con el paso a la velocidad a que avanza y hace su acción al
-  disparar o al curar. Las animaciones se reconocen por sus nombres usuales
-  (`idle`, `walk`, `heal`, `fire`, `death`…) o por un `.json` junto al modelo.
-  Las pruebas lo revisan con una figura de prueba que genera el propio Godot
+  quieto, marcha con el paso a la velocidad a que avanza, hace su acción al
+  disparar o al curar y, al caer, su animación de muerte. Las animaciones se
+  reconocen por sus nombres usuales (`idle`, `walk`, `heal`, `fire`, `death`…)
+  o por un `.json` junto al modelo. Un modelo sin esqueleto se bambolea al
+  marchar, como un soldadito llevado de la mano, se inclina en la acción y cae
+  de espaldas como las figuras del juego. La peana se agranda si el modelo pisa
+  ancho, y los materiales quedan casi mates (una pintura ya trae su luz). Las
+  pruebas lo revisan con una figura de prueba que genera el propio Godot
   (`pruebas/hacer_figura_prueba.gd`), exportada a glTF como lo haría una
-  herramienta de modelado.
+  herramienta de modelado, y con la cantinera chilena, el primer modelo.
+- **Pintar un modelo sin color.** Las herramientas que convierten una imagen en
+  un modelo 3D a veces entregan solo la forma, y una figura por cada vista de la
+  lámina. `herramientas/pintar_modelo.py` separa la figura grande, la aligera,
+  le hace un atlas UV, ajusta cada vista de la lámina a la silueta del modelo
+  (escala, corrimiento y alzada, por coincidencia de siluetas), proyecta sus
+  colores sobre lo que cada vista muestra (con una prueba de profundidad), envuelve
+  las piezas deformadas con su dibujo y rellena lo que ninguna vista muestra con
+  el color visto más cercano por la superficie, sin cruzar pliegues; hornea la
+  textura y escribe el `.glb`. Las láminas, los modelos originales y la receta de
+  cada uno quedan en `arte_fuente/`.
 - **Niebla.** El cliente calcula la visibilidad con las mismas reglas que el
   servidor (incluido el redondeo de Python en los radios) y la sube a una
   textura de una casilla por píxel (visible, explorada, desconocida) que leen

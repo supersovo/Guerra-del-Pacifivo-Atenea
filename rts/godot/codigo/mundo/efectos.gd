@@ -4,6 +4,7 @@
 extends Node3D
 
 const Modelos = preload("res://codigo/mundo/modelos.gd")
+const Arte = preload("res://codigo/mundo/arte.gd")
 
 const MAX_EFECTOS := 900
 
@@ -165,6 +166,27 @@ func caido(malla: Mesh, pos: Vector3, rumbo: float, escala: float, con_sangre: b
 		mancha_sangre(pos, 0.2)
 
 
+## Baja de una tropa con modelo de arte/: su figura, sin la peana, hace su animación de
+## muerte si la trae, o cae de espaldas como las otras.
+func caido_figura(figura: Node3D, pos: Vector3, rumbo: float, con_sangre: bool) -> void:
+	var raiz := Node3D.new()
+	raiz.position = pos
+	raiz.rotation.y = rumbo
+	add_child(raiz)
+	figura.transform = Transform3D()
+	raiz.add_child(figura)
+	var peana := figura.get_node_or_null("Peana")
+	if peana != null:
+		peana.free()
+	var m: Dictionary = figura.get_meta("arte", {})
+	var anima: bool = (m.get("animaciones", {}) as Dictionary).has("muerte")
+	if anima:
+		Arte.animar(figura, m, "muerte")
+	_agregar(raiz, 40.0, "caido", {"figura": figura, "lado": 1.0 if randf() < 0.75 else -1.0, "anima": anima})
+	if con_sangre and sangre:
+		mancha_sangre(pos, 0.2)
+
+
 func mancha_sangre(pos: Vector3, radio: float) -> void:
 	var m := MeshInstance3D.new()
 	m.mesh = Modelos.mancha(Color(0.42, 0.03, 0.02, 0.8))
@@ -306,14 +328,15 @@ func _process(delta: float) -> void:
 				nodo.position += vel * delta
 				(nodo as GeometryInstance3D).transparency = f * f
 			"caido":
-				# cae en 0,45 s, con un golpe al dar contra el suelo
-				var cae := clampf(edad / 0.45, 0.0, 1.0)
-				var giro := cae * cae * PI / 2.0
-				if cae >= 1.0:
-					giro = PI / 2.0 - 0.05 * sin(clampf((edad - 0.45) / 0.15, 0.0, 1.0) * PI)
-				var figura: Node3D = datos["figura"]
-				figura.rotation.z = giro * float(datos["lado"])
-				figura.position.y = 0.04 * sin(cae * PI / 2.0)
+				# cae en 0,45 s, con un golpe al dar contra el suelo (o hace su animación)
+				if not datos.get("anima", false):
+					var cae := clampf(edad / 0.45, 0.0, 1.0)
+					var giro := cae * cae * PI / 2.0
+					if cae >= 1.0:
+						giro = PI / 2.0 - 0.05 * sin(clampf((edad - 0.45) / 0.15, 0.0, 1.0) * PI)
+					var figura: Node3D = datos["figura"]
+					figura.rotation.z = giro * float(datos["lado"])
+					figura.position.y = 0.04 * sin(cae * PI / 2.0)
 				if f > 0.85:
 					nodo.position.y -= delta * 0.08
 			"mancha":
