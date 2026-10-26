@@ -6,6 +6,7 @@ extends CanvasLayer
 const Tema = preload("res://codigo/ui/tema.gd")
 const Tarjeta = preload("res://codigo/ui/tarjeta.gd")
 const Minimapa = preload("res://codigo/ui/minimapa.gd")
+const Arte = preload("res://codigo/mundo/arte.gd")
 
 const ALTO_SUP := 40
 const ALTO_INF := 190
@@ -29,6 +30,8 @@ var inferior: PanelContainer
 var minimapa: Control
 var lbl_nombre: Label
 var lbl_parte: RichTextLabel
+var marco_retrato: PanelContainer   # el retrato pintado de la unidad elegida (arte/retratos/)
+var retrato: TextureRect
 var rejilla: GridContainer
 var botones: Array[Button] = []
 var lbl_ayuda: RichTextLabel
@@ -98,6 +101,16 @@ func _ready() -> void:
 	minimapa = Minimapa.new()
 	minimapa.custom_minimum_size = Vector2(170, 170)
 	abajo.add_child(minimapa)
+	marco_retrato = PanelContainer.new()
+	marco_retrato.add_theme_stylebox_override("panel", Tema.caja(Color(0, 0, 0, 0.35), Tema.BRONCE, 2, 3, 2))
+	marco_retrato.visible = false
+	abajo.add_child(marco_retrato)
+	retrato = TextureRect.new()
+	retrato.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	retrato.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	retrato.custom_minimum_size = Vector2(128, 160)
+	retrato.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	marco_retrato.add_child(retrato)
 	var parte := VBoxContainer.new()
 	parte.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	abajo.add_child(parte)
@@ -262,6 +275,7 @@ func _parte(est, seleccion: Array) -> void:
 	for i in seleccion:
 		if est.ents.has(i):
 			ents.append(est.ents[i])
+	marco_retrato.visible = false
 	if ents.is_empty():
 		lbl_nombre.text = ""
 		lbl_parte.text = "[i]Sin selección. Arrastre para elegir tropas; clic derecho para dar órdenes.[/i]"
@@ -280,6 +294,10 @@ func _parte(est, seleccion: Array) -> void:
 			return
 		var fac: String = est.faccion(e.dueno)
 		lbl_nombre.text = cat.nombre(fac, e.tipo["id"])
+		var pintado := Arte.retrato(e.tipo["id"], fac)
+		if pintado != null:
+			retrato.texture = pintado
+			marco_retrato.visible = true
 		var dueno: String = est.jugadores[e.dueno]["nombre"] if e.dueno >= 0 and e.dueno < est.jugadores.size() else ""
 		var vida_max: int = int(ex.get("vm", e.tipo["vida"]))
 		var lineas: Array = []

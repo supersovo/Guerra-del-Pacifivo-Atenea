@@ -591,6 +591,9 @@ func _evento(ev: Array) -> void:
 				if k == "desmonta" and o.dueno == est.yo:
 					hud.mensaje("Carpas al carro: la ambulancia está lista para seguir a la tropa.", Tema.CREMA, 4.0)
 		"cura":
+			var c = est.ents.get(int(ev[2]))
+			if c != null:
+				c.ultima_cura = est.reloj()
 			var o = est.ents.get(int(ev[3]))
 			if o != null:
 				efx.curacion(tropas.punto(o))

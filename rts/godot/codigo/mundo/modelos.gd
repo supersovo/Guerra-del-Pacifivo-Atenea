@@ -1419,6 +1419,14 @@ static func galones(grado: int) -> ArrayMesh:
 
 
 ## Gota de agua vacía sobre la tropa sedienta.
+## La peana del color del jugador sola, para las figuras hechas fuera del juego (arte/).
+static func peana(color: Color) -> ArrayMesh:
+	return _de_cache("peana|%s" % color.to_html(), func() -> ArrayMesh:
+		var k := Constructor.new()
+		_peana(k, color)
+		return _terminar(k))
+
+
 static func gota() -> ArrayMesh:
 	return _de_cache("gota", func() -> ArrayMesh:
 		var k := Constructor.new()

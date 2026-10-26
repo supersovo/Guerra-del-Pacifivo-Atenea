@@ -11,6 +11,8 @@
 ## Imprime «RECORRIDO: OK» y sale con 0, o «RECORRIDO: FALLA: ...» y sale con 4.
 extends Node
 
+const Arte = preload("res://codigo/mundo/arte.gd")
+
 var menu
 var fase := ""
 var t := 0.0
@@ -169,9 +171,18 @@ func _pantallas(p: Control) -> void:
 			p.elegir_pestana(pestana[0])
 			for k in p.lista_fichas.item_count:
 				p.elegir(p.lista_fichas.get_item_metadata(k))
-		# un héroe con su retrato 3D para la imagen
-		p.elegir_pestana("heroes")
-		print("RECORRIDO: archivo: todas las fichas")
+		# para la imagen, la cantinera chilena con su retrato pintado (arte/retratos/)
+		p.elegir_pestana("unidades")
+		p.elegir_nacion("chile")
+		p.elegir_en_lista(p.lista_fichas, "cantinera")
+		p.elegir("cantinera")
+		var pintado := Arte.retrato("cantinera", "chile")
+		var hallado: bool = p.ficha.find_children("*", "TextureRect", true, false).any(
+				func(n: Node) -> bool: return (n as TextureRect).texture == pintado)
+		if pintado == null or not hallado:
+			_falla("la ficha de la cantinera no muestra su retrato")
+			return
+		print("RECORRIDO: archivo: todas las fichas (la cantinera, con su retrato)")
 		t = 0.0
 		return
 	if menu.nombre_pantalla == "escaramuza" and not p.has_meta("recorrido"):

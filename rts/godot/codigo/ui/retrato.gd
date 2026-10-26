@@ -83,6 +83,19 @@ func mostrar(mallas: Array, separacion := 0.2, rumbo := 0.0) -> void:
 		x += float(anchos[i]) + separacion
 	if primera:
 		return
+	_encuadrar(caja)
+
+
+## Muestra una figura de arte/ (con los pies en el origen, ver arte.gd) y encuadra la cámara.
+func mostrar_figura(figura: Node3D, alto: float, ancho: float, rumbo := 0.0) -> void:
+	for h in pivote.get_children():
+		h.queue_free()
+	pivote.rotation.y = rumbo
+	pivote.add_child(figura)
+	_encuadrar(AABB(Vector3(-ancho / 2.0, 0, -ancho / 2.0), Vector3(ancho, alto, ancho)))
+
+
+func _encuadrar(caja: AABB) -> void:
 	var centro := caja.get_center()
 	var incl := deg_to_rad(inclinacion)
 	var tan_v := tan(deg_to_rad(camara.fov / 2.0))

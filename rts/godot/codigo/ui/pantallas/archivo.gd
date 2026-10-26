@@ -8,6 +8,8 @@ extends "res://codigo/ui/pantallas/pantalla.gd"
 const Mapas = preload("res://codigo/datos/mapas.gd")
 const Modelos = preload("res://codigo/mundo/modelos.gd")
 const Retrato = preload("res://codigo/ui/retrato.gd")
+const Arte = preload("res://codigo/mundo/arte.gd")
+const Tropas = preload("res://codigo/mundo/tropas.gd")
 
 const COLOR_NACION := {"chile": 0, "peru": 3, "bolivia": 2, "argentina": 4}
 const PESTANAS := [["naciones", "Naciones"], ["heroes", "Héroes"], ["unidades", "Unidades"],
@@ -197,10 +199,39 @@ func _retrato(mallas: Array, tam := Vector2(180, 180), girar := true, rumbo := 0
 	var r := Retrato.new(tam)
 	r.girar = girar
 	r.mostrar(mallas, 0.15, rumbo)
+	return _enmarcar(r)
+
+
+func _enmarcar(c: Control) -> Control:
 	var marco := PanelContainer.new()
 	marco.add_theme_stylebox_override("panel", Tema.caja(Color8(226, 210, 176), Color8(150, 120, 84), 1, 3, 2))
-	marco.add_child(r)
+	marco.add_child(c)
 	return marco
+
+
+## El retrato pintado de la unidad (arte/retratos/), si lo hay, y su figura girando: la de
+## arte/unidades/, si la hay, o la del juego.
+func _imagenes_unidad(t: Dictionary, fac: String) -> Control:
+	var fila := HBoxContainer.new()
+	fila.add_theme_constant_override("separation", 10)
+	var pintado := Arte.retrato(t["id"], fac)
+	if pintado != null:
+		var img := TextureRect.new()
+		img.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		img.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		img.custom_minimum_size = Vector2(144, 180)
+		img.texture = pintado
+		fila.add_child(_enmarcar(img))
+	var m := Arte.modelo(t["forma"], fac, Tropas.alto_juego(t))
+	if m.is_empty():
+		fila.add_child(_retrato([_malla_unidad(t, fac)]))
+	else:
+		var r := Retrato.new(Vector2(180, 180))
+		var figura := Arte.instanciar(m)
+		r.mostrar_figura(figura, float(m["alto"]), Arte.ancho(m))
+		figura.tree_entered.connect(func() -> void: Arte.animar(figura, m, "quieto"), CONNECT_ONE_SHOT)
+		fila.add_child(_enmarcar(r))
+	return fila
 
 
 func _malla_unidad(t: Dictionary, fac: String) -> Mesh:
@@ -252,7 +283,7 @@ func _ficha_naciones() -> void:
 func _ficha_unidad(t: Dictionary, nombre: String) -> void:
 	var a: Dictionary = arch["unidades"][t["id"]]
 	var fac: String = t.get("faccion") if t.get("faccion") != null else nacion
-	_cabecera(nombre, a["sub"], _retrato([_malla_unidad(t, fac)]), t.get("descripcion", ""))
+	_cabecera(nombre, a["sub"], _imagenes_unidad(t, fac), t.get("descripcion", ""))
 	_cifras(a["filas"])
 	if a["aura"] != null:
 		_rotulo(a["aura"][0], "negrita", 17, Tema.ROJO_SELLO)

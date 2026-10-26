@@ -26,6 +26,7 @@ const Rutas = preload("res://codigo/datos/rutas.gd")
 const Repeticiones = preload("res://codigo/datos/repeticiones.gd")
 const Mapas = preload("res://codigo/datos/mapas.gd")
 const Banderas = preload("res://codigo/ui/banderas.gd")
+const Arte = preload("res://codigo/mundo/arte.gd")
 
 var fallas := 0
 var pruebas := 0
@@ -57,7 +58,7 @@ func _initialize() -> void:
 		return
 	for prueba in ["protocolo", "lector_por_trozos", "vision", "estado", "terreno", "tarjeta", "modelos", "lugar_costo",
 			"partes_animadas", "grupos", "guarnicion", "minimapa", "niebla_fundida", "enteros", "config", "perfil",
-			"repeticiones", "mapas_y_banderas", "campana", "instalacion"]:
+			"repeticiones", "mapas_y_banderas", "campana", "instalacion", "arte"]:
 		call("_prueba_" + prueba)
 	print("%d comprobaciones, %d fallas" % [pruebas, fallas])
 	quit(mini(fallas, 100))
@@ -612,3 +613,65 @@ func _prueba_instalacion() -> void:
 	_igual(Rutas.dir_juego_instalado(vacia), vacia, "sin datos queda la carpeta del ejecutable")
 	_borrar_arbol(d)
 
+
+
+
+# ----------------------------------------------------------------------
+# Arte hecho fuera del juego: retratos y modelos animados (arte/)
+
+func _prueba_arte() -> void:
+	var r := Arte.retrato("cantinera", "chile")
+	_ok(r != null, "el retrato de la cantinera chilena (arte/retratos/)")
+	_ok(Arte.retrato("cantinera", "chile") == r, "se guarda una sola vez")
+	_ok(Arte.retrato("no_existe", "chile") == null, "sin retrato, nada")
+	var ruta := "res://pruebas/arte/figura_prueba.glb"
+	var m := Arte.cargar(ruta, 1.0)
+	_ok(not m.is_empty(), "se carga la figura de prueba (un .glb con esqueleto y animaciones)")
+	if m.is_empty():
+		return
+	var anims: Dictionary = m["animaciones"]
+	_igual(anims.get("quieto", ""), "Idle", "quieta: «Idle», por su nombre usual")
+	_igual(anims.get("marcha", ""), "Walk", "marcha: «Walk»")
+	_igual(anims.get("accion", ""), "Saludo", "acción: la que pide el .json")
+	_igual(anims.get("muerte", ""), "Death", "muerte: «Death»")
+	_ok(absf(float(m["marcha"]) - 1.2) < 0.001, "el paso de la marcha, del .json")
+	var f := Arte.instanciar(m)
+	var caja := Arte._caja(f, Transform3D())
+	_ok(absf(caja.size.y - 1.0) < 0.03, "la figura queda del alto pedido (%.3f)" % caja.size.y)
+	_ok(absf(caja.position.y) < 0.03, "con los pies en el suelo")
+	var ajuste: Node3D = f.get_child(0)
+	_ok((ajuste.basis * Vector3.BACK).normalized().x > 0.99, "y su frente (+Z en glTF) hacia el frente del juego (+X)")
+	f.free()
+	# en la batalla: la cantinera chilena con la figura de prueba
+	Arte.registrar("cantinera", "chile", ruta)
+	var est := Estado.new(cat, _inicio_falso())
+	var cantinera: int = cat.tipos_por_id["cantinera"]["idx"]
+	est.aplicar({"t": "inst", "k": 32, "completa": 1,
+			"e": [[20, cantinera, 0, 100, 100, 40, 0, 0, 0], [21, cantinera, 1, 200, 100, 40, 0, 0, 0]],
+			"j": {"d": 250, "a": 40, "p": 3, "pm": 10, "m": [], "i": [], "h": [], "mi": 0, "vi": [4, 30]}})
+	var ter := Terreno.new(est.terreno, est.niveles, est.w, est.h, cat.colores_terreno)
+	var tropas := Tropas.new(est, ter)
+	root.add_child(tropas)
+	tropas.actualizar(0.05, {})
+	_ok(tropas.figuras.has(20), "la cantinera chilena se dibuja con el modelo de arte/")
+	_igual(tropas.figuras.has(21), not Arte.modelo("cantinera", "peru", 1.0).is_empty(),
+			"la peruana, según lo que haya para ella en arte/")
+	var f20: Node3D = tropas.figuras.get(20)
+	if f20 != null:
+		_igual(f20.get_meta("estado"), "quieto", "quieta, su animación de estar quieta")
+		_igual(f20.get_child_count(), 2, "con su peana del color del jugador")
+		for k in 6:
+			est.ents[20].x += 3.0
+			tropas.actualizar(0.05, {})
+		_igual(f20.get_meta("estado"), "marcha", "al moverse, la marcha")
+		est.ents[20].ultima_cura = Estado.reloj()
+		tropas.actualizar(0.05, {})
+		_igual(f20.get_meta("estado"), "accion", "al curar, su acción")
+		_ok(absf(tropas.alto(est.ents[20]) - Tropas.alto_juego(est.ents[20].tipo)) < 0.001,
+				"la barra de vida, a la altura de la figura")
+	est.ents.erase(20)
+	tropas.actualizar(0.05, {})
+	_ok(not tropas.figuras.has(20), "la baja se lleva su figura")
+	Arte.registrar("cantinera", "chile", "")
+	tropas.free()
+	ter.nodo.free()

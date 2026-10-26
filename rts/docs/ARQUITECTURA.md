@@ -351,7 +351,8 @@ godot/
 │   │                      repeticiones.gd (gzip + JSON), mapas.gd (del juego y del usuario, vistas previas)
 │   ├── batalla/           estado.gd (espejo con interpolación y fantasmas), vision.gd (niebla, igual a
 │   │                      sim/vision.py), batalla.gd (la escena: eventos, sonidos, órdenes, voces, fin)
-│   ├── mundo/             terreno.gd, modelos.gd, tropas.gd, efectos.gd, camara_rts.gd, ambiente.gd
+│   ├── mundo/             terreno.gd, modelos.gd, tropas.gd, efectos.gd, camara_rts.gd, ambiente.gd,
+│   │                      arte.gd (retratos y modelos .glb de arte/)
 │   └── ui/                tema.gd (pergamino, madera, botones con relieve), hud.gd, tarjeta.gd, minimapa.gd,
 │                          menu.gd (diorama de fondo y una pantalla a la vez), pantallas/ (portada,
 │                          escaramuza, cargando, campana, repeticiones, archivo, opciones, parte, conectar,
@@ -359,8 +360,10 @@ godot/
 │                          controles_sonido.gd, panel_chat.gd
 ├── escenas/               menu.tscn y batalla.tscn (un nodo con su guion)
 ├── sombreadores/          terreno, agua y modelos (colores en los vértices y niebla de guerra)
-└── pruebas/               correr.gd (pruebas sin pantalla), recorrido.gd (recorridos del menú) y
-                           vitrina.gd (capturas de los modelos)
+├── arte/                  retratos y modelos animados hechos fuera del juego (LEEME.md)
+└── pruebas/               correr.gd (pruebas sin pantalla), recorrido.gd (recorridos del menú),
+                           vitrina.gd (capturas de los modelos) y hacer_figura_prueba.gd (la figura
+                           .glb de prueba de arte/)
 ```
 
 - **Mismo catálogo, misma huella.** El servidor manda los tipos por su índice;
@@ -415,6 +418,20 @@ godot/
   Se guardan en caché por forma, nación y color; todas usan un solo material.
   Se dibujan más grandes que el natural (×1,45 la tropa a pie), siempre dentro
   del radio que les da la simulación.
+- **Arte hecho fuera del juego.** Lo que hay en `godot/arte/` reemplaza, unidad
+  por unidad, a lo dibujado por código; lo que falta se sigue viendo como
+  siempre (`mundo/arte.gd`, convenciones en `godot/arte/LEEME.md`). Un retrato
+  pintado (`retratos/<tipo>_<nación>.png`) sale en la ficha de la batalla y en
+  el Archivo. Un modelo `.glb` con esqueleto y animaciones
+  (`unidades/<forma>/<forma>_<nación>.glb`) se mide al cargarlo, se pone de pie
+  con la altura de la figura del juego y mirando al frente, y se dibuja como un
+  nodo propio (no en los `MultiMesh`) sobre la peana del color del jugador: queda
+  quieto, marcha con el paso a la velocidad a que avanza y hace su acción al
+  disparar o al curar. Las animaciones se reconocen por sus nombres usuales
+  (`idle`, `walk`, `heal`, `fire`, `death`…) o por un `.json` junto al modelo.
+  Las pruebas lo revisan con una figura de prueba que genera el propio Godot
+  (`pruebas/hacer_figura_prueba.gd`), exportada a glTF como lo haría una
+  herramienta de modelado.
 - **Niebla.** El cliente calcula la visibilidad con las mismas reglas que el
   servidor (incluido el redondeo de Python en los radios) y la sube a una
   textura de una casilla por píxel (visible, explorada, desconocida) que leen
@@ -540,8 +557,9 @@ ficticio de SDL):
   (`godot/pruebas/correr.gd`: protocolo y zlib de Python, lector por trozos,
   niebla, espejo, terreno, tarjeta, modelos, costos, partes animadas, grupos,
   puestos de la guarnición, minimapa, niebla fundida, configuración, perfil,
-  repeticiones en gzip, mapas y vistas previas, banderas, campaña y las
-  carpetas de una instalación: PyInstaller, la aplicación de macOS), la niebla,
+  repeticiones en gzip, mapas y vistas previas, banderas, campaña, las
+  carpetas de una instalación —PyInstaller, la aplicación de macOS— y el arte
+  hecho fuera del juego: retrato, escala, frente y animaciones), la niebla,
   la **campaña** (sesenta batallas seguidas, con fichas dañadas) y los
   **nombres de los veteranos** comparados con los de Python, una **batalla IA
   contra IA** vista entera como espectador sin un error de guion, la **prueba
@@ -551,7 +569,8 @@ ficticio de SDL):
   menú de la batalla con el volumen, la rendición, el parte de guerra y la
   escaramuza anotada en el perfil) y tres **recorridos de la interfaz**
   (`godot/pruebas/recorrido.gd`): todas las pantallas (cada mapa de la
-  escaramuza, cada ficha del archivo y el botón de la versión clásica), una
+  escaramuza, cada ficha del archivo —la de la cantinera, con su retrato— y el
+  botón de la versión clásica), una
   batalla de la campaña que queda en el escalafón, y el multijugador contra un
   servidor dedicado (salón, sala con un rival de la IA, batalla, parte de
   guerra, vuelta a la sala y al salón).

@@ -6,10 +6,13 @@
 ## yacimientos, las minas y los heridos son nodos sueltos. Encima: la guarnición en sus
 ## puestos, los anillos de selección (con la figura de la formación), la marca de la
 ## infantería formada, los galones de los veteranos y la gota de la tropa sin agua.
+## Las tropas con un modelo hecho fuera del juego (arte/, ver arte.gd) son nodos sueltos con
+## sus propias animaciones: quieto, marcha y acción (fuego, curar).
 extends Node3D
 
 const Modelos = preload("res://codigo/mundo/modelos.gd")
 const Terreno = preload("res://codigo/mundo/terreno.gd")
+const Arte = preload("res://codigo/mundo/arte.gd")
 
 const VERDE := Color8(90, 230, 90)
 const AMARILLO := Color8(240, 210, 80)
@@ -79,7 +82,9 @@ var ter
 var cat
 var nodos := {}           # id -> MeshInstance3D (obras, yacimientos, minas, heridos)
 var grupos := {}          # malla -> Grupo
-var anim := {}            # id -> {pos, rumbo, fase, paso, accion}
+var anim := {}            # id -> {pos, rumbo, fase, paso, accion, vel}
+var figuras := {}         # id -> Node3D (tropas con un modelo de arte/)
+var _usadas := {}         # las figuras de arte/ dibujadas en este cuadro
 var resaltado := -1       # la figura bajo el ratón
 var _resaltado_nodo := -1
 var _t := 0.0
@@ -111,6 +116,7 @@ func cuantas() -> int:
 func actualizar(delta: float, seleccion: Dictionary, giro_camara := 0.0) -> void:
 	_t += delta
 	var vivos := {}
+	_usadas = {}
 	var hacia_camara := Basis(Vector3.UP, giro_camara)
 	for e in est.ents.values():
 		if not _se_dibuja(e):
@@ -134,6 +140,10 @@ func actualizar(delta: float, seleccion: Dictionary, giro_camara := 0.0) -> void
 	for id in anim.keys():
 		if not vivos.has(id):
 			anim.erase(id)
+	for id in figuras.keys():
+		if not _usadas.has(id):
+			figuras[id].queue_free()
+			figuras.erase(id)
 	# el resaltado de las obras (las tropas lo llevan en sus datos)
 	if _resaltado_nodo != resaltado:
 		if nodos.has(_resaltado_nodo):
@@ -203,11 +213,13 @@ func _figura(e, delta: float, elegido: bool, hacia_camara: Basis) -> void:
 	var pos := Vector3(x, y, z)
 	var a: Dictionary = anim.get(e.id, {})
 	if a.is_empty():
-		a = {"pos": pos, "rumbo": _rumbo(e), "fase": randf() * TAU, "paso": 0.0, "accion": 0.0}
+		a = {"pos": pos, "rumbo": _rumbo(e), "fase": randf() * TAU, "paso": 0.0, "accion": 0.0, "vel": 0.0}
 		anim[e.id] = a
 	var antes: Vector3 = a["pos"]
 	var recorrido := Vector2(pos.x - antes.x, pos.z - antes.z).length()
 	a["pos"] = pos
+	if recorrido < 2.0:
+		a["vel"] = lerpf(float(a["vel"]), recorrido / maxf(delta, 0.0001), 1.0 - exp(-6.0 * delta))
 	a["fase"] = fmod(float(a["fase"]) + recorrido * TAU / _zancada(e), TAU * 64.0)
 	var marcha := recorrido > 0.0004 and recorrido < 2.0
 	a["paso"] = move_toward(float(a["paso"]), 1.0 if marcha else 0.0, delta * 5.0)
@@ -225,8 +237,14 @@ func _figura(e, delta: float, elegido: bool, hacia_camara: Basis) -> void:
 		var salto := 0.035 if forma in MONTADOS else (0.0 if forma in RODADOS else 0.02)
 		alzado = absf(sin(float(a["fase"]))) * salto * paso
 	var visto := pos + Vector3(0, alzado, 0)
-	var dato := Vector4(a["fase"], paso, accion, 1.0 if e.id == resaltado else 0.0)
-	_grupo(_malla_figura(e)).agregar(Transform3D(b.scaled(Vector3.ONE * esc), visto), dato)
+	var arte := _arte(e)
+	if arte.is_empty():
+		var dato := Vector4(a["fase"], paso, accion, 1.0 if e.id == resaltado else 0.0)
+		_grupo(_malla_figura(e)).agregar(Transform3D(b.scaled(Vector3.ONE * esc), visto), dato)
+	else:
+		var actua: bool = accion > 0.5 or est.reloj() - float(e.ultima_cura) < 1.5
+		_figura_arte(e, arte, Transform3D(b, pos), "accion" if actua else ("marcha" if paso > 0.5 else "quieto"),
+				float(a["vel"]))
 	if not e.es_unidad():
 		return
 	var ex := _ex(e)
@@ -247,6 +265,38 @@ func _figura(e, delta: float, elegido: bool, hacia_camara: Basis) -> void:
 		tope.y += 0.16
 	if e.fl & cat.bandera("DESHIDRATADA"):
 		_grupo(Modelos.gota(), false, false).agregar(Transform3D(Basis(), tope + Vector3(0, 0.05, 0)))
+
+
+## El modelo de arte/ de la figura ({} si se dibuja la del juego). El herido en la camilla
+## sigue con la figura del juego.
+func _arte(e) -> Dictionary:
+	if not e.es_unidad() or e.fl & cat.bandera("CAMILLA"):
+		return {}
+	var forma: String = e.tipo["forma"]
+	return Arte.modelo(forma, est.faccion(e.dueno), alto_juego(e.tipo))
+
+
+## Pone al día la figura de arte/ de una tropa: la crea con su peana, la ubica y elige la
+## animación (la marcha, al paso de la figura).
+func _figura_arte(e, arte: Dictionary, tf: Transform3D, estado: String, velocidad: float) -> void:
+	var color: Color = est.color(e.dueno)
+	var clave := "%s|%s" % [arte["ruta"], color.to_html()]
+	var f: Node3D = figuras.get(e.id)
+	if f == null or f.get_meta("clave") != clave:
+		if f != null:
+			f.queue_free()
+		f = Arte.instanciar(arte)
+		f.name = "F%d" % e.id
+		f.set_meta("clave", clave)
+		var peana := MeshInstance3D.new()
+		peana.mesh = Modelos.peana(color)
+		peana.scale = Vector3.ONE * Modelos.escala(e.tipo)
+		f.add_child(peana)
+		add_child(f)
+		figuras[e.id] = f
+	f.transform = tf
+	_usadas[e.id] = true
+	Arte.animar(f, arte, estado, clampf(velocidad / float(arte["marcha"]), 0.4, 2.5))
 
 
 ## La acción de la figura (0 a 1): fusil apuntado, tajo, retroceso de la pieza o faena.
@@ -465,10 +515,17 @@ func alto(e) -> float:
 		return 1.6
 	if e.tipo == null:
 		return 0.3
-	if int(e.tipo["capa"]) == 1:
+	if figuras.has(e.id):
+		return float(figuras[e.id].get_meta("alto"))
+	return alto_juego(e.tipo)
+
+
+## Altura de la figura del juego de un tipo de tropa (la que toma un modelo de arte/).
+static func alto_juego(tipo: Dictionary) -> float:
+	if int(tipo["capa"]) == 1:
 		return 0.9
-	var forma: String = e.tipo["forma"]
-	var esc := Modelos.escala(e.tipo)
+	var forma: String = tipo["forma"]
+	var esc := Modelos.escala(tipo)
 	if forma in MONTADOS:
 		return 0.95 * esc
 	if forma in ["canon_montana", "canon_campana", "gatling", "ambulancia", "carreta_agua"]:

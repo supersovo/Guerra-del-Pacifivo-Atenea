@@ -30,6 +30,7 @@ class Ent:
 	var visto := 0.0
 	var creada := 0.0
 	var ultimo_disparo := -10.0
+	var ultima_cura := -10.0         # cuándo curó por última vez (la cantinera)
 
 	func es_unidad() -> bool:
 		return tipo != null and not tipo["edificio"]
