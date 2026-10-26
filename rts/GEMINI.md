@@ -5,8 +5,8 @@
 > Gemini CLI lo carga solo cuando trabaja en este repositorio; también se puede
 > adjuntar o pegar en una conversación.
 >
-> Describe el código de la versión **0.14.0** (`salitre/__init__.py`:
-> `VERSION = "0.14.0"`, `PROTOCOLO = 3`). Si el código y esta guía discrepan,
+> Describe el código de la versión **0.14.1** (`salitre/__init__.py`:
+> `VERSION = "0.14.1"`, `PROTOCOLO = 3`). Si el código y esta guía discrepan,
 > manda el código: verifique antes de afirmar.
 
 Todas las rutas son relativas a `rts/`, salvo que se indique otra cosa.

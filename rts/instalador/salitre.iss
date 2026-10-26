@@ -7,7 +7,7 @@
 ; lo hace todo): PyInstaller deja en dist\GuerraDelPacifico\ la versión clásica, el
 ; servidor y los datos, y a su lado va dist\cliente3d\windows\GuerraDelPacifico.exe.
 ; Luego, desde rts\instalador:
-;     iscc /DVersion=0.14.0 salitre.iss
+;     iscc /DVersion=0.14.1 salitre.iss
 ; El instalador queda en rts\instalador\Salida\. Requiere Inno Setup 6.3 o más nuevo.
 ;
 ; Los datos del jugador (configuración, cuentas del servidor, repeticiones y

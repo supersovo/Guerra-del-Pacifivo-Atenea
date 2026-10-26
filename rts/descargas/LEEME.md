@@ -21,7 +21,7 @@ evitarlo, descárguelo con PowerShell (tecla Windows → escriba *PowerShell* �
 Intro) y pegue:
 
 ```powershell
-curl.exe -L -o "$env:USERPROFILE\Downloads\GuerraDelPacifico-0.14.0-Instalador.exe" https://raw.githubusercontent.com/supersovo/Guerra-del-Pacifivo-Atenea/refs/heads/claude/friendly-keller-8ieqfo/rts/descargas/GuerraDelPacifico-0.14.0-Instalador.exe
+curl.exe -L -o "$env:USERPROFILE\Downloads\GuerraDelPacifico-0.14.1-Instalador.exe" https://raw.githubusercontent.com/supersovo/Guerra-del-Pacifivo-Atenea/refs/heads/claude/friendly-keller-8ieqfo/rts/descargas/GuerraDelPacifico-0.14.1-Instalador.exe
 ```
 
 El instalador queda en la carpeta *Descargas*. Si la rama ya se fusionó, cambie
@@ -43,8 +43,8 @@ Sirve para Mac con procesador Intel y macOS 11 o posterior, o con Apple Silicon
 Utilidades → Terminal*, o ⌘ + espacio y escriba *Terminal*) y pegue:
 
 ```sh
-curl -L -o ~/Downloads/GuerraDelPacifico-0.14.0-macOS.dmg https://raw.githubusercontent.com/supersovo/Guerra-del-Pacifivo-Atenea/refs/heads/claude/friendly-keller-8ieqfo/rts/descargas/GuerraDelPacifico-0.14.0-macOS.dmg
-open ~/Downloads/GuerraDelPacifico-0.14.0-macOS.dmg
+curl -L -o ~/Downloads/GuerraDelPacifico-0.14.1-macOS.dmg https://raw.githubusercontent.com/supersovo/Guerra-del-Pacifivo-Atenea/refs/heads/claude/friendly-keller-8ieqfo/rts/descargas/GuerraDelPacifico-0.14.1-macOS.dmg
+open ~/Downloads/GuerraDelPacifico-0.14.1-macOS.dmg
 ```
 
 Se abre la imagen de disco: arrastre *Guerra del Pacífico* sobre *Aplicaciones*
@@ -79,14 +79,26 @@ aplicación y se usa desde la Terminal:
 Para Linux de 64 bits (x86_64). En una terminal:
 
 ```sh
-curl -L -o ~/GuerraDelPacifico-0.14.0-linux.tar.gz https://raw.githubusercontent.com/supersovo/Guerra-del-Pacifivo-Atenea/refs/heads/claude/friendly-keller-8ieqfo/rts/descargas/GuerraDelPacifico-0.14.0-linux.tar.gz
-tar -xzf ~/GuerraDelPacifico-0.14.0-linux.tar.gz -C ~
+curl -L -o ~/GuerraDelPacifico-0.14.1-linux.tar.gz https://raw.githubusercontent.com/supersovo/Guerra-del-Pacifivo-Atenea/refs/heads/claude/friendly-keller-8ieqfo/rts/descargas/GuerraDelPacifico-0.14.1-linux.tar.gz
+tar -xzf ~/GuerraDelPacifico-0.14.1-linux.tar.gz -C ~
 ~/GuerraDelPacifico/GuerraDelPacifico
 ```
 
 `~/GuerraDelPacifico/GuerraDelPacifico` abre el cliente 3D,
 `~/GuerraDelPacifico/GuerraDelPacificoClasico` la versión clásica y
 `~/GuerraDelPacifico/ServidorSalitre --help` explica el servidor dedicado.
+
+## Novedades de la 0.14.1
+
+- **La cantinera chilena, con su arte propio**: en el juego (el cliente 3D) la
+  cantinera de Chile es ahora una figura hecha a partir de su lámina pintada:
+  pañuelo rojo, chaqueta azul con vivos rojos, el barril a la espalda, el bolso
+  con la cruz roja y la taza en la mano. Marcha meciéndose como un soldadito de
+  plomo, se inclina al curar y cae con su propia figura. Su retrato pintado
+  aparece en la ficha de la batalla y en el Archivo histórico.
+- Es el primer paso del arte nuevo: las demás unidades (y las cantineras de las
+  otras naciones) se irán reemplazando de a una; mientras tanto se ven como antes.
+- La 0.14.1 juega en red con la 0.14.0 y la 0.13.0 (mismos datos y protocolo).
 
 ## Novedades de la 0.14.0
 

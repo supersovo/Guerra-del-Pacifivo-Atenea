@@ -8,7 +8,7 @@ config_version=5
 
 config/name="Guerra del Pacífico: Salitre y Pólvora"
 config/description="Cliente 3D del RTS de la Guerra del Pacífico (1879-1884)."
-config/version="0.14.0"
+config/version="0.14.1"
 run/main_scene="res://escenas/menu.tscn"
 config/features=PackedStringArray("4.7", "Forward Plus")
 config/icon="res://icono.svg"
