@@ -4,7 +4,8 @@ Lo que se pone en esta carpeta reemplaza, unidad por unidad, a lo que el cliente
 dibuja por código. Lo que falta se sigue viendo como siempre, así que se puede
 agregar de a poco. El código que lo carga está en `codigo/mundo/arte.gd`.
 
-Hasta ahora: la cantinera chilena (retrato y modelo 3D).
+Hasta ahora: la cantinera chilena (retrato y modelo 3D, sin esqueleto) y el infante de
+línea chileno (modelo 3D con esqueleto y cuatro animaciones).
 
 ## Retratos (la ficha de la batalla y el Archivo histórico)
 
@@ -27,6 +28,8 @@ del catálogo (`datos/catalogo.json`, campo `forma` de cada tipo).
   nombre del modelo dice cuál es cuál.
 - Si no las trae, la figura se bambolea al marchar (como un soldadito llevado de la
   mano), se inclina en la acción y cae de espaldas, como las figuras del juego.
+- Cada figura empieza sus animaciones en bucle en un momento al azar, para que una tropa
+  no marche ni respire toda al mismo compás.
 - No hace falta pintar el color del jugador: la figura va sobre una peana de ese color
   (más ancha si el modelo pisa ancho, como una falda).
 - Los materiales quedan casi mates: una pintura ya trae su luz, y el reflejo del sol
@@ -55,12 +58,15 @@ Para revisar un modelo sin jugar:
     godot --path godot --rendering-method gl_compatibility -s res://pruebas/vitrina.gd -- \
         --faccion=chile --vista=tropas --enfocar=cantinera --salida=/tmp/cantinera.png
 
-## Modelos sin color
+## Modelos sin color o sin animaciones
 
 Si la herramienta que convierte la imagen en 3D entrega solo la forma (sin textura),
-`herramientas/pintar_modelo.py` la pinta con su lámina de referencia y la deja aquí;
-la lámina, el modelo original y la receta de cada uno están en `arte_fuente/` (ver su
-LEEME). Así se hizo la cantinera.
+`herramientas/pintar_modelo.py` la pinta con su lámina de referencia y la deja aquí. Si
+trae esqueleto (el «rig» de Hi3D) pero no animaciones, `herramientas/armar_modelo.py`
+la aligera conservando el esqueleto y los pesos, la pinta igual y le hace las animaciones
+de la infantería (quieto, marcha, fuego y muerte). La lámina, el modelo original y la
+receta de cada uno están en `arte_fuente/` (ver su LEEME). Así se hicieron la cantinera
+(la primera) y el infante (la segunda).
 
 `pruebas/arte/figura_prueba.glb` es un muñeco de ejemplo para las pruebas (no va en el
 juego); `pruebas/hacer_figura_prueba.gd` lo vuelve a generar.

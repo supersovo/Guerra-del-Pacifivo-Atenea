@@ -21,18 +21,18 @@ El .json de cada modelo (las rutas, relativas a él) lleva el modelo de la herra
 lámina, la salida (sin extensión) y las vistas: un punto de la lámina dentro de la figura de
 esa vista, el rumbo de la cámara (0: de frente, desde +Z; 180: de espaldas), la fila desde la
 que hay sombra pintada en el suelo (no cuenta en el ajuste), las alzadas que se prueban y el
-umbral de lo que se pinta (cuánto tiene que mirar a la cámara una cara). Ver
-arte_fuente/LEEME.md.
+umbral de lo que se pinta (cuánto tiene que mirar a la cámara una cara). Con "recolorear" se
+cambia el tono de una zona de la lámina antes de pintar (el pantalón celeste por el rojo del
+reglamento). Ver arte_fuente/LEEME.md.
+
+Los modelos con esqueleto se arman con herramientas/armar_modelo.py, que usa esta pintura.
 """
 import json
 import struct
 import sys
 from pathlib import Path
 
-import fast_simplification
 import numpy as np
-import trimesh
-import xatlas
 from PIL import Image, ImageDraw
 from scipy import ndimage, sparse
 from scipy.sparse.csgraph import dijkstra
@@ -40,6 +40,8 @@ from scipy.sparse.csgraph import dijkstra
 
 def figura_grande(ruta, caras):
     """La figura con más caras del modelo, aligerada: (vértices, caras, normales, aristas)."""
+    import fast_simplification
+    import trimesh
     escena = trimesh.load(ruta, process=False)
     m = list(escena.geometry.values())[0] if isinstance(escena, trimesh.Scene) else escena
     solo = trimesh.Trimesh(vertices=m.vertices.copy(), faces=m.faces.copy(), process=False)
@@ -75,9 +77,42 @@ def triangulos(puntos, caras, ancho, alto):
         yield t, y0, x0, l1, l2, 1 - l1 - l2
 
 
+def recolorear(img, reglas):
+    """Cambia el tono de zonas de la lámina (rgba de 0 a 1). Cada regla: {"tono": [desde, hasta]
+    (grados), "a": tono nuevo, "filas": [y0, y1], "valor_min", "saturacion_min" y "oscurecer"
+    (por cuánto se multiplica el brillo)}."""
+    rgb = img[..., :3]
+    mx, mn = rgb.max(-1), rgb.min(-1)
+    d = np.maximum(mx - mn, 1e-6)
+    r, g, b = rgb[..., 0], rgb[..., 1], rgb[..., 2]
+    tono = np.where(mx == r, ((g - b) / d) % 6, np.where(mx == g, (b - r) / d + 2, (r - g) / d + 4)) * 60
+    sat = np.where(mx > 0, (mx - mn) / np.maximum(mx, 1e-6), 0)
+    filas = np.arange(img.shape[0])[:, None]
+    for regla in reglas:
+        t0, t1 = regla["tono"]
+        y0, y1 = regla.get("filas", [0, img.shape[0]])
+        zona = ((tono >= t0) & (tono <= t1) & (mx >= regla.get("valor_min", 0)) & (sat >= regla.get("saturacion_min", 0))
+                & (filas >= y0) & (filas < y1) & (img[..., 3] > 0.5))
+        h = float(regla["a"]) / 60.0
+        v = mx * float(regla.get("oscurecer", 1.0))
+        sn = np.maximum(sat, float(regla.get("saturacion_nueva", 0)))
+        c = v * sn
+        x = c * (1 - abs(h % 2 - 1))
+        m = v - c
+        k = int(h) % 6
+        nuevo = [(c, x, 0), (x, c, 0), (0, c, x), (0, x, c), (x, 0, c), (c, 0, x)][k]
+        for i in range(3):
+            canal = nuevo[i] + m if not isinstance(nuevo[i], int) else m
+            rgb[..., i] = np.where(zona, canal, rgb[..., i])
+        print(f"recoloreado: {int(zona.sum())} píxeles de tono {t0}-{t1} a {regla['a']}")
+    return img
+
+
 class Lamina:
-    def __init__(self, ruta):
+    def __init__(self, ruta, reglas=()):
         self.img = np.asarray(Image.open(ruta).convert("RGBA")).astype(np.float32) / 255.0
+        if reglas:
+            self.img = recolorear(self.img, reglas)
         self.alto, self.ancho = self.img.shape[:2]
         self.manchas, _ = ndimage.label(self.img[..., 3] > 0.5)
 
@@ -329,25 +364,38 @@ def main(ruta_conf):
     ruta_conf = Path(ruta_conf)
     conf = json.loads(ruta_conf.read_text(encoding="utf-8"))
     base = ruta_conf.parent
+    import xatlas
     V, F, N, aristas = figura_grande(base / conf["modelo"], int(conf.get("caras", 14000)))
-    lamina = Lamina(base / conf["lamina"])
-    fuentes = []
-    for v in conf["vistas"]:
-        fuentes.append(Vista(v, lamina, V, F))
-        fuentes += [Envoltura(e, lamina) for e in conf.get("envolver", []) if e.get("despues_de") == v["nombre"]]
+    lamina = Lamina(base / conf["lamina"], conf.get("recolorear", ()))
+    fuentes = armar_fuentes(conf, lamina, V, F)
     C = colores_vertices(fuentes, V, N, aristas)
     vmap, caras, uv = xatlas.parametrize(V, F)
     lado = int(conf.get("textura", 1024))
     tex = hornear(fuentes, V[vmap], N[vmap], C[vmap], uv, caras, lado)
-    # al sol del juego la pintura (que ya trae su luz) se ve lavada: algo más de color, menos brillo
+    salida = (base / conf["salida"]).resolve()
+    textura = guardar_textura(tex, conf, salida)
+    escribir_glb(salida.with_suffix(".glb"), V[vmap], N[vmap], uv, caras, textura.name)
+    print(f"listo: {salida.with_suffix('.glb')} ({len(caras)} caras) y {textura.name} ({lado}×{lado})")
+
+
+def armar_fuentes(conf, lamina, V, F):
+    """Las vistas de la receta, en orden de prioridad, con las envolturas después de su vista."""
+    fuentes = []
+    for v in conf["vistas"]:
+        fuentes.append(Vista(v, lamina, V, F))
+        fuentes += [Envoltura(e, lamina) for e in conf.get("envolver", []) if e.get("despues_de") == v["nombre"]]
+    return fuentes
+
+
+def guardar_textura(tex, conf, salida):
+    """Guarda la textura horneada como JPEG junto a la salida. Al sol del juego la pintura (que
+    ya trae su luz) se ve lavada: algo más de color y menos brillo."""
     gris = tex.mean(-1, keepdims=True)
     tex = (gris + (tex - gris) * float(conf.get("saturacion", 1.15))) * float(conf.get("brillo", 0.9))
-    salida = (base / conf["salida"]).resolve()
     salida.parent.mkdir(parents=True, exist_ok=True)
     textura = salida.with_suffix(".jpg")
     Image.fromarray((np.clip(tex, 0, 1) * 255).astype(np.uint8), "RGB").save(textura, quality=92, optimize=True)
-    escribir_glb(salida.with_suffix(".glb"), V[vmap], N[vmap], uv, caras, textura.name)
-    print(f"listo: {salida.with_suffix('.glb')} ({len(caras)} caras) y {textura.name} ({lado}×{lado})")
+    return textura
 
 
 if __name__ == "__main__":

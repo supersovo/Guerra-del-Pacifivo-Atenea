@@ -435,7 +435,8 @@ godot/
   ancho, y los materiales quedan casi mates (una pintura ya trae su luz). Las
   pruebas lo revisan con una figura de prueba que genera el propio Godot
   (`pruebas/hacer_figura_prueba.gd`), exportada a glTF como lo haría una
-  herramienta de modelado, y con la cantinera chilena, el primer modelo.
+  herramienta de modelado, con la cantinera chilena (sin esqueleto) y con el
+  infante chileno (con esqueleto y animaciones).
 - **Pintar un modelo sin color.** Las herramientas que convierten una imagen en
   un modelo 3D a veces entregan solo la forma, y una figura por cada vista de la
   lámina. `herramientas/pintar_modelo.py` separa la figura grande, la aligera,
@@ -444,8 +445,14 @@ godot/
   colores sobre lo que cada vista muestra (con una prueba de profundidad), envuelve
   las piezas deformadas con su dibujo y rellena lo que ninguna vista muestra con
   el color visto más cercano por la superficie, sin cruzar pliegues; hornea la
-  textura y escribe el `.glb`. Las láminas, los modelos originales y la receta de
-  cada uno quedan en `arte_fuente/`.
+  textura y escribe el `.glb`. Si el modelo trae esqueleto (el «rig» de Hi3D),
+  `herramientas/armar_modelo.py`, con Blender como módulo de Python, lo aligera
+  conservando el esqueleto y los pesos, lo pinta igual (las piernas, envueltas con
+  la de la lámina siguiendo sus huesos, si la herramienta las abrió distinto del
+  dibujo) y le hace las animaciones de la infantería (quieto, marcha, fuego y
+  muerte), reconociendo los huesos por su lugar en el esqueleto y no por su nombre.
+  Las láminas, los modelos originales y la receta de cada uno quedan en
+  `arte_fuente/`.
 - **Niebla.** El cliente calcula la visibilidad con las mismas reglas que el
   servidor (incluido el redondeo de Python en los radios) y la sube a una
   textura de una casilla por píxel (visible, explorada, desconocida) que leen

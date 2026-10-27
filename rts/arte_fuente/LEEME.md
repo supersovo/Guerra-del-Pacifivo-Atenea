@@ -27,3 +27,23 @@ No va en el juego.
   cámara una cara para pintarla desde esa vista.
 - `envolver`: piezas que se envuelven con un rectángulo de la lámina alrededor de un eje
   vertical (caja y eje en las coordenadas del modelo de Hi3D; el rectángulo, en píxeles).
+
+## infante/
+
+- `lamina.webp`: la lámina del infante de línea (el del quepí «6»), de frente.
+- `modelo_hi3d_rig.glb`: lo que entregó Hi3D con su esqueleto («rig»): una sola figura de
+  500 000 triángulos, con un esqueleto humano de 37 huesos (cadera, columna, pecho, cuello,
+  cabeza, brazos con dedos y piernas) y sus pesos, sin color ni animaciones.
+- `receta.json`: la receta para `herramientas/armar_modelo.py`, que necesita Blender como
+  módulo de Python (pide Python 3.11):
+
+      uv venv --python 3.11 blender && uv pip install --python blender bpy scipy pillow
+      blender/bin/python herramientas/armar_modelo.py arte_fuente/infante/receta.json
+
+  Aligera la figura a 10 000 triángulos conservando el esqueleto y los pesos, la pinta con
+  la vista de frente de la lámina, pasa el pantalón celeste al rojo del reglamento chileno
+  («recolorear»), envuelve las piernas con la pierna de adelante de la lámina siguiendo sus
+  huesos («piernas»: Hi3D las abrió distinto del dibujo) y le hace las animaciones de la
+  infantería: quieto (en guardia), marcha (las piernas alternadas, el fusil firme), fuego
+  (el culatazo) y muerte (cae de espaldas). Escribe `godot/arte/unidades/infante/
+  infante_chile.glb`, su `.jpg` y su `.json` (el paso de la marcha).

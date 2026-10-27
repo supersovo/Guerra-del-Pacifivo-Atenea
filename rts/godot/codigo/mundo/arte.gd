@@ -143,8 +143,12 @@ static func animar(figura: Node3D, m: Dictionary, estado: String, velocidad := 1
 		return
 	rep.speed_scale = velocidad if e == "marcha" else 1.0
 	if figura.get_meta("estado") != e:
+		var primera: bool = figura.get_meta("estado") == ""
 		figura.set_meta("estado", e)
 		rep.play(animaciones[e], 0.2)
+		if primera and e in EN_BUCLE:
+			# que una tropa no marche (ni respire) toda al mismo compás
+			rep.seek(randf() * rep.current_animation_length, true)
 
 
 ## Lo ancho de la figura ya instanciada (en casillas), para encuadrarla.

@@ -677,6 +677,7 @@ func _prueba_arte() -> void:
 	tropas.free()
 	ter.nodo.free()
 	_prueba_cantinera_real()
+	_prueba_infante_real()
 
 
 ## La cantinera chilena de arte/unidades/: un modelo sin esqueleto, que se bambolea al marchar,
@@ -737,3 +738,54 @@ func _prueba_cantinera_real() -> void:
 	efx.free()
 	tropas.free()
 	ter.nodo.free()
+
+
+## El infante chileno de arte/unidades/: el esqueleto de Hi3D con las animaciones de
+## herramientas/armar_modelo.py (quieto, marcha, fuego y muerte).
+func _prueba_infante_real() -> void:
+	var tipo: Dictionary = cat.tipos_por_id["infante"]
+	var m := Arte.modelo("infante", "chile", Tropas.alto_juego(tipo))
+	_ok(not m.is_empty(), "el infante chileno de arte/unidades/ se carga")
+	if m.is_empty():
+		return
+	var anims: Dictionary = m["animaciones"]
+	_igual([anims.get("quieto", ""), anims.get("marcha", ""), anims.get("accion", ""), anims.get("muerte", "")],
+			["Idle", "Walk", "Fire", "Death"], "con sus cuatro animaciones, por sus nombres usuales")
+	_ok(absf(float(m["marcha"]) - 0.759) < 0.01, "y el paso de su marcha, del .json")
+	var muestra := Arte.instanciar(m)
+	var caja := Arte._caja(muestra, Transform3D())
+	_ok(absf(caja.size.y - Tropas.alto_juego(tipo)) < 0.05 and absf(caja.position.y) < 0.03,
+			"de pie y del alto de la figura del juego (%.3f)" % caja.size.y)
+	_ok(not muestra.find_children("*", "Skeleton3D", true, false).is_empty(), "con su esqueleto")
+	muestra.free()
+	var est := Estado.new(cat, _inicio_falso())
+	est.aplicar({"t": "inst", "k": 32, "completa": 1, "e": [[40, int(tipo["idx"]), 0, 100, 100, 55, 0, 0, 0]],
+			"j": {"d": 250, "a": 40, "p": 3, "pm": 10, "m": [], "i": [], "h": [], "mi": 0, "vi": [4, 30]}})
+	var ter := Terreno.new(est.terreno, est.niveles, est.w, est.h, cat.colores_terreno)
+	var tropas := Tropas.new(est, ter)
+	root.add_child(tropas)
+	tropas.actualizar(0.05, {})
+	var f: Node3D = tropas.figuras.get(40)
+	_ok(f != null, "en la batalla, con su modelo")
+	if f == null:
+		tropas.free()
+		ter.nodo.free()
+		return
+	_igual(f.get_meta("estado"), "quieto", "en guardia")
+	for k in 8:
+		est.ents[40].x += 3.0
+		tropas.actualizar(0.05, {})
+	_igual(f.get_meta("estado"), "marcha", "al moverse, marcha")
+	var rep: AnimationPlayer = f.get_meta("reproductor")
+	_igual(rep.current_animation, "Walk", "con su animación de marcha")
+	var efx := Efectos.new()
+	root.add_child(efx)
+	var caida := tropas.soltar_figura(40)
+	efx.caido_figura(caida, Vector3(3, 0, 3), 0.0, true)
+	efx._process(0.6)
+	_igual(rep.current_animation, "Death", "al caer, su animación de muerte")
+	_ok(absf(caida.rotation.z) < 0.001, "sin el vuelco de las figuras sin esqueleto")
+	efx.free()
+	tropas.free()
+	ter.nodo.free()
+
