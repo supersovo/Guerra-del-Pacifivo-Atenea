@@ -1,0 +1,400 @@
+# Integración continua del RTS «Guerra del Pacífico: Salitre y Pólvora» (carpeta rts/).
+# - Pruebas en Linux, Windows y macOS (simulación, red, servidor y cliente sin pantalla).
+# - Cliente 3D de Godot: pruebas, prueba de humo contra el servidor real y capturas.
+# - El cliente 3D exportado para Windows, macOS y Linux (en Linux, con las plantillas en caché).
+# - Instalador de Windows (PyInstaller + Inno Setup), aplicación para macOS (Intel y Apple
+#   Silicon) en un .dmg y versión portátil para Linux: cada uno con el cliente 3D (el juego
+#   principal), la versión clásica (pygame) y el servidor adentro, y pruebas de humo de los
+#   dos clientes con el servidor empaquetado.
+# - Imagen Docker del servidor dedicado.
+# - A pedido (Run workflow), guarda el instalador, el .dmg o la versión para Linux en
+#   rts/descargas/ de la rama.
+# - Con una etiqueta v* (por ejemplo v0.9.0) publica los archivos en una versión de GitHub.
+name: RTS Salitre y Pólvora
+
+on:
+  push:
+    branches: ["**"]
+    tags: ["v*"]
+    paths: ["rts/**", ".github/workflows/rts.yml"]
+  workflow_dispatch:
+    inputs:
+      guardar_instalador:
+        description: "Guardar el instalador de Windows en rts/descargas/ de la rama"
+        type: boolean
+        default: false
+      guardar_mac:
+        description: "Guardar la aplicación para macOS (.dmg) en rts/descargas/ de la rama"
+        type: boolean
+        default: false
+      guardar_linux:
+        description: "Guardar la versión portátil para Linux (.tar.gz) en rts/descargas/ de la rama"
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: rts-${{ github.ref }}-${{ github.event_name }}
+  cancel-in-progress: true
+
+env:
+  PYTHON_VERSION: "3.12"
+  GODOT_VERSION: "4.7.2"
+
+jobs:
+  pruebas:
+    name: Pruebas (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    defaults:
+      run:
+        working-directory: rts
+    env:
+      SDL_VIDEODRIVER: dummy
+      SDL_AUDIODRIVER: dummy
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+          cache-dependency-path: rts/requirements-dev.txt
+      - name: Dependencias
+        run: python -m pip install -r requirements-dev.txt
+      - name: Revisión estática (pyflakes)
+        run: python -m pyflakes salitre herramientas instalador docker tests
+      - name: Pruebas
+        run: python -m pytest -q
+
+  godot:
+    name: Cliente 3D (Godot)
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    defaults:
+      run:
+        working-directory: rts
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+          cache-dependency-path: rts/requirements-dev.txt
+      - name: Dependencias
+        run: python -m pip install -r requirements-dev.txt
+      - name: Godot ${{ env.GODOT_VERSION }}
+        run: |
+          curl -sSfL -o "$RUNNER_TEMP/godot.zip" \
+            "https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-stable/Godot_v${GODOT_VERSION}-stable_linux.x86_64.zip"
+          unzip -q "$RUNNER_TEMP/godot.zip" -d "$RUNNER_TEMP/godot"
+          echo "SALITRE_GODOT=$RUNNER_TEMP/godot/Godot_v${GODOT_VERSION}-stable_linux.x86_64" >> "$GITHUB_ENV"
+      - name: Pruebas del cliente (catálogo, niebla, campañas, prueba de humo, pantallas, campaña y multijugador)
+        run: python -m pytest -v tests/test_godot.py
+      - name: Capturas de la batalla y de las pantallas (Xvfb y render por software)
+        continue-on-error: true
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y -q xvfb libgl1-mesa-dri
+          mkdir -p "$RUNNER_TEMP/capturas"
+          SALITRE_PYTHON="$(which python)" SALITRE_DATOS_USUARIO="$RUNNER_TEMP/datos" \
+            xvfb-run -a -s "-screen 0 1280x720x24" "$SALITRE_GODOT" --rendering-method gl_compatibility \
+            --rendering-driver opengl3 --path godot --resolution 1280x720 \
+            -- --prueba-humo --captura="$RUNNER_TEMP/capturas/batalla.png" --capturas="$RUNNER_TEMP/capturas"
+          SALITRE_DATOS_USUARIO="$RUNNER_TEMP/datos2" \
+            xvfb-run -a -s "-screen 0 1280x720x24" "$SALITRE_GODOT" --rendering-method gl_compatibility \
+            --rendering-driver opengl3 --path godot --resolution 1280x720 \
+            -- --recorrido=pantallas --captura="$RUNNER_TEMP/capturas/pantallas"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: capturas-cliente-godot
+          path: ${{ runner.temp }}/capturas
+          if-no-files-found: ignore
+
+  cliente3d:
+    name: Exportar el cliente 3D
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: rts
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      - name: Godot ${{ env.GODOT_VERSION }}
+        run: |
+          curl -sSfL -o "$RUNNER_TEMP/godot.zip" \
+            "https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-stable/Godot_v${GODOT_VERSION}-stable_linux.x86_64.zip"
+          unzip -q "$RUNNER_TEMP/godot.zip" -d "$RUNNER_TEMP/godot"
+          echo "SALITRE_GODOT=$RUNNER_TEMP/godot/Godot_v${GODOT_VERSION}-stable_linux.x86_64" >> "$GITHUB_ENV"
+      # solo las plantillas de Windows, macOS y Linux (unos 300 MB de los 1,3 GB del archivo oficial)
+      - name: Plantillas de exportación (en caché)
+        uses: actions/cache@v4
+        with:
+          path: ~/.local/share/godot/export_templates/${{ env.GODOT_VERSION }}.stable
+          key: godot-plantillas-${{ env.GODOT_VERSION }}-windows-macos-linux
+      - name: Exportar para Windows, macOS y Linux
+        run: python herramientas/exportar_cliente3d.py --sistemas windows,macos,linux
+      - uses: actions/upload-artifact@v4
+        with:
+          name: cliente3d-windows
+          path: rts/dist/cliente3d/windows/
+          if-no-files-found: error
+      - uses: actions/upload-artifact@v4
+        with:
+          name: cliente3d-macos
+          path: rts/dist/cliente3d/macos/
+          if-no-files-found: error
+      - uses: actions/upload-artifact@v4
+        with:
+          name: cliente3d-linux
+          path: rts/dist/cliente3d/linux/
+          if-no-files-found: error
+
+  windows:
+    name: Instalador de Windows
+    needs: [pruebas, cliente3d]
+    runs-on: windows-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: rts
+        shell: pwsh
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+          cache-dependency-path: rts/requirements.txt
+      - name: Dependencias
+        env:
+          # el cargador de PyInstaller se compila aquí: los antivirus confunden menos el
+          # ejecutable con programas maliciosos que usan el cargador precompilado
+          PYINSTALLER_COMPILE_BOOTLOADER: "1"
+        run: |
+          python -m pip install -r requirements.txt
+          python -m pip install --no-binary pyinstaller pyinstaller
+      - name: Comprobar que el cargador se compiló aquí
+        shell: python
+        run: |
+          import glob, hashlib, os, subprocess, sys, zipfile
+          import PyInstaller
+          rel = "PyInstaller/bootloader/Windows-64bit-intel/runw.exe"
+          propio = hashlib.sha256(open(os.path.join(os.path.dirname(PyInstaller.__file__), "..", rel), "rb").read()).hexdigest()
+          subprocess.run([sys.executable, "-m", "pip", "download", "-q", "--no-deps", "--only-binary", ":all:",
+                          f"pyinstaller=={PyInstaller.__version__}", "-d", "oficial"], check=True)
+          oficial = hashlib.sha256(zipfile.ZipFile(glob.glob("oficial/*.whl")[0]).read(rel)).hexdigest()
+          print("cargador propio:  ", propio)
+          print("cargador oficial: ", oficial)
+          if propio == oficial:
+              sys.exit("Se está usando el cargador precompilado de PyInstaller")
+      - name: Ejecutables (PyInstaller)
+        run: python -m PyInstaller --noconfirm instalador/salitre.spec
+      - uses: actions/download-artifact@v4
+        with:
+          name: cliente3d-windows
+          path: ${{ runner.temp }}/cliente3d
+      - name: El cliente 3D junto a la versión clásica y el servidor
+        run: Copy-Item "$env:RUNNER_TEMP\cliente3d\GuerraDelPacifico.exe" "dist\GuerraDelPacifico\GuerraDelPacifico.exe"
+      - name: Prueba de humo de la versión clásica
+        env:
+          SDL_VIDEODRIVER: dummy
+          SDL_AUDIODRIVER: dummy
+          SALITRE_DATOS_USUARIO: ${{ runner.temp }}\salitre
+        run: |
+          $p = Start-Process -FilePath "dist\GuerraDelPacifico\GuerraDelPacificoClasico.exe" -ArgumentList "--prueba-humo" -Wait -PassThru
+          Get-Content "$env:SALITRE_DATOS_USUARIO\registros\cliente.log" -Tail 25
+          if ($p.ExitCode -ne 0) { throw "La prueba de humo falló con código $($p.ExitCode)" }
+          & "dist\GuerraDelPacifico\ServidorSalitre.exe" --help
+          if ($LASTEXITCODE -ne 0) { throw "El servidor dedicado no arranca" }
+      - name: Prueba de humo del cliente 3D con el servidor empaquetado
+        run: |
+          python instalador/probar_cliente3d.py dist\GuerraDelPacifico\GuerraDelPacifico.exe
+          if ($LASTEXITCODE -ne 0) { throw "La prueba de humo del cliente 3D falló" }
+      - name: Instalador (Inno Setup)
+        run: |
+          $iscc = Join-Path ${env:ProgramFiles(x86)} "Inno Setup 6\ISCC.exe"
+          if (-not (Test-Path $iscc)) {
+            choco install innosetup --no-progress -y
+            if ($LASTEXITCODE -ne 0) { throw "No se pudo instalar Inno Setup" }
+          }
+          $version = (python -c "import salitre; print(salitre.VERSION)").Trim()
+          Push-Location instalador
+          & $iscc "/DVersion=$version" salitre.iss
+          if ($LASTEXITCODE -ne 0) { throw "Inno Setup falló" }
+          Pop-Location
+      # dos artefactos separados y sin archivos comprimidos anidados: los navegadores
+      # desconfían de un zip que trae otro zip con ejecutables
+      - uses: actions/upload-artifact@v4
+        with:
+          name: instalador-windows
+          path: rts/instalador/Salida/*.exe
+          if-no-files-found: error
+      - uses: actions/upload-artifact@v4
+        with:
+          name: portatil-windows
+          path: rts/dist/
+          if-no-files-found: error
+
+  macos:
+    name: Aplicación para macOS
+    needs: [pruebas, cliente3d]
+    runs-on: macos-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: rts
+    env:
+      # una sola aplicación para Intel y Apple Silicon (el Python de setup-python es el universal2 de python.org)
+      SALITRE_ARQUITECTURA: universal2
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+          cache-dependency-path: rts/requirements.txt
+      - uses: actions/download-artifact@v4
+        with:
+          name: cliente3d-macos
+          path: rts/dist/cliente3d/macos
+      - name: Construir, probar y empaquetar (.app y .dmg)
+        run: sh instalador/construir_mac.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: aplicacion-macos
+          path: rts/dist/*.dmg
+          if-no-files-found: error
+
+  linux:
+    name: Versión portátil para Linux
+    needs: [pruebas, cliente3d]
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: rts
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+          cache-dependency-path: rts/requirements.txt
+      - uses: actions/download-artifact@v4
+        with:
+          name: cliente3d-linux
+          path: rts/dist/cliente3d/linux
+      - name: Construir y probar
+        run: sh instalador/construir.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: linux
+          path: rts/dist/*.tar.gz
+          if-no-files-found: error
+
+  docker:
+    name: Imagen del servidor dedicado
+    needs: pruebas
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      - name: Construir la imagen
+        run: docker build -f rts/docker/Dockerfile -t salitre-servidor rts
+      - name: Probar el contenedor
+        working-directory: rts
+        run: |
+          docker run -d --name salitre -p 47800:47800 salitre-servidor --nombre "Prueba CI" --sin-lan
+          if ! python docker/probar_servidor.py 127.0.0.1 47800 60; then docker logs salitre; exit 1; fi
+          docker logs salitre
+
+  descargas:
+    name: Guardar en rts/descargas
+    if: github.event_name == 'workflow_dispatch' && (inputs.guardar_instalador || inputs.guardar_mac || inputs.guardar_linux)
+    needs: [windows, macos, linux]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      WINDOWS: ${{ inputs.guardar_instalador }}
+      MAC: ${{ inputs.guardar_mac }}
+      LINUX: ${{ inputs.guardar_linux }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Retirar las versiones anteriores
+        run: |
+          if [ "$WINDOWS" = true ]; then git rm -q --ignore-unmatch 'rts/descargas/*.exe'; fi
+          if [ "$MAC" = true ]; then git rm -q --ignore-unmatch 'rts/descargas/*.dmg'; fi
+          if [ "$LINUX" = true ]; then git rm -q --ignore-unmatch 'rts/descargas/*.tar.gz'; fi
+      - if: inputs.guardar_instalador
+        uses: actions/download-artifact@v4
+        with:
+          name: instalador-windows
+          path: rts/descargas
+      - if: inputs.guardar_mac
+        uses: actions/download-artifact@v4
+        with:
+          name: aplicacion-macos
+          path: rts/descargas
+      - if: inputs.guardar_linux
+        uses: actions/download-artifact@v4
+        with:
+          name: linux
+          path: rts/descargas
+      - name: Subir los archivos a la rama
+        run: |
+          # GitHub no acepta archivos de más de 100 MB en un repositorio
+          grande=$(find rts/descargas -type f -size +95M)
+          if [ -n "$grande" ]; then echo "Demasiado grandes para la rama: $grande" >&2; exit 1; fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A rts/descargas
+          if git diff --cached --quiet; then echo "Nada nuevo que guardar"; exit 0; fi
+          titulo="Descargas en rts/descargas"
+          if [ "$WINDOWS" = true ] && [ "$MAC" != true ] && [ "$LINUX" != true ]; then titulo="Instalador de Windows en rts/descargas"; fi
+          if [ "$MAC" = true ] && [ "$WINDOWS" != true ] && [ "$LINUX" != true ]; then titulo="Aplicación para macOS en rts/descargas"; fi
+          if [ "$LINUX" = true ] && [ "$WINDOWS" != true ] && [ "$MAC" != true ]; then titulo="Versión para Linux en rts/descargas"; fi
+          git commit -m "$titulo" \
+                     -m "Copiado por la integración continua desde los artefactos de la ejecución $GITHUB_RUN_ID:" \
+                     -m "$(git diff --cached --name-status)" \
+                     -m "Claude-Session: https://claude.ai/code/session_01NLZ5idHufDYXwwcUbxeAdb"
+          # por si la rama avanzó mientras se construía
+          git pull --rebase
+          git push
+
+  publicar:
+    name: Publicar versión
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [windows, macos, linux, docker]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: artefactos
+      - name: Preparar los archivos de la versión
+        run: |
+          mkdir publicar
+          cp artefactos/instalador-windows/*.exe publicar/
+          cp artefactos/aplicacion-macos/*.dmg publicar/
+          (cd artefactos/portatil-windows && zip -qr "../../publicar/GuerraDelPacifico-${GITHUB_REF_NAME#v}-windows-portatil.zip" GuerraDelPacifico)
+          cp artefactos/linux/*.tar.gz publicar/
+          ls -la publicar
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: publicar/*
+          generate_release_notes: true

@@ -1,0 +1,17 @@
+{
+	"modelo": "modelo_hi3d.glb",
+	"lamina": "lamina.webp",
+	"salida": "../../godot/arte/unidades/cantinera/cantinera_chile",
+	"caras": 14000,
+	"textura": 1024,
+	"saturacion": 1.15,
+	"brillo": 0.9,
+	"vistas": [
+		{"nombre": "frente", "punto": [300, 500], "rumbo": 0, "corte": 780, "alzadas": [0, 4, 8], "umbral": 0.12},
+		{"nombre": "espalda", "punto": [880, 700], "rumbo": 180, "corte": 850, "alzadas": [0, 8, 16, 24], "umbral": 0.25}
+	],
+	"envolver": [
+		{"nombre": "barril", "despues_de": "frente", "x": [-3.9, -1.2], "y": [3.9, 6.3], "z_max": 0.75,
+		 "eje": [-2.55, -0.25], "lamina_x": [850, 44], "lamina_y": [627, 752]}
+	]
+}

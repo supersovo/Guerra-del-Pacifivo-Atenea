@@ -1,0 +1,69 @@
+{
+  "_comentario": "Nombres de los veteranos del escalafón. Cada veterano recibe una semilla al ascender; servidor y clientes la convierten en el mismo nombre con estas listas. 'cuerpos' por nación y arma (o por unidad especial); 'buques': nombres para las cañoneras y transportes veteranos. Solo es presentación: no forma parte de la huella de los datos.",
+  "nombres": ["Juan", "José", "Pedro", "Manuel", "Francisco", "Antonio", "Luis", "Santiago", "Domingo", "Ramón",
+              "Pablo", "Agustín", "Tomás", "Ignacio", "Mariano", "Andrés", "Nicolás", "Miguel", "Bernardo", "Eleuterio",
+              "Abdón", "Belisario", "Florentino", "Hipólito", "Lorenzo", "Martín", "Rafael", "Toribio", "Zacarías", "Clodomiro",
+              "Juan de Dios", "José Miguel", "Fermín", "Saturnino", "Pascual", "Valentín"],
+  "nombres_mujer": ["Rosa", "María", "Carmen", "Juana", "Dolores", "Mercedes", "Manuela", "Filomena", "Candelaria", "Petrona",
+                    "Leonor", "Rosario", "Tránsito", "Clorinda", "Josefa", "Susana"],
+  "naciones": {
+    "chile": {
+      "apellidos": ["Soto", "González", "Muñoz", "Rojas", "Díaz", "Pérez", "Contreras", "Silva", "Morales", "Sepúlveda",
+                    "Fuentes", "Vergara", "Araya", "Castillo", "Tapia", "Reyes", "Carrasco", "Espinoza", "Bravo", "Riquelme",
+                    "Olivares", "Parra", "Valenzuela", "Jara", "Cortés", "Gallardo", "Salinas", "Navarrete", "Alarcón", "Henríquez"],
+      "cuerpos": {
+        "infanteria": ["Buin 1.º de Línea", "2.º de Línea", "3.º de Línea", "4.º de Línea", "Atacama", "Coquimbo", "Chacabuco",
+                       "Esmeralda", "Valparaíso", "Navales", "Lautaro", "Santiago", "Talca", "Chillán", "Bulnes", "Aconcagua",
+                       "Valdivia", "Curicó", "Concepción", "Artillería de Marina"],
+        "caballeria": ["Granaderos a Caballo", "Cazadores a Caballo", "Carabineros de Yungay"],
+        "artilleria": ["Regimiento de Artillería N.º 1", "Regimiento de Artillería N.º 2"],
+        "zapador": ["Zapadores"],
+        "ingeniero": ["Pontoneros", "Zapadores"]
+      },
+      "buques": ["Magallanes", "Covadonga", "Abtao", "Loa", "Amazonas", "Toltén", "Matías Cousiño", "Rímac"]
+    },
+    "peru": {
+      "apellidos": ["Quispe", "Mamani", "Huamán", "Flores", "Rodríguez", "García", "Sánchez", "Ramírez", "Torres", "Chávez",
+                    "Vargas", "Mendoza", "Gutiérrez", "Castro", "Rojas", "Salazar", "Condori", "Ríos", "Paredes", "Cáceres",
+                    "Valdivia", "Zegarra", "Ugarte", "Loayza", "Pinto", "Barreda", "Cornejo", "Llosa", "Delgado", "Ayala"],
+      "cuerpos": {
+        "infanteria": ["Zepita", "Ayacucho", "Puno", "Lima", "Cazadores del Cuzco", "Guardias de Arequipa", "Iquique",
+                       "2 de Mayo", "Callao", "Cazadores de la Guardia", "Provisional de Lima", "Huancayo"],
+        "caballeria": ["Húsares de Junín", "Guías", "Lanceros de Torata", "Flanqueadores de Tacna"],
+        "artilleria": ["Regimiento de Artillería 2 de Mayo", "Artillería de Campaña", "Artillería de Montaña"],
+        "torpedista": ["Cuerpo de Torpedistas"],
+        "montonero": ["Montoneros"],
+        "ingeniero": ["Cuerpo de Ingenieros"]
+      },
+      "buques": ["Unión", "Pilcomayo", "Manco Cápac", "Atahualpa", "Limeña", "Oroya", "Chalaco", "Talismán"]
+    },
+    "bolivia": {
+      "apellidos": ["Mamani", "Condori", "Quispe", "Choque", "Flores", "Vargas", "Gutiérrez", "Rojas", "Mendoza", "Arce",
+                    "Ticona", "Apaza", "Calle", "Limachi", "Fernández", "Rodríguez", "Pérez", "Salinas", "Villarroel", "Montes",
+                    "Ballivián", "Lanza", "Aguirre", "Ortiz", "Saavedra", "Pando", "Loza", "Tejada", "Guzmán", "Arandia"],
+      "cuerpos": {
+        "infanteria": ["Amarillos", "Sucre 2.º de Línea", "Aroma", "Loa", "Viedma", "Padilla", "Independencia", "Illimani",
+                       "Paucarpata", "Chorolque", "Murillo", "Tarija", "Alianza", "Grau"],
+        "caballeria": ["Escolta", "Coraceros", "Libres del Sur", "Húsares de Bolivia"],
+        "artilleria": ["Regimiento de Artillería"],
+        "colorado": ["Colorados"],
+        "ingeniero": ["Zapadores de Bolivia"]
+      },
+      "buques": ["Mejillones", "Antofagasta", "Litoral", "Cobija"]
+    },
+    "argentina": {
+      "apellidos": ["Fernández", "López", "Martínez", "Gómez", "Romero", "Álvarez", "Acosta", "Benítez", "Medina", "Herrera",
+                    "Sosa", "Ruiz", "Díaz", "Pereyra", "Giménez", "Molina", "Rojas", "Suárez", "Ledesma", "Ojeda",
+                    "Funes", "Cabral", "Quiroga", "Villafañe", "Arias", "Toledo", "Peralta", "Correa", "Ibarra", "Luna"],
+      "cuerpos": {
+        "infanteria": ["1.º de Infantería de Línea", "2.º de Infantería de Línea", "3.º de Infantería de Línea",
+                       "6.º de Infantería de Línea", "Guardia Nacional de Buenos Aires", "Guardia Nacional de Córdoba"],
+        "caballeria": ["Granaderos a Caballo", "1.º de Caballería", "3.º de Caballería", "Coraceros"],
+        "artilleria": ["Regimiento 1.º de Artillería"],
+        "baqueano": ["Baqueanos"],
+        "ingeniero": ["Batallón de Ingenieros"]
+      },
+      "buques": ["Uruguay", "Paraná", "Constitución", "República", "Bermejo", "Los Andes"]
+    }
+  }
+}

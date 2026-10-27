@@ -1,0 +1,18 @@
+{
+	"modelo": "modelo_hi3d_rig.glb",
+	"lamina": "lamina.webp",
+	"salida": "../../godot/arte/unidades/infante/infante_chile",
+	"caras": 10000,
+	"textura": 1024,
+	"saturacion": 1.1,
+	"brillo": 0.92,
+	"recolorear": [
+		{"tono": [205, 232], "a": 357, "filas": [540, 1024], "valor_min": 0.22, "saturacion_min": 0.3,
+		 "oscurecer": 0.85, "saturacion_nueva": 0.75}
+	],
+	"vistas": [
+		{"nombre": "frente", "punto": [450, 450], "rumbo": 0, "corte": 1024, "alzadas": [0, 4, 8], "umbral": 0.12}
+	],
+	"piernas": {"lamina_x": [428, 42], "lamina_y": [560, 975], "dobladillo": 0.44, "radio": 0.065},
+	"animaciones": "infante"
+}
