@@ -778,6 +778,7 @@ func _prueba_infante_real() -> void:
 	_igual(f.get_meta("estado"), "marcha", "al moverse, marcha")
 	var rep: AnimationPlayer = f.get_meta("reproductor")
 	_igual(rep.current_animation, "Walk", "con su animación de marcha")
+	_ok(absf(rep.get_animation("Walk").length - 1.0) < 0.01, "que dura un segundo, como la mide su .json")
 	var efx := Efectos.new()
 	root.add_child(efx)
 	var caida := tropas.soltar_figura(40)

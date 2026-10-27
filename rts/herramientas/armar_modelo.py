@@ -41,6 +41,9 @@ ALTO_JUEGO = 0.72 * 1.45     # alto de la figura de un infante en el juego (Trop
 def cargar(ruta):
     bpy.ops.wm.read_factory_settings(use_empty=True)
     bpy.ops.import_scene.gltf(filepath=str(ruta))
+    # Blender cuenta 24 cuadros por segundo: al exportar, los cuadros de las animaciones se
+    # pasan a segundos con los de la escena
+    bpy.context.scene.render.fps, bpy.context.scene.render.fps_base = FPS, 1
     arm = [o for o in bpy.context.scene.objects if o.type == "ARMATURE"]
     mallas = [o for o in bpy.context.scene.objects if o.type == "MESH"]
     if not arm or not mallas:
